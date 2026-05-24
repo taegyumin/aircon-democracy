@@ -1,5 +1,14 @@
+import {
+  GraduationCap,
+  Library,
+  Coffee,
+  TrainFront,
+  Bus,
+  Building2,
+  MapPin,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { TOKEN } from '../lib/tokens';
-import { PlaceIcon } from './Icons';
 import { brandFor } from '../lib/brands';
 import type { PlaceType } from '../lib/places';
 
@@ -9,6 +18,16 @@ interface Props {
   size?: number;
   color?: string;
 }
+
+const TYPE_ICON: Record<PlaceType, LucideIcon> = {
+  classroom: GraduationCap,
+  library: Library,
+  cafe: Coffee,
+  subway: TrainFront,
+  bus: Bus,
+  office: Building2,
+  other: MapPin,
+};
 
 export function PlaceTypeIcon({ name, type, size = 20, color = TOKEN.text2 }: Props) {
   const brand = brandFor(name);
@@ -29,5 +48,6 @@ export function PlaceTypeIcon({ name, type, size = 20, color = TOKEN.text2 }: Pr
       />
     );
   }
-  return <PlaceIcon type={type} size={size} color={color} />;
+  const Icon = TYPE_ICON[type] ?? MapPin;
+  return <Icon size={size} color={color} strokeWidth={2} />;
 }
