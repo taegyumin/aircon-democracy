@@ -49,7 +49,6 @@ export function LoginScreen({ onBack }: Props) {
         <img src="/icon.png" alt="" style={{ width: 76, height: 76, borderRadius: 18, marginBottom: 20, boxShadow: '0 8px 32px rgba(0,0,0,0.13)' }} />
         <div style={{ fontSize: 22, fontWeight: 900, color: TOKEN.text1, marginBottom: 6, letterSpacing: '-0.5px' }}>에어컨 민주주의</div>
         <div style={{ fontSize: 14, color: TOKEN.text2, marginBottom: 40, textAlign: 'center', lineHeight: 1.7 }}>
-          로그인 없이도 바로 투표할 수 있어요.<br />
           로그인하면 장소 관리 기능을 쓸 수 있어요.
         </div>
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
