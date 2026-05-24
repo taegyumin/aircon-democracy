@@ -19,7 +19,13 @@ export function PlaceTypeIcon({ name, type, size = 20, color = TOKEN.text2 }: Pr
         alt=""
         width={size}
         height={size}
-        style={{ display: 'block', borderRadius: size / 2 }}
+        style={{
+          display: 'block',
+          width: size,
+          height: size,
+          objectFit: 'contain',
+          objectPosition: 'center',
+        }}
       />
     );
   }
