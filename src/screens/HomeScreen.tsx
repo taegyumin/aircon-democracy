@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { LocateFixed } from 'lucide-react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api, type PlaceWithCounts } from '../lib/api';
 import { useUser } from '../lib/useUser';
@@ -215,7 +216,20 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
             textAlign: 'left',
           }}
         >
-          <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>📍</span>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(255,255,255,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <LocateFixed size={20} color="#fff" strokeWidth={2.2} />
+          </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 16, fontWeight: 900, letterSpacing: '-0.4px' }}>지금 어디 계세요?</div>
             <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>지하철 · 버스 · 강의실 · 사무실 · 기타</div>
