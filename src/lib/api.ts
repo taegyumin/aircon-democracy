@@ -83,6 +83,12 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ vote }) }
     ),
 
+  deleteVote: (placeId: string) =>
+    request<{ ok: true; removed: boolean }>(
+      `/api/places/${encodeURIComponent(placeId)}/vote`,
+      { method: 'DELETE' }
+    ),
+
   // ── Auth ─────────────────────────────────────────────────────────
   me: () => request<{ user: User | null }>('/api/me'),
   logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),

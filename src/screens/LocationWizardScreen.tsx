@@ -6,6 +6,23 @@ import { api } from '../lib/api';
 import type { PlaceType } from '../lib/places';
 import { ALL_LINES, lineColor, searchStations, type Station } from '../lib/subway';
 import { BackIcon } from '../components/Icons';
+import { recordLine, getRecentLines } from '../lib/recentPlaces';
+
+const POPULAR_LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '7호선', '9호선', '신분당선', '공항철도'];
+
+function priorityLines(): string[] {
+  const recent = getRecentLines();
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const l of [...recent, ...POPULAR_LINES]) {
+    if (ALL_LINES.includes(l) && !seen.has(l)) {
+      seen.add(l);
+      out.push(l);
+    }
+    if (out.length >= 10) break;
+  }
+  return out;
+}
 
 interface Props {
   onBack: () => void;
@@ -258,8 +275,26 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
             })}
           </div>
 
-          <Label>몇 호차예요? *</Label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 8 }}>
+          <Label>몇 호차예요?</Label>
+          <button
+            onClick={() => setTrainCar(trainCar === 'unknown' ? null : 'unknown')}
+            style={{
+              width: '100%',
+              padding: '14px',
+              background: trainCar === 'unknown' ? TOKEN.cold : TOKEN.surface,
+              color: trainCar === 'unknown' ? '#fff' : TOKEN.text1,
+              border: `1.5px dashed ${trainCar === 'unknown' ? TOKEN.cold : TOKEN.border}`,
+              borderRadius: TOKEN.r.md,
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: FONT,
+              marginBottom: 8,
+            }}
+          >
+            {trainCar === 'unknown' ? '✓ 호차 모름' : '호차 모름 — 그래도 투표할게요'}
+          </button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 24 }}>
             {TRAIN_CAR_OPTIONS.map((n) => {
               const active = trainCar === n;
               return (
@@ -284,24 +319,6 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
               );
             })}
           </div>
-          <button
-            onClick={() => setTrainCar(trainCar === 'unknown' ? null : 'unknown')}
-            style={{
-              width: '100%',
-              padding: '10px',
-              background: trainCar === 'unknown' ? TOKEN.text1 : 'transparent',
-              color: trainCar === 'unknown' ? '#fff' : TOKEN.text3,
-              border: `1px dashed ${trainCar === 'unknown' ? TOKEN.text1 : TOKEN.border}`,
-              borderRadius: TOKEN.r.md,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: FONT,
-              marginBottom: 24,
-            }}
-          >
-            {trainCar === 'unknown' ? '✓ 호차 모름' : '잘 모르겠어요'}
-          </button>
 
           <Label>어디까지 가세요? <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(선택)</span></Label>
           <input
@@ -417,41 +434,36 @@ function SubwayWizard({
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
       {renderHeader('지하철')}
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 80px' }}>
-        {/* Line picker */}
-        <Label>어느 노선 타고 계세요? *</Label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 24 }}>
-          {ALL_LINES.map((l) => {
-            const active = line === l;
-            return (
-              <button
-                key={l}
-                onClick={() => { setLine(active ? null : l); if (active) setStation(null); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '8px 12px',
-                  background: active ? lineColor(l) : TOKEN.surface,
-                  color: active ? '#fff' : TOKEN.text1,
-                  border: `1.5px solid ${active ? lineColor(l) : TOKEN.border}`,
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: FONT,
-                  transition: 'all 0.12s',
-                }}
-              >
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: active ? '#fff' : lineColor(l), flexShrink: 0 }} />
-                {l}
-              </button>
-            );
-          })}
-        </div>
+        {/* Line picker — recent + popular first, others behind toggle */}
+        <Label>어느 노선 타고 계세요?</Label>
+        <LinePicker selected={line} onSelect={(l) => {
+          setLine(l);
+          if (l) recordLine(l);
+          if (line && line !== l) setStation(null);
+        }} />
+        <div style={{ height: 24 }} />
 
-        {/* Car picker */}
-        <Label>몇 번 칸이에요? *</Label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 8 }}>
+        {/* Car picker — "모름" FIRST (정상 경로) */}
+        <Label>몇 번 칸이에요?</Label>
+        <button
+          onClick={() => setCar(car === 'unknown' ? null : 'unknown')}
+          style={{
+            width: '100%',
+            padding: '14px',
+            background: car === 'unknown' ? TOKEN.cold : TOKEN.surface,
+            color: car === 'unknown' ? '#fff' : TOKEN.text1,
+            border: `1.5px dashed ${car === 'unknown' ? TOKEN.cold : TOKEN.border}`,
+            borderRadius: TOKEN.r.md,
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: FONT,
+            marginBottom: 8,
+          }}
+        >
+          {car === 'unknown' ? '✓ 칸 모름' : '칸 모름 — 그래도 투표할게요'}
+        </button>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 24 }}>
           {CAR_OPTIONS.map((n) => {
             const active = car === n;
             return (
@@ -477,24 +489,6 @@ function SubwayWizard({
             );
           })}
         </div>
-        <button
-          onClick={() => setCar(car === 'unknown' ? null : 'unknown')}
-          style={{
-            width: '100%',
-            padding: '10px',
-            background: car === 'unknown' ? TOKEN.text1 : 'transparent',
-            color: car === 'unknown' ? '#fff' : TOKEN.text3,
-            border: `1px dashed ${car === 'unknown' ? TOKEN.text1 : TOKEN.border}`,
-            borderRadius: TOKEN.r.md,
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: FONT,
-            marginBottom: 24,
-          }}
-        >
-          {car === 'unknown' ? '✓ 칸 모름 (전체 평균)' : '잘 모르겠어요'}
-        </button>
 
         {/* Station (optional) */}
         <Label>지나고 있는 역 <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(선택)</span></Label>
@@ -579,6 +573,67 @@ function SubwayWizard({
           {submitting ? '이동 중…' : '투표하러 가기'}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── Line picker ─────────────────────────────────────────────────────
+
+function LinePicker({ selected, onSelect }: { selected: string | null; onSelect: (l: string | null) => void }) {
+  const [showAll, setShowAll] = useState(false);
+  const top = priorityLines();
+  const rest = ALL_LINES.filter((l) => !top.includes(l));
+  const list = showAll ? [...top, ...rest] : top;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {list.map((l) => {
+          const active = selected === l;
+          return (
+            <button
+              key={l}
+              onClick={() => onSelect(active ? null : l)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 12px',
+                background: active ? lineColor(l) : TOKEN.surface,
+                color: active ? '#fff' : TOKEN.text1,
+                border: `1.5px solid ${active ? lineColor(l) : TOKEN.border}`,
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: FONT,
+                transition: 'all 0.12s',
+              }}
+            >
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: active ? '#fff' : lineColor(l), flexShrink: 0 }} />
+              {l}
+            </button>
+          );
+        })}
+      </div>
+      {!showAll && rest.length > 0 && (
+        <button
+          onClick={() => setShowAll(true)}
+          style={{
+            marginTop: 10,
+            background: 'none',
+            border: 'none',
+            color: TOKEN.cold,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontFamily: FONT,
+            padding: 0,
+          }}
+        >
+          + 전체 노선 보기 ({rest.length})
+        </button>
+      )}
     </div>
   );
 }

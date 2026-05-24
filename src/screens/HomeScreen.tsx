@@ -3,7 +3,9 @@ import { LocateFixed } from 'lucide-react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api, type PlaceWithCounts } from '../lib/api';
 import { useUser } from '../lib/useUser';
+import { getRecent, type RecentPlace } from '../lib/recentPlaces';
 import { PlaceCard } from '../components/PlaceCard';
+import { QuickVoteCard } from '../components/QuickVoteCard';
 
 interface Props {
   onSelectPlace: (id: string) => void;
@@ -39,6 +41,7 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
   const [error, setError] = useState<string | null>(null);
   const { user, logout } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [recent] = useState<RecentPlace[]>(() => getRecent(3));
 
   useEffect(() => {
     let cancelled = false;
@@ -196,6 +199,25 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 80px' }}>
+        {/* QuickVote: recent places with inline vote buttons */}
+        {recent.length > 0 && (
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 10, letterSpacing: '0.3px' }}>
+              여기 맞으면 바로 한 표
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recent.map((p) => (
+                <QuickVoteCard
+                  key={p.id}
+                  place={p}
+                  onVoted={(id) => onSelectPlace(id)}
+                  onOpen={(id) => onSelectPlace(id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Primary CTA: location wizard */}
         <button
           onClick={onWizard}

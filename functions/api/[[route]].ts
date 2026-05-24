@@ -566,6 +566,29 @@ app.post('/places/:id/vote', async (c) => {
   return c.json({ ok: true, vote, expires_at: expiresAt });
 });
 
+// DELETE /api/places/:id/vote — withdraw own vote (used by PlaceCorrectionBar)
+app.delete('/places/:id/vote', async (c) => {
+  const id = c.req.param('id');
+  const { keys, log } = await abuseFor(c);
+  if ((await isBlocked(c.env.DB, keys.voterHash)) || (await isBlocked(c.env.DB, keys.ipPrefixHash))) {
+    await log('rejected', 403, { placeId: id, reason: 'blocked_subject' });
+    return c.json({ error: 'forbidden' }, 403);
+  }
+  const limits = await checkLimits(c.env.DB, [
+    { key: `vote_delete:voter:${keys.voterHash}`, windowSeconds: 60, limit: 20 },
+  ]);
+  if (!limits.ok) {
+    await log('rate_limited', 429, { placeId: id, reason: limits.failedKey });
+    return c.json({ error: 'too_many_requests' }, 429);
+  }
+  const res = await c.env.DB.prepare('DELETE FROM votes WHERE place_id = ? AND voter_id = ?')
+    .bind(id, keys.voterId)
+    .run();
+  const removed = (res.meta?.changes ?? 0) > 0;
+  await log('vote_delete', 200, { placeId: id, meta: { removed } });
+  return c.json({ ok: true, removed });
+});
+
 // 404 for unknown /api/* routes
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 

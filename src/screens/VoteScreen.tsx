@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TOKEN, VOTE_CONFIG, FONT, type VoteType } from '../lib/tokens';
 import { api, ApiError, type PlaceDetail } from '../lib/api';
+import { recordVisit, recordVote, removePlace } from '../lib/recentPlaces';
 import { VoteButton } from '../components/VoteButton';
 import { ResultBar } from '../components/ResultBar';
 import { BackIcon } from '../components/Icons';
@@ -115,8 +116,10 @@ export function VoteScreen({ placeId, onBack, onLogin }: Props) {
   const [cooldown, setCooldown] = useState(0);
   const [prevVote, setPrevVote] = useState<VoteType | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showCorrection, setShowCorrection] = useState(false);
   const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const correctionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const startCooldown = useCallback((seconds: number) => {
     setCooldown(seconds);
@@ -137,6 +140,13 @@ export function VoteScreen({ placeId, onBack, onLogin }: Props) {
       const d = await api.getPlace(placeId);
       setDetail(d);
       setLoadError(null);
+      // Record visit to localStorage recent_places (client-only, anonymous)
+      recordVisit({
+        id: d.place.id,
+        name: d.place.name,
+        type: d.place.type,
+        district: d.place.district,
+      });
       if (d.me && d.me.cooldown_remaining_ms > 0) {
         startCooldown(Math.ceil(d.me.cooldown_remaining_ms / 1000));
       }
@@ -151,8 +161,20 @@ export function VoteScreen({ placeId, onBack, onLogin }: Props) {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+      if (correctionTimerRef.current) clearTimeout(correctionTimerRef.current);
     };
   }, [load]);
+
+  const handleCorrectPlace = async () => {
+    setShowCorrection(false);
+    try {
+      await api.deleteVote(placeId);
+    } catch {
+      /* tolerate — still navigate */
+    }
+    removePlace(placeId);
+    onBack();
+  };
 
   const handleVote = async (type: VoteType) => {
     if (cooldown > 0 || submitting || !detail) return;
@@ -182,6 +204,13 @@ export function VoteScreen({ placeId, onBack, onLogin }: Props) {
       await api.vote(placeId, type);
       if (prev.me?.vote && prev.me.vote !== type) {
         startCooldown(30);
+      }
+      recordVote(placeId);
+      // Show "이 장소 맞나요?" bar for 10s only on first vote (not on changes)
+      if (!prev.me?.vote) {
+        setShowCorrection(true);
+        if (correctionTimerRef.current) clearTimeout(correctionTimerRef.current);
+        correctionTimerRef.current = setTimeout(() => setShowCorrection(false), 10_000);
       }
       // Refresh authoritative state
       await load();
@@ -251,19 +280,28 @@ export function VoteScreen({ placeId, onBack, onLogin }: Props) {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 80px' }}>
-        <div style={{ background: TOKEN.surface, borderRadius: TOKEN.r.xl, padding: '18px 18px 16px', marginBottom: 14, boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, letterSpacing: '0.3px' }}>지금 이 공간</span>
-            <span style={{ fontSize: 12, color: TOKEN.text3 }}>{total}명 참여 중</span>
-          </div>
-          <ResultBar votes={detail.votes} myVote={myVote} />
-          {dominant && (
-            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 12, color: TOKEN.text2 }}>전체 의견</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: VOTE_CONFIG[dominant].color }}>{VOTE_CONFIG[dominant].label}</span>
+        {/* Anchoring guard: vote 전엔 totals 가림 (남 의견 보고 흔들리지 않게) */}
+        {myVote ? (
+          <div style={{ background: TOKEN.surface, borderRadius: TOKEN.r.xl, padding: '18px 18px 16px', marginBottom: 14, boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, letterSpacing: '0.3px' }}>지금 이 공간</span>
+              <span style={{ fontSize: 12, color: TOKEN.text3 }}>{total}명 참여 중</span>
             </div>
-          )}
-        </div>
+            <ResultBar votes={detail.votes} myVote={myVote} />
+            {dominant && (
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 12, color: TOKEN.text2 }}>전체 의견</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: VOTE_CONFIG[dominant].color }}>{VOTE_CONFIG[dominant].label}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ background: TOKEN.surface, borderRadius: TOKEN.r.xl, padding: '14px 18px', marginBottom: 14, boxShadow: '0 1px 6px rgba(0,0,0,0.06)', fontSize: 12, color: TOKEN.text3, textAlign: 'center', lineHeight: 1.6 }}>
+            {total > 0 ? `${total}명이 의견을 남겼어요` : '아직 의견이 없어요'}
+            <br />
+            <span style={{ color: TOKEN.text2 }}>당신의 솔직한 느낌으로 먼저 한 표 던져보세요</span>
+          </div>
+        )}
 
         <div style={{ background: TOKEN.surface, borderRadius: TOKEN.r.xl, padding: '20px 16px', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', marginBottom: 14 }}>
           <div style={{ fontSize: 16, fontWeight: 900, color: TOKEN.text1, marginBottom: 16, textAlign: 'center', letterSpacing: '-0.3px' }}>
@@ -286,6 +324,39 @@ export function VoteScreen({ placeId, onBack, onLogin }: Props) {
             </div>
           )}
         </div>
+
+        {showCorrection && (
+          <div
+            style={{
+              background: '#FFFBEB',
+              border: '1px solid #FDE68A',
+              borderRadius: TOKEN.r.lg,
+              padding: '12px 14px',
+              marginBottom: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            <span style={{ fontSize: 18, lineHeight: 1 }}>📍</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E' }}>이 장소가 아니었어요?</div>
+              <div style={{ fontSize: 11, color: '#B45309', marginTop: 1 }}>지금 한 표 취소하고 다시 고를 수 있어요</div>
+            </div>
+            <button
+              onClick={() => setShowCorrection(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B45309', fontSize: 12, fontFamily: FONT, padding: '6px 8px' }}
+            >
+              괜찮아요
+            </button>
+            <button
+              onClick={handleCorrectPlace}
+              style={{ background: '#D97706', color: '#fff', border: 'none', borderRadius: TOKEN.r.sm, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: FONT }}
+            >
+              장소 바꾸기
+            </button>
+          </div>
+        )}
 
         <LoginPromptCard onLogin={onLogin} />
 
