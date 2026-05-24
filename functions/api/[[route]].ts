@@ -3,7 +3,20 @@ import { Hono } from 'hono';
 import { handle } from 'hono/cloudflare-pages';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { sign as jwtSign, verify as jwtVerify } from 'hono/jwt';
-import { csrfGuard, validatePlaceInput, VALID_PLACE_TYPES } from './_abuse';
+import type { Context } from 'hono';
+import {
+  abuseKeys,
+  audit,
+  checkLimits,
+  csrfGuard,
+  isBlocked,
+  isKillSwitchOn,
+  validatePlaceInput,
+  VALID_PLACE_TYPES,
+  type AbuseKeys,
+  type AuditContext,
+  type AuditMeta,
+} from './_abuse';
 
 type Bindings = {
   DB: D1Database;
@@ -90,6 +103,35 @@ async function verifyCookie(raw: string | undefined, secret: string): Promise<st
   for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ expected.charCodeAt(i);
   if (diff !== 0) return null;
   return id;
+}
+
+// ── Abuse-helper adapter ────────────────────────────────────────────
+// Bridges Hono Context to the primitive-arg helpers in _abuse.ts.
+
+async function abuseFor(c: Context<{ Bindings: Bindings; Variables: Vars }>): Promise<{
+  keys: AbuseKeys;
+  auditCtx: AuditContext;
+  log: (eventType: string, status: number, info?: AuditMeta) => Promise<void>;
+}> {
+  const keys = await abuseKeys({
+    secret: c.env.ABUSE_SECRET ?? '',
+    voterId: c.get('voterId'),
+    ip: c.req.header('CF-Connecting-IP') ?? 'unknown',
+    ua: c.req.header('User-Agent') ?? 'unknown',
+    country: c.req.header('CF-IPCountry') ?? null,
+    cfRay: c.req.header('CF-Ray') ?? null,
+  });
+  const auditCtx: AuditContext = {
+    db: c.env.DB,
+    url: c.req.url,
+    method: c.req.method,
+    keys,
+  };
+  return {
+    keys,
+    auditCtx,
+    log: (eventType, status, info) => audit(auditCtx, eventType, status, info),
+  };
 }
 
 // ── App ─────────────────────────────────────────────────────────────
@@ -333,8 +375,31 @@ app.post('/places', async (c) => {
     return c.json({ error: 'invalid_json' }, 400);
   }
 
+  const { keys, log } = await abuseFor(c);
+
+  if (await isKillSwitchOn(c.env.DB, 'place_creation_closed')) {
+    await log('kill_switch', 503, { reason: 'place_creation_closed' });
+    return c.json({ error: 'temporarily_closed' }, 503);
+  }
+  if ((await isBlocked(c.env.DB, keys.voterHash)) || (await isBlocked(c.env.DB, keys.ipPrefixHash))) {
+    await log('rejected', 403, { reason: 'blocked_subject' });
+    return c.json({ error: 'forbidden' }, 403);
+  }
+
+  const limits = await checkLimits(c.env.DB, [
+    { key: `place:voter:${keys.voterHash}`, windowSeconds: 86400, limit: 5 },
+    { key: `place:ip:${keys.ipPrefixHash}`, windowSeconds: 86400, limit: 30 },
+  ]);
+  if (!limits.ok) {
+    await log('rate_limited', 429, { reason: limits.failedKey });
+    return c.json({ error: 'too_many_requests' }, 429);
+  }
+
   const v = validatePlaceInput(body);
-  if (!v.ok) return c.json({ error: v.error }, 400);
+  if (!v.ok) {
+    await log('rejected', 400, { reason: v.error });
+    return c.json({ error: v.error }, 400);
+  }
 
   const id = crypto.randomUUID();
   const now = Date.now();
@@ -344,6 +409,7 @@ app.post('/places', async (c) => {
     .bind(id, v.name, v.type, v.district, v.detail, now, c.get('voterId'), v.normalized)
     .run();
 
+  await log('place_create', 201, { placeId: id, meta: { type: v.type } });
   return c.json({ id, name: v.name, type: v.type, district: v.district, detail: v.detail, created_at: now }, 201);
 });
 
@@ -360,17 +426,51 @@ app.post('/places/upsert', async (c) => {
   } catch {
     return c.json({ error: 'invalid_json' }, 400);
   }
+
+  const { keys, log } = await abuseFor(c);
+
+  if (await isKillSwitchOn(c.env.DB, 'place_creation_closed')) {
+    await log('kill_switch', 503, { reason: 'place_creation_closed' });
+    return c.json({ error: 'temporarily_closed' }, 503);
+  }
+  if ((await isBlocked(c.env.DB, keys.voterHash)) || (await isBlocked(c.env.DB, keys.ipPrefixHash))) {
+    await log('rejected', 403, { reason: 'blocked_subject' });
+    return c.json({ error: 'forbidden' }, 403);
+  }
+
+  // Upsert is normal user behaviour (loading several subway stations), so
+  // the cap is per-minute rather than per-day. The hard guard is the
+  // id-prefix check below.
+  const limits = await checkLimits(c.env.DB, [
+    { key: `upsert:voter:${keys.voterHash}`, windowSeconds: 60, limit: 60 },
+    { key: `upsert:ip:${keys.ipPrefixHash}`, windowSeconds: 60, limit: 300 },
+  ]);
+  if (!limits.ok) {
+    await log('rate_limited', 429, { reason: limits.failedKey });
+    return c.json({ error: 'too_many_requests' }, 429);
+  }
+
   const id = typeof body.id === 'string' ? body.id.trim() : '';
   const type = typeof body.type === 'string' ? body.type : '';
 
-  if (!id || id.length > 200) return c.json({ error: 'invalid_id' }, 400);
-  if (!VALID_PLACE_TYPES.has(type)) return c.json({ error: 'invalid_type' }, 400);
+  if (!id || id.length > 200) {
+    await log('rejected', 400, { reason: 'invalid_id' });
+    return c.json({ error: 'invalid_id' }, 400);
+  }
+  if (!VALID_PLACE_TYPES.has(type)) {
+    await log('rejected', 400, { reason: 'invalid_type' });
+    return c.json({ error: 'invalid_type' }, 400);
+  }
   if (!UPSERT_ID_RE.test(id) || !id.startsWith(`${type}:`)) {
+    await log('rejected', 400, { reason: 'invalid_id_prefix', placeId: id });
     return c.json({ error: 'invalid_id' }, 400);
   }
 
   const v = validatePlaceInput(body);
-  if (!v.ok) return c.json({ error: v.error }, 400);
+  if (!v.ok) {
+    await log('rejected', 400, { reason: v.error, placeId: id });
+    return c.json({ error: v.error }, 400);
+  }
 
   await c.env.DB.prepare(
     `INSERT INTO places (id, name, type, district, detail, created_at, created_by, normalized_name)
@@ -380,6 +480,7 @@ app.post('/places/upsert', async (c) => {
     .bind(id, v.name, v.type, v.district, v.detail, Date.now(), c.get('voterId'), v.normalized)
     .run();
 
+  await log('place_upsert', 200, { placeId: id, meta: { type: v.type } });
   return c.json({ id });
 });
 
@@ -395,11 +496,35 @@ app.post('/places/:id/vote', async (c) => {
   const vote = body.vote as string;
   if (!VOTE_TYPES.includes(vote as VoteType)) return c.json({ error: 'invalid_vote' }, 400);
 
-  const voterId = c.get('voterId');
+  const { keys, log } = await abuseFor(c);
+
+  if (await isKillSwitchOn(c.env.DB, 'votes_closed')) {
+    await log('kill_switch', 503, { placeId: id, reason: 'votes_closed' });
+    return c.json({ error: 'temporarily_closed' }, 503);
+  }
+  if ((await isBlocked(c.env.DB, keys.voterHash)) || (await isBlocked(c.env.DB, keys.ipPrefixHash))) {
+    await log('rejected', 403, { placeId: id, reason: 'blocked_subject' });
+    return c.json({ error: 'forbidden' }, 403);
+  }
+
+  const limits = await checkLimits(c.env.DB, [
+    { key: `vote:voter:${keys.voterHash}`, windowSeconds: 60, limit: 10 },
+    { key: `vote:ip:${keys.ipPrefixHash}`, windowSeconds: 60, limit: 120 },
+    { key: `vote:place_ip:${id}:${keys.ipPrefixHash}`, windowSeconds: 3600, limit: 80 },
+  ]);
+  if (!limits.ok) {
+    await log('rate_limited', 429, { placeId: id, reason: limits.failedKey });
+    return c.json({ error: 'too_many_requests' }, 429);
+  }
+
+  const voterId = keys.voterId;
   const now = Date.now();
 
   const place = await c.env.DB.prepare('SELECT id FROM places WHERE id = ?').bind(id).first();
-  if (!place) return c.json({ error: 'not_found' }, 404);
+  if (!place) {
+    await log('rejected', 404, { placeId: id, reason: 'not_found' });
+    return c.json({ error: 'not_found' }, 404);
+  }
 
   const existing = await c.env.DB.prepare(
     'SELECT vote, changed_at FROM votes WHERE place_id = ? AND voter_id = ? AND expires_at > ?'
@@ -410,6 +535,7 @@ app.post('/places/:id/vote', async (c) => {
   if (existing && existing.vote !== vote) {
     const elapsed = now - existing.changed_at;
     if (elapsed < COOLDOWN_MS) {
+      await log('rejected', 429, { placeId: id, reason: 'cooldown' });
       return c.json({ error: 'cooldown', remaining_ms: COOLDOWN_MS - elapsed }, 429);
     }
   }
@@ -430,6 +556,7 @@ app.post('/places/:id/vote', async (c) => {
     .bind(id, voterId, vote, now, initialChangedAt, expiresAt)
     .run();
 
+  await log('vote', 200, { placeId: id, meta: { vote, changed: !!existing } });
   return c.json({ ok: true, vote, expires_at: expiresAt });
 });
 

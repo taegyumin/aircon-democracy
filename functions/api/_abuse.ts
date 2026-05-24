@@ -1,14 +1,12 @@
 /// <reference types="@cloudflare/workers-types" />
 // Cloudflare Pages Functions ignores files starting with `_` for routing,
 // so this module is safe to import from [[route]].ts.
-import type { Context, MiddlewareHandler } from 'hono';
-
-// ── Environment ─────────────────────────────────────────────────────
-
-export interface AbuseEnv {
-  DB: D1Database;
-  ABUSE_SECRET: string;
-}
+//
+// Helpers take primitive arguments (D1Database, header strings, etc.) rather
+// than a Hono Context to stay decoupled from the caller's Bindings/Variables
+// shape — Hono Context generics are invariant and would otherwise force
+// every caller to widen its types just to use these.
+import type { MiddlewareHandler } from 'hono';
 
 // ── HMAC / hashing ──────────────────────────────────────────────────
 
@@ -43,34 +41,33 @@ export interface AbuseKeys {
   voterHash: string;
   ipPrefixHash: string;
   uaHash: string;
+  country: string | null;
+  cfRay: string | null;
+}
+
+export interface AbuseKeyInput {
+  secret: string;
+  voterId: string;
   ip: string;
   ua: string;
   country: string | null;
   cfRay: string | null;
 }
 
-export async function abuseKeys(
-  c: Context<{ Bindings: AbuseEnv; Variables: { voterId: string } }>
-): Promise<AbuseKeys> {
-  const secret = c.env.ABUSE_SECRET ?? '';
+export async function abuseKeys(input: AbuseKeyInput): Promise<AbuseKeys> {
   const day = new Date().toISOString().slice(0, 10);
-  const ip = c.req.header('CF-Connecting-IP') ?? 'unknown';
-  const ua = c.req.header('User-Agent') ?? 'unknown';
-  const voterId = c.get('voterId');
   const [voterHash, ipPrefixHash, uaHash] = await Promise.all([
-    hmacHex(secret, `voter:${voterId}`),
-    hmacHex(secret, `ip:${day}:${ipPrefix(ip)}`),
-    hmacHex(secret, `ua:${ua}`),
+    hmacHex(input.secret, `voter:${input.voterId}`),
+    hmacHex(input.secret, `ip:${day}:${ipPrefix(input.ip)}`),
+    hmacHex(input.secret, `ua:${input.ua}`),
   ]);
   return {
-    voterId,
+    voterId: input.voterId,
     voterHash,
     ipPrefixHash,
     uaHash,
-    ip,
-    ua,
-    country: c.req.header('CF-IPCountry') ?? null,
-    cfRay: c.req.header('CF-Ray') ?? null,
+    country: input.country,
+    cfRay: input.cfRay,
   };
 }
 
@@ -80,7 +77,7 @@ export async function abuseKeys(
 // Fixed window is acceptable for our scale (a few writes/sec/place);
 // a sliding window would need 2-3× the D1 writes per request.
 export async function rateLimit(
-  env: AbuseEnv,
+  db: D1Database,
   key: string,
   windowSeconds: number,
   limit: number
@@ -89,13 +86,14 @@ export async function rateLimit(
   const windowStart = Math.floor(now / windowSeconds) * windowSeconds;
   const expiresAt = windowStart + windowSeconds * 3;
 
-  const row = await env.DB.prepare(
-    `INSERT INTO rate_limit_buckets (key, window_start, count, expires_at)
-     VALUES (?, ?, 1, ?)
-     ON CONFLICT(key, window_start)
-     DO UPDATE SET count = count + 1, expires_at = excluded.expires_at
-     RETURNING count`
-  )
+  const row = await db
+    .prepare(
+      `INSERT INTO rate_limit_buckets (key, window_start, count, expires_at)
+       VALUES (?, ?, 1, ?)
+       ON CONFLICT(key, window_start)
+       DO UPDATE SET count = count + 1, expires_at = excluded.expires_at
+       RETURNING count`
+    )
     .bind(key, windowStart, expiresAt)
     .first<{ count: number }>();
 
@@ -112,12 +110,12 @@ export interface RateLimitSpec {
 // All buckets are incremented even on failure — that matches how token-bucket
 // abuse scoring works in practice (the attacker's "spend" still counts).
 export async function checkLimits(
-  env: AbuseEnv,
+  db: D1Database,
   specs: RateLimitSpec[]
 ): Promise<{ ok: boolean; failedKey: string | null }> {
   let failedKey: string | null = null;
   for (const spec of specs) {
-    const ok = await rateLimit(env, spec.key, spec.windowSeconds, spec.limit);
+    const ok = await rateLimit(db, spec.key, spec.windowSeconds, spec.limit);
     if (!ok && failedKey === null) failedKey = spec.key;
   }
   return { ok: failedKey === null, failedKey };
@@ -128,8 +126,8 @@ export async function checkLimits(
 // `value='true'` → permanently closed until row deleted/updated.
 // `value='<epoch_ms>'` → closed until that ms.
 // `value='false'` or row missing → open.
-export async function isKillSwitchOn(env: AbuseEnv, key: string): Promise<boolean> {
-  const row = await env.DB.prepare(`SELECT value FROM app_config WHERE key = ?`)
+export async function isKillSwitchOn(db: D1Database, key: string): Promise<boolean> {
+  const row = await db.prepare(`SELECT value FROM app_config WHERE key = ?`)
     .bind(key)
     .first<{ value: string }>();
   if (!row) return false;
@@ -139,10 +137,9 @@ export async function isKillSwitchOn(env: AbuseEnv, key: string): Promise<boolea
   return Number.isFinite(until) && Date.now() < until;
 }
 
-export async function isBlocked(env: AbuseEnv, subjectHash: string): Promise<boolean> {
-  const row = await env.DB.prepare(
-    `SELECT expires_at FROM blocked_subjects WHERE subject_hash = ?`
-  )
+export async function isBlocked(db: D1Database, subjectHash: string): Promise<boolean> {
+  const row = await db
+    .prepare(`SELECT expires_at FROM blocked_subjects WHERE subject_hash = ?`)
     .bind(subjectHash)
     .first<{ expires_at: number }>();
   if (!row) return false;
@@ -157,35 +154,42 @@ export interface AuditMeta {
   meta?: Record<string, unknown>;
 }
 
+export interface AuditContext {
+  db: D1Database;
+  url: string;
+  method: string;
+  keys: AbuseKeys;
+}
+
 export async function audit(
-  c: Context<{ Bindings: AbuseEnv; Variables: { voterId: string } }>,
+  ctx: AuditContext,
   eventType: string,
   status: number,
-  keys: AbuseKeys,
   info: AuditMeta = {}
 ): Promise<void> {
   try {
-    const url = new URL(c.req.url);
-    await c.env.DB.prepare(
-      `INSERT INTO audit_events
-         (id, ts, event_type, route, method, status,
-          place_id, voter_hash, ip_prefix_hash, ua_hash,
-          country, cf_ray, reason, meta_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
+    const url = new URL(ctx.url);
+    await ctx.db
+      .prepare(
+        `INSERT INTO audit_events
+           (id, ts, event_type, route, method, status,
+            place_id, voter_hash, ip_prefix_hash, ua_hash,
+            country, cf_ray, reason, meta_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
       .bind(
         crypto.randomUUID(),
         Date.now(),
         eventType,
         url.pathname,
-        c.req.method,
+        ctx.method,
         status,
         info.placeId ?? null,
-        keys.voterHash,
-        keys.ipPrefixHash,
-        keys.uaHash,
-        keys.country,
-        keys.cfRay,
+        ctx.keys.voterHash,
+        ctx.keys.ipPrefixHash,
+        ctx.keys.uaHash,
+        ctx.keys.country,
+        ctx.keys.cfRay,
         info.reason ?? null,
         info.meta ? JSON.stringify(info.meta) : null
       )
@@ -219,7 +223,7 @@ function isAllowedOrigin(origin: string, cfRay: string | null): boolean {
   return false;
 }
 
-export function csrfGuard(): MiddlewareHandler {
+export function csrfGuard(): MiddlewareHandler<any> {
   return async (c, next) => {
     const method = c.req.method;
     if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return next();
