@@ -1,114 +1,186 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import jsQR from 'jsqr';
 import { TOKEN, FONT } from '../lib/tokens';
-import { api, type PlaceWithCounts } from '../lib/api';
+import { BackIcon } from '../components/Icons';
 
 interface Props {
   onBack: () => void;
   onSuccess: (placeId: string) => void;
 }
 
-function QRScanFrame() {
-  return (
-    <svg width={220} height={220} viewBox="0 0 220 220" style={{ display: 'block', margin: '0 auto' }}>
-      <rect width="220" height="220" fill="rgba(0,0,0,0.35)" />
-      <rect x="15" y="15" width="190" height="190" fill="transparent" />
-      <path d="M45 15 L15 15 L15 45" stroke="white" strokeWidth="4" strokeLinecap="round" fill="none" />
-      <path d="M175 15 L205 15 L205 45" stroke="white" strokeWidth="4" strokeLinecap="round" fill="none" />
-      <path d="M15 175 L15 205 L45 205" stroke="white" strokeWidth="4" strokeLinecap="round" fill="none" />
-      <path d="M205 175 L205 205 L175 205" stroke="white" strokeWidth="4" strokeLinecap="round" fill="none" />
-      <line x1="20" y1="110" x2="200" y2="110" stroke={TOKEN.cold} strokeWidth="2.5" strokeLinecap="round" opacity="0.95">
-        <animateTransform attributeName="transform" type="translate" values="0,-88;0,88;0,-88" dur="2.4s" repeatCount="indefinite" />
-      </line>
-      <line x1="20" y1="110" x2="200" y2="110" stroke={TOKEN.cold} strokeWidth="8" strokeLinecap="round" opacity="0.15">
-        <animateTransform attributeName="transform" type="translate" values="0,-88;0,88;0,-88" dur="2.4s" repeatCount="indefinite" />
-      </line>
-    </svg>
-  );
+type Phase = 'idle' | 'starting' | 'scanning' | 'denied' | 'unavailable' | 'found';
+
+const SITE_HOST = 'aircondemocracy.com';
+
+function extractPlaceId(rawUrl: string): string | null {
+  try {
+    const u = new URL(rawUrl);
+    if (u.hostname !== SITE_HOST && u.hostname !== `www.${SITE_HOST}`) return null;
+    const m = u.pathname.match(/^\/p\/([^/]+)\/?$/);
+    if (!m) return null;
+    return decodeURIComponent(m[1]);
+  } catch {
+    return null;
+  }
 }
 
 export function QRScreen({ onBack, onSuccess }: Props) {
-  const [phase, setPhase] = useState<'scanning' | 'found'>('scanning');
-  const [foundPlace, setFoundPlace] = useState<PlaceWithCounts | null>(null);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [foundLabel, setFoundLabel] = useState('');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const stoppedRef = useRef(false);
 
-  useEffect(() => {
-    const t = setTimeout(async () => {
-      try {
-        const res = await api.listPlaces();
-        const first = res.places[0];
-        if (first) {
-          setFoundPlace(first);
-          setPhase('found');
-        }
-      } catch {
-        // ignore, stay on scanning
-      }
-    }, 2400);
-    return () => clearTimeout(t);
+  const stop = useCallback(() => {
+    stoppedRef.current = true;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
   }, []);
 
+  useEffect(() => () => stop(), [stop]);
+
+  const start = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setPhase('unavailable');
+      return;
+    }
+    setPhase('starting');
+    stoppedRef.current = false;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      const video = videoRef.current!;
+      video.srcObject = stream;
+      await video.play();
+      setPhase('scanning');
+      tick();
+    } catch (e) {
+      const name = (e as { name?: string }).name ?? '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') setPhase('denied');
+      else setPhase('unavailable');
+    }
+  }, []);
+
+  const tick = useCallback(() => {
+    if (stoppedRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (video && canvas && video.readyState >= 2) {
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      if (w && h) {
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, w, h);
+          const img = ctx.getImageData(0, 0, w, h);
+          const code = jsQR(img.data, w, h, { inversionAttempts: 'dontInvert' });
+          if (code?.data) {
+            const placeId = extractPlaceId(code.data);
+            if (placeId) {
+              setFoundLabel(placeId);
+              setPhase('found');
+              stop();
+              setTimeout(() => onSuccess(placeId), 700);
+              return;
+            }
+            // QR detected but not ours — keep scanning
+          }
+        }
+      }
+    }
+    rafRef.current = requestAnimationFrame(tick);
+  }, [stop, onSuccess]);
+
   return (
-    <div style={{ height: '100%', background: '#0D0D13', display: 'flex', flexDirection: 'column', fontFamily: FONT }}>
+    <div style={{ height: '100%', background: '#0D0D13', display: 'flex', flexDirection: 'column', fontFamily: FONT, color: '#fff' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '68px 20px 16px' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }} aria-label="뒤로">
-          <svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-            <path d="M15 18l-6-6 6-6" stroke="rgba(255,255,255,0.75)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <button onClick={() => { stop(); onBack(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }} aria-label="뒤로">
+          <BackIcon color="rgba(255,255,255,0.75)" />
         </button>
-        <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: 700 }}>QR 코드 스캔</span>
+        <span style={{ fontSize: 16, fontWeight: 700, opacity: 0.9 }}>QR 코드 스캔</span>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', position: 'relative' }}>
+        {phase === 'idle' && (
+          <div style={{ textAlign: 'center', padding: '0 32px' }}>
+            <div style={{ fontSize: 16, marginBottom: 20, opacity: 0.85 }}>
+              매장에 부착된 QR을<br />카메라로 비춰주세요
+            </div>
+            <button onClick={start} style={btn}>카메라 시작</button>
+          </div>
+        )}
+        {phase === 'starting' && <div style={{ opacity: 0.7 }}>카메라 준비 중…</div>}
+        {phase === 'denied' && (
+          <div style={{ textAlign: 'center', padding: '0 32px' }}>
+            <div style={{ fontSize: 14, opacity: 0.85, marginBottom: 16 }}>
+              카메라 권한이 차단됐어요.<br />브라우저 설정에서 허용하고 다시 시도해주세요.
+            </div>
+            <button onClick={onBack} style={btn}>돌아가기</button>
+          </div>
+        )}
+        {phase === 'unavailable' && (
+          <div style={{ textAlign: 'center', padding: '0 32px' }}>
+            <div style={{ fontSize: 14, opacity: 0.85, marginBottom: 16 }}>
+              이 기기/브라우저에서 카메라를 쓸 수 없어요.
+            </div>
+            <button onClick={onBack} style={btn}>돌아가기</button>
+          </div>
+        )}
+        {(phase === 'scanning' || phase === 'found') && (
+          <div style={{ position: 'relative', width: '100%', maxWidth: 420, aspectRatio: '1', margin: '0 auto' }}>
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 16, background: '#000' }}
+            />
+            <ScanOverlay color={phase === 'found' ? TOKEN.ok : TOKEN.cold} />
+          </div>
+        )}
         {phase === 'scanning' && (
-          <div style={{ textAlign: 'center' }}>
-            <QRScanFrame />
-            <div style={{ marginTop: 24 }}>
-              <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 15, fontWeight: 600 }}>QR 코드를 프레임 안에</div>
-              <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginTop: 5 }}>위치시켜 주세요</div>
-            </div>
+          <div style={{ marginTop: 24, fontSize: 13, opacity: 0.7 }}>QR을 프레임 안에 맞춰주세요</div>
+        )}
+        {phase === 'found' && (
+          <div style={{ marginTop: 18, fontSize: 14, fontWeight: 700, color: TOKEN.ok }}>
+            ✓ {foundLabel.slice(0, 28)}{foundLabel.length > 28 ? '…' : ''}
           </div>
         )}
-
-        {phase === 'found' && foundPlace && (
-          <div style={{ textAlign: 'center', padding: '0 24px', animation: 'fadeUp 0.4s ease' }}>
-            <div
-              style={{
-                width: 76,
-                height: 76,
-                borderRadius: '50%',
-                background: TOKEN.ok,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 22px',
-                boxShadow: `0 12px 40px ${TOKEN.ok}50`,
-              }}
-            >
-              <svg width={38} height={38} viewBox="0 0 24 24" fill="none">
-                <path d="M4.5 12.5l5 5L19.5 7" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <div style={{ color: 'white', fontSize: 22, fontWeight: 900, marginBottom: 8 }}>장소를 찾았어요!</div>
-            <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, marginBottom: 36, lineHeight: 1.5 }}>{foundPlace.name}</div>
-            <button
-              onClick={() => onSuccess(foundPlace.id)}
-              style={{
-                padding: '16px 52px',
-                background: TOKEN.cold,
-                color: 'white',
-                border: 'none',
-                borderRadius: TOKEN.r.xl,
-                fontSize: 16,
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontFamily: FONT,
-                boxShadow: `0 10px 36px ${TOKEN.cold}55`,
-              }}
-            >
-              투표하러 가기
-            </button>
-          </div>
-        )}
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
     </div>
   );
 }
+
+function ScanOverlay({ color }: { color: string }) {
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 220 220" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+      <path d="M45 15 L15 15 L15 45" stroke={color} strokeWidth="4" strokeLinecap="round" fill="none" />
+      <path d="M175 15 L205 15 L205 45" stroke={color} strokeWidth="4" strokeLinecap="round" fill="none" />
+      <path d="M15 175 L15 205 L45 205" stroke={color} strokeWidth="4" strokeLinecap="round" fill="none" />
+      <path d="M205 175 L205 205 L175 205" stroke={color} strokeWidth="4" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+const btn: React.CSSProperties = {
+  padding: '14px 36px',
+  background: TOKEN.cold,
+  color: '#fff',
+  border: 'none',
+  borderRadius: 14,
+  fontSize: 15,
+  fontWeight: 700,
+  cursor: 'pointer',
+  fontFamily: FONT,
+};

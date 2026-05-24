@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { GraduationCap, Library, Coffee, TrainFront, Bus, Building2 } from 'lucide-react';
+import { GraduationCap, Library, Coffee, TrainFront, Bus, Building2, Printer } from 'lucide-react';
+import { PlaceQR } from '../components/PlaceQR';
 import type { LucideIcon } from 'lucide-react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api } from '../lib/api';
@@ -9,6 +10,7 @@ import { BackIcon } from '../components/Icons';
 interface Props {
   onBack: () => void;
   onComplete: (placeId: string) => void;
+  onPrint?: (placeId: string) => void;
   initialType?: PlaceType;
 }
 
@@ -21,35 +23,8 @@ const TYPE_OPTIONS: { k: PlaceType; Icon: LucideIcon; tint: string; label: strin
   { k: 'office',    Icon: Building2,     tint: '#475569', label: '사무실' },
 ];
 
-function MiniQR() {
-  const cells = 9;
-  const cs = 6;
-  const size = cells * cs;
-  const dataDots: [number, number][] = [
-    [0, 7], [0, 8], [1, 7], [2, 7], [2, 8], [3, 8], [4, 7], [5, 8], [6, 7], [6, 8],
-    [7, 0], [7, 1], [7, 3], [7, 5], [8, 0], [8, 2], [8, 4], [8, 6], [8, 8],
-  ];
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0, border: `1px solid ${TOKEN.border}`, borderRadius: 6 }}>
-      <rect width={size} height={size} fill="white" />
-      {[0, 1, 2, 3, 4, 5, 6].flatMap((r) =>
-        [0, 1, 2, 3, 4, 5, 6].map((c) => {
-          const border = r === 0 || r === 6 || c === 0 || c === 6;
-          const inner = r >= 2 && r <= 4 && c >= 2 && c <= 4;
-          if (border || inner) {
-            return <rect key={`tl${r}-${c}`} x={c * cs} y={r * cs} width={cs} height={cs} fill={TOKEN.text1} />;
-          }
-          return null;
-        })
-      )}
-      {dataDots.map(([r, c]) => (
-        <rect key={`d${r}-${c}`} x={c * cs} y={r * cs} width={cs} height={cs} fill={TOKEN.text1} />
-      ))}
-    </svg>
-  );
-}
 
-export function RegisterScreen({ onBack, onComplete, initialType }: Props) {
+export function RegisterScreen({ onBack, onComplete, onPrint, initialType }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(initialType ? 2 : 1);
   const [type, setType] = useState<PlaceType | null>(initialType ?? null);
   const [name, setName] = useState('');
@@ -291,16 +266,40 @@ export function RegisterScreen({ onBack, onComplete, initialType }: Props) {
           다른 사람들도 이 장소를 검색할 수 있어요.<br />바로 투표해볼까요?
         </div>
 
-        <div style={{ background: TOKEN.surface, borderRadius: TOKEN.r.lg, padding: 16, marginBottom: 24, alignSelf: 'stretch' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 12 }}>QR 코드 — 다른 사람과 공유하세요</div>
+        <div style={{ background: TOKEN.surface, borderRadius: TOKEN.r.lg, padding: 16, marginBottom: 16, alignSelf: 'stretch' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 12 }}>
+            🎯 이 장소의 QR — 매장에 부착하면 손님들이 바로 투표 가능
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <MiniQR />
-            <div>
-              <div style={{ fontSize: 12, color: TOKEN.text3, lineHeight: 1.6 }}>
-                QR을 스캔하면 바로 투표 화면으로 이동해요. (실제 QR 생성은 다음 업데이트에서)
-              </div>
+            {createdId && <PlaceQR placeId={createdId} size={120} showDownload />}
+            <div style={{ fontSize: 11, color: TOKEN.text3, lineHeight: 1.6, flex: 1 }}>
+              인쇄용 페이지에서 A4로 출력해 카운터·벽에 붙이세요. 손님이 폰 카메라로 비추면 바로 투표 화면 열려요.
             </div>
           </div>
+          {createdId && onPrint && (
+            <button
+              onClick={() => onPrint(createdId)}
+              style={{
+                marginTop: 12,
+                width: '100%',
+                padding: '10px',
+                background: TOKEN.text1,
+                color: '#fff',
+                border: 'none',
+                borderRadius: TOKEN.r.md,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: FONT,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <Printer size={14} color="#fff" /> 인쇄용 페이지 열기 (A4)
+            </button>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignSelf: 'stretch' }}>

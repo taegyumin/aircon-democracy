@@ -7,9 +7,10 @@ import { QRScreen } from './screens/QRScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
 import { LocationWizardScreen } from './screens/LocationWizardScreen';
+import { PrintQRScreen } from './screens/PrintQRScreen';
 import type { PlaceType } from './lib/places';
 
-type Screen = 'home' | 'vote' | 'search' | 'qr' | 'login' | 'register' | 'wizard';
+type Screen = 'home' | 'vote' | 'search' | 'qr' | 'login' | 'register' | 'wizard' | 'print';
 
 interface RouteState {
   screen: Screen;
@@ -23,6 +24,8 @@ function pathToRoute(pathname: string): RouteState {
   if (pathname === '/login') return { screen: 'login', placeId: null };
   if (pathname === '/wizard') return { screen: 'wizard', placeId: null };
   if (pathname === '/qr') return { screen: 'qr', placeId: null };
+  const printMatch = pathname.match(/^\/print\/(.+?)\/?$/);
+  if (printMatch) return { screen: 'print', placeId: decodeURIComponent(printMatch[1]) };
   const placeMatch = pathname.match(/^\/p\/(.+?)\/?$/);
   if (placeMatch) return { screen: 'vote', placeId: decodeURIComponent(placeMatch[1]) };
   return { screen: 'home', placeId: null };
@@ -36,6 +39,7 @@ function routeToPath(r: RouteState): string {
     case 'login': return '/login';
     case 'wizard': return '/wizard';
     case 'qr': return '/qr';
+    case 'print': return r.placeId ? `/print/${encodeURIComponent(r.placeId)}` : '/';
     case 'vote': return r.placeId ? `/p/${encodeURIComponent(r.placeId)}` : '/';
   }
 }
@@ -43,6 +47,22 @@ function routeToPath(r: RouteState): string {
 export default function App() {
   const [route, setRoute] = useState<RouteState>(() => pathToRoute(window.location.pathname));
   const [registerInitialType, setRegisterInitialType] = useState<PlaceType | undefined>(undefined);
+  const [arrivedViaQR, setArrivedViaQR] = useState<boolean>(
+    () => new URLSearchParams(window.location.search).get('via') === 'qr'
+  );
+
+  // Strip ?via=qr (or any other tracking param) once consumed so the URL stays clean
+  useEffect(() => {
+    if (window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('via')) {
+        params.delete('via');
+        const qs = params.toString();
+        const clean = window.location.pathname + (qs ? `?${qs}` : '');
+        window.history.replaceState({}, '', clean);
+      }
+    }
+  }, []);
 
   // Sync browser back/forward → state
   useEffect(() => {
@@ -70,6 +90,7 @@ export default function App() {
             onSelectPlace={(id) => go('vote', id)}
             onWizard={() => { setRegisterInitialType(undefined); go('wizard'); }}
             onSearch={() => go('search')}
+            onQR={() => go('qr')}
             onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
             onLogin={() => go('login')}
           />
@@ -99,7 +120,8 @@ export default function App() {
               onSelectPlace={(id) => go('vote', id)}
               onWizard={() => { setRegisterInitialType(undefined); go('wizard'); }}
               onSearch={() => go('search')}
-                onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
+              onQR={() => go('qr')}
+              onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
               onLogin={() => go('login')}
             />
           );
@@ -111,6 +133,8 @@ export default function App() {
             onBack={() => go('home')}
             onLogin={() => go('login')}
             onChangePlace={() => { setRegisterInitialType(undefined); go('wizard'); }}
+            arrivedViaQR={arrivedViaQR}
+            onQRConsumed={() => setArrivedViaQR(false)}
           />
         );
       case 'login':
@@ -120,7 +144,21 @@ export default function App() {
           <RegisterScreen
             onBack={() => go('home')}
             onComplete={(id) => go('vote', id)}
+            onPrint={(id) => go('print', id)}
             initialType={registerInitialType}
+          />
+        );
+      case 'print':
+        return placeId ? (
+          <PrintQRScreen placeId={placeId} onBack={() => go('home')} />
+        ) : (
+          <HomeScreen
+            onSelectPlace={(id) => go('vote', id)}
+            onWizard={() => { setRegisterInitialType(undefined); go('wizard'); }}
+            onSearch={() => go('search')}
+            onQR={() => go('qr')}
+            onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
+            onLogin={() => go('login')}
           />
         );
     }

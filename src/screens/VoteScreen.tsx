@@ -15,6 +15,8 @@ interface Props {
   onBack: () => void;
   onLogin: () => void;
   onChangePlace: () => void;
+  arrivedViaQR?: boolean;
+  onQRConsumed?: () => void;
 }
 
 const POLL_INTERVAL_MS = 5000;
@@ -114,7 +116,7 @@ function LoginPromptCard({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-export function VoteScreen({ placeId, onBack, onLogin, onChangePlace }: Props) {
+export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedViaQR, onQRConsumed }: Props) {
   const [detail, setDetail] = useState<PlaceDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
@@ -319,6 +321,28 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace }: Props) {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 80px' }}>
+        {arrivedViaQR && (
+          <div
+            onClick={() => onQRConsumed?.()}
+            style={{
+              background: TOKEN.coldBg,
+              border: `1px solid ${TOKEN.cold}33`,
+              borderRadius: TOKEN.r.md,
+              padding: '10px 14px',
+              marginBottom: 14,
+              fontSize: 12,
+              color: TOKEN.cold,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              cursor: 'pointer',
+            }}
+          >
+            <span>📷</span>
+            <span style={{ flex: 1 }}>QR로 도착! 솔직한 한 표 부탁드려요</span>
+            <span style={{ opacity: 0.5 }}>×</span>
+          </div>
+        )}
         {/* Anchoring guard: vote 전엔 totals 가림 (남 의견 보고 흔들리지 않게) */}
         {myVote ? (
           <div style={{ background: TOKEN.surface, borderRadius: TOKEN.r.xl, padding: '18px 18px 16px', marginBottom: 14, boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
