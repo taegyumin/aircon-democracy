@@ -3,7 +3,8 @@ import { TOKEN, VOTE_CONFIG, FONT, type VoteType } from '../lib/tokens';
 import { api, ApiError, type PlaceDetail } from '../lib/api';
 import { VoteButton } from '../components/VoteButton';
 import { ResultBar } from '../components/ResultBar';
-import { PlaceIcon, BackIcon } from '../components/Icons';
+import { BackIcon } from '../components/Icons';
+import { PlaceTypeIcon } from '../components/PlaceTypeIcon';
 
 interface Props {
   placeId: string;
@@ -242,7 +243,7 @@ export function VoteScreen({ placeId, onBack, onLogin }: Props) {
               {detail.place.name}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
-              <PlaceIcon type={detail.place.type} size={11} color={TOKEN.text3} />
+              <PlaceTypeIcon name={detail.place.name} type={detail.place.type} size={11} color={TOKEN.text3} />
               {detail.place.district && <span style={{ fontSize: 11, color: TOKEN.text3 }}>{detail.place.district}</span>}
             </div>
           </div>

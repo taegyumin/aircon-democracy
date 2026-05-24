@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { TOKEN, VOTE_CONFIG, FONT, type VoteType } from '../lib/tokens';
 import type { PlaceWithCounts } from '../lib/api';
-import { PlaceIcon } from './Icons';
+import { PlaceTypeIcon } from './PlaceTypeIcon';
+import { brandFor } from '../lib/brands';
 
 interface Props {
   place: PlaceWithCounts;
@@ -47,14 +48,20 @@ export function PlaceCard({ place, onTap }: Props) {
           width: 42,
           height: 42,
           borderRadius: TOKEN.r.md,
-          background: TOKEN.bg,
+          background: brandFor(place.name) ? '#fff' : TOKEN.bg,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
+          overflow: 'hidden',
         }}
       >
-        <PlaceIcon type={place.type} size={20} color={TOKEN.text2} />
+        <PlaceTypeIcon
+          name={place.name}
+          type={place.type}
+          size={brandFor(place.name) ? 38 : 20}
+          color={TOKEN.text2}
+        />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
