@@ -15,7 +15,7 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const COOLDOWN_MS = 30_000;
 const EXPIRY_MS = 60 * 60 * 1000;
 const VOTE_TYPES = ['cold', 'ok', 'hot'] as const;
-const PLACE_TYPES = ['classroom', 'subway', 'cafe', 'bus', 'library', 'office', 'other'] as const;
+const PLACE_TYPES = ['classroom', 'subway', 'train', 'cafe', 'bus', 'library', 'office', 'other'] as const;
 type VoteType = (typeof VOTE_TYPES)[number];
 type PlaceType = (typeof PLACE_TYPES)[number];
 

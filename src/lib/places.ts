@@ -1,1 +1,1 @@
-export type PlaceType = 'classroom' | 'subway' | 'cafe' | 'bus' | 'library' | 'office' | 'other';
+export type PlaceType = 'classroom' | 'subway' | 'train' | 'cafe' | 'bus' | 'library' | 'office' | 'other';

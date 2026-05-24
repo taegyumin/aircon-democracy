@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { TrainFront, Bus, GraduationCap, Building2, MapPin } from 'lucide-react';
+import { TramFront, TrainFront, Bus, GraduationCap, Building2, MapPin } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api } from '../lib/api';
@@ -13,10 +13,11 @@ interface Props {
   onRegisterFreeform: (initialType: PlaceType) => void;
 }
 
-type Category = 'subway' | 'bus' | 'classroom' | 'office' | 'other';
+type Category = 'subway' | 'train' | 'bus' | 'classroom' | 'office' | 'other';
 
 const CATEGORIES: { key: Category; Icon: LucideIcon; tint: string; label: string; sub: string }[] = [
-  { key: 'subway',    Icon: TrainFront,    tint: '#1B53E5', label: '지하철',  sub: '열차 안' },
+  { key: 'subway',    Icon: TramFront,     tint: '#1B53E5', label: '지하철',  sub: '도시철도' },
+  { key: 'train',     Icon: TrainFront,    tint: '#DC2626', label: '기차',    sub: 'KTX·SRT·무궁화호 등' },
   { key: 'bus',       Icon: Bus,           tint: '#16A34A', label: '버스',    sub: '시내·시외' },
   { key: 'classroom', Icon: GraduationCap, tint: '#7C3AED', label: '강의실',  sub: '학교' },
   { key: 'office',    Icon: Building2,     tint: '#475569', label: '사무실',  sub: '회사' },
@@ -24,6 +25,10 @@ const CATEGORIES: { key: Category; Icon: LucideIcon; tint: string; label: string
 ];
 
 const CAR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+const TRAIN_TYPES = ['KTX', 'SRT', 'ITX-새마을', 'ITX-마음', '무궁화호', '누리로'] as const;
+type TrainType = (typeof TRAIN_TYPES)[number];
+const TRAIN_CAR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 
 export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: Props) {
   const [category, setCategory] = useState<Category | null>(null);
@@ -37,6 +42,11 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
   // Bus state
   const [busRoute, setBusRoute] = useState('');
   const [busStop, setBusStop] = useState('');
+
+  // Train state
+  const [trainType, setTrainType] = useState<TrainType | null>(null);
+  const [trainCar, setTrainCar] = useState<number | 'unknown' | null>(null);
+  const [trainDest, setTrainDest] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +68,32 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
         type: 'subway',
         district: district ?? undefined,
         detail: subStation ? `${subLine} · ${subStation.areas.join(', ')}` : subLine,
+      });
+      onPicked(id);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitTrain = async () => {
+    if (!trainType || !trainCar) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const carLabel = trainCar === 'unknown' ? '호차 미정' : `${trainCar}호차`;
+      const carIdPart = trainCar === 'unknown' ? 'x' : String(trainCar);
+      const dest = trainDest.trim();
+      const destPart = dest ? `:${dest}` : '';
+      const id = `train:${trainType}${destPart}:${carIdPart}`;
+      const name = dest ? `${trainType} ${carLabel} (${dest}행)` : `${trainType} ${carLabel}`;
+      await api.upsertPlace({
+        id,
+        name,
+        type: 'train',
+        district: undefined,
+        detail: dest ? `${trainType} · ${dest}행` : trainType,
       });
       onPicked(id);
     } catch (e) {
@@ -126,8 +162,8 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
                 <button
                   key={c.key}
                   onClick={() => {
-                    if (c.key === 'subway' || c.key === 'bus') setCategory(c.key);
-                    else onRegisterFreeform(c.key);
+                    if (c.key === 'subway' || c.key === 'bus' || c.key === 'train') setCategory(c.key);
+                    else onRegisterFreeform(c.key as PlaceType);
                   }}
                   style={{
                     display: 'flex',
@@ -186,6 +222,106 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
       onSubmit={submitSubway}
       renderHeader={(t) => renderHeader(t, () => { setCategory(null); setSubLine(null); setSubCar(null); setSubStation(null); })}
     />;
+  }
+
+  // ── STEP 2: TRAIN ─────────────────────────────────────────────────
+  if (category === 'train') {
+    const canSubmit = !!trainType && !!trainCar && !submitting;
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
+        {renderHeader('기차', () => { setCategory(null); setTrainType(null); setTrainCar(null); setTrainDest(''); })}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 80px' }}>
+          <Label>어떤 열차 타고 계세요? *</Label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 24 }}>
+            {TRAIN_TYPES.map((t) => {
+              const active = trainType === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTrainType(active ? null : t)}
+                  style={{
+                    padding: '14px 10px',
+                    background: active ? '#DC2626' : TOKEN.surface,
+                    color: active ? '#fff' : TOKEN.text1,
+                    border: `1.5px solid ${active ? '#DC2626' : TOKEN.border}`,
+                    borderRadius: TOKEN.r.md,
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontFamily: FONT,
+                    letterSpacing: '-0.3px',
+                  }}
+                >
+                  {t}
+                </button>
+              );
+            })}
+          </div>
+
+          <Label>몇 호차예요? *</Label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 8 }}>
+            {TRAIN_CAR_OPTIONS.map((n) => {
+              const active = trainCar === n;
+              return (
+                <button
+                  key={n}
+                  onClick={() => setTrainCar(active ? null : n)}
+                  style={{
+                    padding: '12px 0',
+                    background: active ? TOKEN.cold : TOKEN.surface,
+                    color: active ? '#fff' : TOKEN.text1,
+                    border: `1.5px solid ${active ? TOKEN.cold : TOKEN.border}`,
+                    borderRadius: TOKEN.r.md,
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontFamily: FONT,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => setTrainCar(trainCar === 'unknown' ? null : 'unknown')}
+            style={{
+              width: '100%',
+              padding: '10px',
+              background: trainCar === 'unknown' ? TOKEN.text1 : 'transparent',
+              color: trainCar === 'unknown' ? '#fff' : TOKEN.text3,
+              border: `1px dashed ${trainCar === 'unknown' ? TOKEN.text1 : TOKEN.border}`,
+              borderRadius: TOKEN.r.md,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: FONT,
+              marginBottom: 24,
+            }}
+          >
+            {trainCar === 'unknown' ? '✓ 호차 모름' : '잘 모르겠어요'}
+          </button>
+
+          <Label>어디까지 가세요? <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(선택)</span></Label>
+          <input
+            value={trainDest}
+            onChange={(e) => setTrainDest(e.target.value)}
+            placeholder="예: 부산, 광주송정, 서울"
+            style={fieldStyle(!!trainDest)}
+          />
+
+          {error && (
+            <div style={{ marginTop: 14, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12 }}>{error}</div>
+          )}
+
+          <div style={{ height: 28 }} />
+          <button onClick={submitTrain} disabled={!canSubmit} style={primaryButtonStyle(canSubmit)}>
+            {submitting ? '이동 중…' : '투표하러 가기'}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // ── STEP 2: BUS ───────────────────────────────────────────────────
