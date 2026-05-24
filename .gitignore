@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+.DS_Store
+*.local
+.vite
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+
+# Wrangler / Cloudflare local state (when we add Workers)
+.wrangler
+.dev.vars
