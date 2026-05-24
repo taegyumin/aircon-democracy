@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TOKEN, VOTE_CONFIG, FONT, type VoteType } from '../lib/tokens';
+import { Star } from 'lucide-react';
 import { api, ApiError, type PlaceDetail } from '../lib/api';
 import { recordVisit, recordVote, removePlace } from '../lib/recentPlaces';
+import { isFavorite, toggleFavorite } from '../lib/favorites';
+import { consumePendingVote, setPendingVote } from '../lib/migration';
 import { VoteButton } from '../components/VoteButton';
 import { ResultBar } from '../components/ResultBar';
 import { BackIcon } from '../components/Icons';
@@ -11,6 +14,7 @@ interface Props {
   placeId: string;
   onBack: () => void;
   onLogin: () => void;
+  onChangePlace: () => void;
 }
 
 const POLL_INTERVAL_MS = 5000;
@@ -110,13 +114,14 @@ function LoginPromptCard({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-export function VoteScreen({ placeId, onBack, onLogin }: Props) {
+export function VoteScreen({ placeId, onBack, onLogin, onChangePlace }: Props) {
   const [detail, setDetail] = useState<PlaceDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const [prevVote, setPrevVote] = useState<VoteType | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showCorrection, setShowCorrection] = useState(false);
+  const [, setFavTick] = useState(0);
   const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const correctionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,15 +170,29 @@ export function VoteScreen({ placeId, onBack, onLogin }: Props) {
     };
   }, [load]);
 
+  // Pending vote migration — if user just corrected place, auto-cast same vote on new place
+  useEffect(() => {
+    if (!detail || detail.me) return;
+    const pending = consumePendingVote();
+    if (pending) {
+      // small delay to let UI settle
+      setTimeout(() => handleVote(pending), 80);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detail]);
+
   const handleCorrectPlace = async () => {
     setShowCorrection(false);
+    const currentVote = detail?.me?.vote ?? null;
     try {
       await api.deleteVote(placeId);
     } catch {
       /* tolerate — still navigate */
     }
     removePlace(placeId);
-    onBack();
+    // Preserve user's intent: same vote, new place
+    if (currentVote) setPendingVote(currentVote);
+    onChangePlace();
   };
 
   const handleVote = async (type: VoteType) => {
@@ -276,6 +295,26 @@ export function VoteScreen({ placeId, onBack, onLogin }: Props) {
               {detail.place.district && <span style={{ fontSize: 11, color: TOKEN.text3 }}>{detail.place.district}</span>}
             </div>
           </div>
+          <button
+            onClick={() => {
+              toggleFavorite({
+                id: detail.place.id,
+                name: detail.place.name,
+                type: detail.place.type,
+                district: detail.place.district,
+              });
+              setFavTick((x) => x + 1);
+            }}
+            aria-label={isFavorite(detail.place.id) ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', display: 'flex', alignItems: 'center' }}
+          >
+            <Star
+              size={22}
+              color={isFavorite(detail.place.id) ? '#F59E0B' : TOKEN.text3}
+              fill={isFavorite(detail.place.id) ? '#F59E0B' : 'none'}
+              strokeWidth={2}
+            />
+          </button>
         </div>
       </div>
 

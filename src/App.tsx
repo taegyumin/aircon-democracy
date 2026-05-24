@@ -112,6 +112,7 @@ export default function App() {
             placeId={placeId}
             onBack={() => go('home')}
             onLogin={() => go('login')}
+            onChangePlace={() => { setRegisterInitialType(undefined); go('wizard'); }}
           />
         );
       case 'login':

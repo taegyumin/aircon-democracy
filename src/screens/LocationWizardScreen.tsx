@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react';
-import { TramFront, TrainFront, Bus, GraduationCap, Building2, MapPin } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { TramFront, TrainFront, Bus, GraduationCap, Building2, MapPin, LocateFixed, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api } from '../lib/api';
 import type { PlaceType } from '../lib/places';
-import { ALL_LINES, lineColor, searchStations, type Station } from '../lib/subway';
+import { ALL_LINES, lineColor, searchStations, STATIONS, type Station } from '../lib/subway';
 import { BackIcon } from '../components/Icons';
 import { recordLine, getRecentLines } from '../lib/recentPlaces';
+import { distanceM, formatDistance, requestCoords, type Coords } from '../lib/geo';
 
 const POPULAR_LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '7호선', '9호선', '신분당선', '공항철도'];
 
@@ -160,69 +161,17 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
     </div>
   );
 
-  // ── STEP 1: Category ─────────────────────────────────────────────
+  // ── STEP 1: Search-first landing ─────────────────────────────────
   if (!category) {
     return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-        {renderHeader('지금 어디 계세요?')}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 20px 60px' }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: TOKEN.text1, marginBottom: 6, letterSpacing: '-0.5px' }}>
-            지금 계신 곳은?
-          </div>
-          <div style={{ fontSize: 13, color: TOKEN.text2, marginBottom: 28, lineHeight: 1.6 }}>
-            장소 유형을 골라주시면 빠르게 투표할 수 있어요
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {CATEGORIES.map((c) => {
-              const Icon = c.Icon;
-              return (
-                <button
-                  key={c.key}
-                  onClick={() => {
-                    if (c.key === 'subway' || c.key === 'bus' || c.key === 'train') setCategory(c.key);
-                    else onRegisterFreeform(c.key as PlaceType);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 14,
-                    padding: '16px 18px',
-                    borderRadius: TOKEN.r.lg,
-                    border: `1.5px solid ${TOKEN.border}`,
-                    background: TOKEN.surface,
-                    cursor: 'pointer',
-                    fontFamily: FONT,
-                    transition: 'all 0.15s',
-                    textAlign: 'left',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      background: c.tint + '15',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={22} color={c.tint} strokeWidth={2} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: TOKEN.text1, letterSpacing: '-0.3px' }}>{c.label}</div>
-                    <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>{c.sub}</div>
-                  </div>
-                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                    <path d="M9 6l6 6-6 6" stroke={TOKEN.text3} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <WizardLanding
+        onPickCategory={(k) => {
+          if (k === 'subway' || k === 'bus' || k === 'train') setCategory(k);
+          else onRegisterFreeform(k as PlaceType);
+        }}
+        onPickPlaceId={onPicked}
+        renderHeader={renderHeader}
+      />
     );
   }
 
@@ -574,6 +523,294 @@ function SubwayWizard({
         </button>
       </div>
     </div>
+  );
+}
+
+// ── Wizard landing (search + nearby + categories) ───────────────────
+
+interface LandingProps {
+  onPickCategory: (k: Category) => void;
+  onPickPlaceId: (id: string) => void;
+  renderHeader: (title: string) => React.ReactNode;
+}
+
+interface NearbyHit {
+  station: Station;
+  dist: number;
+}
+
+function WizardLanding({ onPickCategory, onPickPlaceId, renderHeader }: LandingProps) {
+  const [query, setQuery] = useState('');
+  const [coords, setCoords] = useState<Coords | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [showGeoSheet, setShowGeoSheet] = useState(false);
+  const [submitting, setSubmitting] = useState<string | null>(null);
+
+  const searchResults = useMemo(() => {
+    if (!query.trim()) return [];
+    return searchStations({ query, limit: 8 });
+  }, [query]);
+
+  const nearby: NearbyHit[] = useMemo(() => {
+    if (!coords) return [];
+    return STATIONS
+      .map((s) => ({ station: s, dist: distanceM(coords, { lat: s.lat, lng: s.lng }) }))
+      .filter((x) => x.dist < 1500)
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 6);
+  }, [coords]);
+
+  useEffect(() => {
+    if (!showGeoSheet) return;
+    // close sheet on Escape
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowGeoSheet(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showGeoSheet]);
+
+  const runGeo = async () => {
+    setShowGeoSheet(false);
+    setGeoLoading(true);
+    setGeoError(null);
+    try {
+      const c = await requestCoords();
+      setCoords(c);
+    } catch (e) {
+      const code = (e as Error).message;
+      setGeoError(
+        code === 'denied' ? '위치 권한이 차단됐어요'
+          : code === 'timeout' ? '위치를 못 찾았어요'
+          : '위치를 사용할 수 없어요'
+      );
+    } finally {
+      setGeoLoading(false);
+    }
+  };
+
+  const pickStation = async (s: Station) => {
+    if (submitting) return;
+    setSubmitting(s.id);
+    try {
+      // Fast lane: station-level place (no car).  Granular subway:line:station:car
+      // is still available via category → subway wizard.
+      const id = `subway:${s.name}:${s.lines.join(',')}`;
+      await api.upsertPlace({
+        id,
+        name: s.name,
+        type: 'subway',
+        district: s.city + (s.areas[0] ? ' ' + s.areas[0] : ''),
+        detail: s.lines.join(' · '),
+      });
+      onPickPlaceId(id);
+    } catch {
+      setSubmitting(null);
+    }
+  };
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
+      {renderHeader('지금 어디 계세요?')}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 60px' }}>
+        {/* Search input */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            background: TOKEN.surface,
+            border: `1.5px solid ${TOKEN.border}`,
+            borderRadius: TOKEN.r.lg,
+            padding: '12px 14px',
+            marginBottom: 16,
+          }}
+        >
+          <Search size={18} color={TOKEN.text3} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="역명 검색 (예: 강남, ㄱㄴ)"
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 14, fontFamily: FONT, color: TOKEN.text1, minWidth: 0 }}
+          />
+          {query && (
+            <button onClick={() => setQuery('')} aria-label="지우기" style={{ background: 'none', border: 'none', cursor: 'pointer', color: TOKEN.text3, fontSize: 18, padding: 0 }}>×</button>
+          )}
+        </div>
+
+        {/* Search results — replaces other content when active */}
+        {query.trim() ? (
+          <div>
+            {searchResults.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', fontSize: 13, color: TOKEN.text3 }}>
+                "{query}" 역을 못 찾았어요
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {searchResults.map((s) => (
+                  <StationRow key={s.id} station={s} loading={submitting === `subway:${s.name}:${s.lines.join(',')}`} onTap={() => pickStation(s)} />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Nearby section */}
+            {!coords && !geoLoading && !geoError && (
+              <button
+                onClick={() => setShowGeoSheet(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  width: '100%', padding: '14px 16px',
+                  background: TOKEN.coldBg,
+                  border: `1.5px dashed ${TOKEN.cold}55`,
+                  borderRadius: TOKEN.r.lg, cursor: 'pointer', fontFamily: FONT,
+                  marginBottom: 18, textAlign: 'left',
+                }}
+              >
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: TOKEN.cold, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <LocateFixed size={18} color="#fff" strokeWidth={2.2} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: TOKEN.cold }}>근처 역 찾기</div>
+                  <div style={{ fontSize: 11, color: TOKEN.text2, marginTop: 2 }}>위치는 저장하지 않아요</div>
+                </div>
+              </button>
+            )}
+            {geoLoading && (
+              <div style={{ padding: '14px', textAlign: 'center', fontSize: 12, color: TOKEN.text3, marginBottom: 18 }}>
+                위치 찾는 중…
+              </div>
+            )}
+            {geoError && (
+              <div style={{ padding: '12px 14px', background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12, marginBottom: 18 }}>
+                {geoError} — 아래서 직접 선택하세요
+              </div>
+            )}
+            {coords && nearby.length > 0 && (
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 8, letterSpacing: '0.3px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>📍 가까운 역</span>
+                  <button onClick={() => { setCoords(null); setGeoError(null); }} style={{ background: 'none', border: 'none', color: TOKEN.text3, fontSize: 11, cursor: 'pointer', fontFamily: FONT }}>
+                    숨기기
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {nearby.map((h) => (
+                    <StationRow
+                      key={h.station.id}
+                      station={h.station}
+                      distance={h.dist}
+                      loading={submitting === `subway:${h.station.name}:${h.station.lines.join(',')}`}
+                      onTap={() => pickStation(h.station)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {coords && nearby.length === 0 && (
+              <div style={{ padding: '12px', fontSize: 12, color: TOKEN.text3, textAlign: 'center', marginBottom: 18 }}>
+                1.5km 안에 등록된 역이 없어요
+              </div>
+            )}
+
+            {/* Category grid */}
+            <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 10, letterSpacing: '0.3px' }}>
+              유형으로 찾기
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {CATEGORIES.map((c) => {
+                const Icon = c.Icon;
+                return (
+                  <button
+                    key={c.key}
+                    onClick={() => onPickCategory(c.key)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '14px 12px',
+                      borderRadius: TOKEN.r.lg,
+                      border: `1.5px solid ${TOKEN.border}`,
+                      background: TOKEN.surface,
+                      cursor: 'pointer', fontFamily: FONT, textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: c.tint + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon size={18} color={c.tint} strokeWidth={2.1} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: TOKEN.text1, letterSpacing: '-0.2px' }}>{c.label}</div>
+                      <div style={{ fontSize: 10, color: TOKEN.text3, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.sub}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Soft ask sheet */}
+      {showGeoSheet && (
+        <div
+          onClick={() => setShowGeoSheet(false)}
+          style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: TOKEN.surface, borderTopLeftRadius: TOKEN.r.xl, borderTopRightRadius: TOKEN.r.xl, padding: '22px 22px 30px', maxWidth: 420, width: '100%' }}
+          >
+            <div style={{ fontSize: 17, fontWeight: 900, color: TOKEN.text1, marginBottom: 8, letterSpacing: '-0.3px' }}>
+              근처 역 찾기
+            </div>
+            <div style={{ fontSize: 13, color: TOKEN.text2, lineHeight: 1.6, marginBottom: 22 }}>
+              가까운 지하철역을 보여드릴게요.<br />
+              <b>위치 정보는 서버에 저장되지 않고</b>, 추천에만 잠깐 사용해요.
+            </div>
+            <button onClick={runGeo} style={{ width: '100%', padding: '14px', background: TOKEN.cold, color: '#fff', border: 'none', borderRadius: TOKEN.r.lg, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: FONT, marginBottom: 8 }}>
+              위치 허용하기
+            </button>
+            <button onClick={() => setShowGeoSheet(false)} style={{ width: '100%', padding: '14px', background: 'none', color: TOKEN.text2, border: 'none', fontSize: 14, cursor: 'pointer', fontFamily: FONT }}>
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StationRow({ station, distance, loading, onTap }: { station: Station; distance?: number; loading?: boolean; onTap: () => void }) {
+  return (
+    <button
+      onClick={loading ? undefined : onTap}
+      disabled={loading}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        width: '100%', padding: '12px 14px',
+        background: TOKEN.surface, border: `1px solid ${TOKEN.border}`,
+        borderRadius: TOKEN.r.md, textAlign: 'left',
+        cursor: loading ? 'wait' : 'pointer', fontFamily: FONT,
+        opacity: loading ? 0.6 : 1,
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0, alignItems: 'center', minWidth: 24 }}>
+        {station.lines.slice(0, 2).map((l) => (
+          <span key={l} style={{ width: 14, height: 14, borderRadius: '50%', background: lineColor(l), color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {l.match(/^\d+호선$/) ? l.replace('호선', '') : ''}
+          </span>
+        ))}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: TOKEN.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {station.name}
+        </div>
+        <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {station.lines.join(' · ')} · {station.city}
+        </div>
+      </div>
+      {distance !== undefined && (
+        <span style={{ fontSize: 11, color: TOKEN.text3, flexShrink: 0 }}>{formatDistance(distance)}</span>
+      )}
+    </button>
   );
 }
 
