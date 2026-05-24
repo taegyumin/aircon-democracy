@@ -16,7 +16,7 @@ export const BRANDS: Brand[] = [
   { id: 'compose',   iconUrl: '/brands/compose.svg',   matches: (n) => includesAny(n, '컴포즈') || /compose\s*coffee/i.test(n) },
   { id: 'paik',      iconUrl: '/brands/paik.png',      matches: (n) => includesAny(n, '빽다방') || /paik('?s)?\s*(coffee|bread)?/i.test(n) },
   // ── Universities ──────────────────────────────────────────────────
-  { id: 'snu',       iconUrl: '/brands/snu.svg',       matches: (n) => includesAny(n, '서울대학교', '서울대') || /seoul\s*national\s*university/i.test(n) },
+  { id: 'snu',       iconUrl: '/brands/snu.png',       matches: (n) => includesAny(n, '서울대학교', '서울대') || /seoul\s*national\s*university/i.test(n) },
   { id: 'yonsei',    iconUrl: '/brands/yonsei.png',    matches: (n) => includesAny(n, '연세대학교', '연세대') || /yonsei/i.test(n) },
   { id: 'ku',        iconUrl: '/brands/ku.svg',        matches: (n) => includesAny(n, '고려대학교', '고려대') || /korea\s*university/i.test(n) },
   { id: 'hanyang',   iconUrl: '/brands/hanyang.svg',   matches: (n) => includesAny(n, '한양대학교', '한양대') || /hanyang/i.test(n) },
