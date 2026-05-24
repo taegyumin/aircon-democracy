@@ -185,6 +185,35 @@ app.post('/places', async (c) => {
   return c.json({ id, name, type, district, detail, created_at: now }, 201);
 });
 
+// POST /api/places/upsert — idempotent create (used for lazy subway station materialization)
+app.post('/places/upsert', async (c) => {
+  let body: { id?: unknown; name?: unknown; type?: unknown; district?: unknown; detail?: unknown };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'invalid_json' }, 400);
+  }
+  const id = typeof body.id === 'string' ? body.id.trim() : '';
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const type = typeof body.type === 'string' ? body.type : '';
+  const district = typeof body.district === 'string' ? body.district.trim() || null : null;
+  const detail = typeof body.detail === 'string' ? body.detail.trim() || null : null;
+
+  if (!id || id.length > 200) return c.json({ error: 'invalid_id' }, 400);
+  if (!name || name.length > 120) return c.json({ error: 'invalid_name' }, 400);
+  if (!PLACE_TYPES.includes(type as PlaceType)) return c.json({ error: 'invalid_type' }, 400);
+
+  await c.env.DB.prepare(
+    `INSERT INTO places (id, name, type, district, detail, created_at, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO NOTHING`
+  )
+    .bind(id, name, type, district, detail, Date.now(), c.get('voterId'))
+    .run();
+
+  return c.json({ id });
+});
+
 // POST /api/places/:id/vote — cast or change vote
 app.post('/places/:id/vote', async (c) => {
   const id = c.req.param('id');

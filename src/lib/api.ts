@@ -69,6 +69,9 @@ export const api = {
   createPlace: (input: { name: string; type: PlaceType; district?: string; detail?: string }) =>
     request<ApiPlace>('/api/places', { method: 'POST', body: JSON.stringify(input) }),
 
+  upsertPlace: (input: { id: string; name: string; type: PlaceType; district?: string; detail?: string }) =>
+    request<{ id: string }>('/api/places/upsert', { method: 'POST', body: JSON.stringify(input) }),
+
   vote: (placeId: string, vote: 'cold' | 'ok' | 'hot') =>
     request<{ ok: true; vote: 'cold' | 'ok' | 'hot'; expires_at: number }>(
       `/api/places/${encodeURIComponent(placeId)}/vote`,
