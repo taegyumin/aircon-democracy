@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { IOSDevice } from './components/IOSDevice';
 import { HomeScreen } from './screens/HomeScreen';
 import { VoteScreen } from './screens/VoteScreen';
@@ -11,15 +11,56 @@ import type { PlaceType } from './lib/places';
 
 type Screen = 'home' | 'vote' | 'search' | 'qr' | 'login' | 'register' | 'wizard';
 
+interface RouteState {
+  screen: Screen;
+  placeId: string | null;
+}
+
+function pathToRoute(pathname: string): RouteState {
+  if (pathname === '/' || pathname === '') return { screen: 'home', placeId: null };
+  if (pathname === '/search') return { screen: 'search', placeId: null };
+  if (pathname === '/register') return { screen: 'register', placeId: null };
+  if (pathname === '/login') return { screen: 'login', placeId: null };
+  if (pathname === '/wizard') return { screen: 'wizard', placeId: null };
+  if (pathname === '/qr') return { screen: 'qr', placeId: null };
+  const placeMatch = pathname.match(/^\/p\/(.+?)\/?$/);
+  if (placeMatch) return { screen: 'vote', placeId: decodeURIComponent(placeMatch[1]) };
+  return { screen: 'home', placeId: null };
+}
+
+function routeToPath(r: RouteState): string {
+  switch (r.screen) {
+    case 'home': return '/';
+    case 'search': return '/search';
+    case 'register': return '/register';
+    case 'login': return '/login';
+    case 'wizard': return '/wizard';
+    case 'qr': return '/qr';
+    case 'vote': return r.placeId ? `/p/${encodeURIComponent(r.placeId)}` : '/';
+  }
+}
+
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('home');
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [route, setRoute] = useState<RouteState>(() => pathToRoute(window.location.pathname));
   const [registerInitialType, setRegisterInitialType] = useState<PlaceType | undefined>(undefined);
 
-  const go = useCallback((next: Screen, placeId?: string) => {
-    if (placeId) setSelectedPlaceId(placeId);
-    setScreen(next);
+  // Sync browser back/forward → state
+  useEffect(() => {
+    const onPop = () => setRoute(pathToRoute(window.location.pathname));
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
+
+  const go = useCallback((next: Screen, placeId?: string) => {
+    const newRoute: RouteState = { screen: next, placeId: placeId ?? (next === 'vote' ? route.placeId : null) };
+    const path = routeToPath(newRoute);
+    if (path !== window.location.pathname) {
+      window.history.pushState({}, '', path);
+    }
+    setRoute(newRoute);
+  }, [route.placeId]);
+
+  const { screen, placeId } = route;
 
   const renderScreen = () => {
     switch (screen) {
@@ -52,7 +93,7 @@ export default function App() {
       case 'qr':
         return <QRScreen onBack={() => go('home')} onSuccess={(id) => go('vote', id)} />;
       case 'vote':
-        if (!selectedPlaceId) {
+        if (!placeId) {
           return (
             <HomeScreen
               onSelectPlace={(id) => go('vote', id)}
@@ -65,14 +106,14 @@ export default function App() {
         }
         return (
           <VoteScreen
-            key={selectedPlaceId}
-            placeId={selectedPlaceId}
+            key={placeId}
+            placeId={placeId}
             onBack={() => go('home')}
             onLogin={() => go('login')}
           />
         );
       case 'login':
-        return <LoginScreen onBack={() => go('vote')} />;
+        return <LoginScreen onBack={() => placeId ? go('vote', placeId) : go('home')} />;
       case 'register':
         return (
           <RegisterScreen
@@ -102,7 +143,7 @@ export default function App() {
       {isPhoneFrame ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
           <IOSDevice width={390} height={844}>
-            <div key={screen} style={{ height: '100%', animation: 'fadeUp 0.22s ease' }}>
+            <div key={screen + (placeId ?? '')} style={{ height: '100%', animation: 'fadeUp 0.22s ease' }}>
               {renderScreen()}
             </div>
           </IOSDevice>
@@ -114,7 +155,7 @@ export default function App() {
           </div>
         </div>
       ) : (
-        <div key={screen} style={{ width: '100%', minHeight: '100vh', animation: 'fadeUp 0.22s ease' }}>
+        <div key={screen + (placeId ?? '')} style={{ width: '100%', minHeight: '100vh', animation: 'fadeUp 0.22s ease' }}>
           {renderScreen()}
         </div>
       )}
