@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name=aircon-democracy --branch=main"
+    "deploy": "npm run build && wrangler pages deploy \"$PWD/dist\" --project-name=aircon-democracy --branch=main"
   },
   "dependencies": {
     "hono": "^4.12.22",
