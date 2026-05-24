@@ -308,7 +308,11 @@ app.get('/auth/kakao/callback', async (c) => {
   return c.redirect('/');
 });
 
-// GET /api/places — list places with live vote counts
+// GET /api/places — list places with live vote counts.
+// Cached at the edge for ~30s (per-place "my vote" is fetched separately
+// via /places/:id, which is uncacheable). LIMIT is bounded to keep D1
+// row reads predictable; popularity-sorted feed is intentionally not
+// keyset-paginated yet (popularity changes every vote).
 app.get('/places', async (c) => {
   const now = Date.now();
   const { results } = await c.env.DB.prepare(
@@ -321,10 +325,12 @@ app.get('/places', async (c) => {
      LEFT JOIN votes v ON v.place_id = p.id
      GROUP BY p.id
      ORDER BY (cold + ok + hot) DESC, p.created_at DESC
-     LIMIT 200`
+     LIMIT 100`
   )
     .bind(now)
     .all<PlaceWithCounts>();
+  c.header('Cache-Control', 'public, max-age=15, s-maxage=30, stale-while-revalidate=120');
+  c.header('Vary', 'Accept-Encoding');
   return c.json({ places: results });
 });
 

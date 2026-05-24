@@ -16,7 +16,22 @@ function xmlEscape(s: string): string {
 export const onRequest: PagesFunction<Env> = async ({ env }) => {
   let placeIds: string[] = [];
   try {
-    const { results } = await env.DB.prepare('SELECT id FROM places ORDER BY created_at DESC LIMIT 5000').all<{ id: string }>();
+    // Only surface "active" places: those with at least one non-expired vote
+    // or created in the last 30 days. Keeps spam / single-vote junk out of
+    // the search index and bounds D1 row reads.
+    const nowMs = Date.now();
+    const cutoff = nowMs - 30 * 86400 * 1000;
+    const { results } = await env.DB.prepare(
+      `SELECT p.id
+         FROM places p
+         LEFT JOIN votes v ON v.place_id = p.id AND v.expires_at > ?1
+        WHERE v.place_id IS NOT NULL OR p.created_at > ?2
+        GROUP BY p.id
+        ORDER BY p.created_at DESC
+        LIMIT 2000`
+    )
+      .bind(nowMs, cutoff)
+      .all<{ id: string }>();
     placeIds = (results ?? []).map((r) => r.id);
   } catch {
     // tolerate missing/unbound DB during preview
