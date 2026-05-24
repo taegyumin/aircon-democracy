@@ -109,12 +109,11 @@ export function HomeScreen({ onSelectPlace, onSearch, onQR, onRegister }: Props)
           </button>
           <button
             onClick={onQR}
+            aria-label="QR 코드 스캔"
             style={{
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 3,
               padding: '0 16px',
               background: TOKEN.cold,
               borderRadius: TOKEN.r.lg,
@@ -125,13 +124,12 @@ export function HomeScreen({ onSelectPlace, onSearch, onQR, onRegister }: Props)
               fontFamily: FONT,
             }}
           >
-            <svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none">
               <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="white" strokeWidth="1.8" />
               <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="white" strokeWidth="1.8" />
               <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="white" strokeWidth="1.8" />
               <path d="M14 14h2v2h-2zM18 14v2h2M14 18h2v2M20 18v2h-2" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span style={{ fontSize: 10, fontWeight: 700 }}>QR</span>
           </button>
         </div>
       </div>
