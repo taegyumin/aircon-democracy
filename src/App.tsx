@@ -70,7 +70,6 @@ export default function App() {
             onSelectPlace={(id) => go('vote', id)}
             onWizard={() => { setRegisterInitialType(undefined); go('wizard'); }}
             onSearch={() => go('search')}
-            onQR={() => go('qr')}
             onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
             onLogin={() => go('login')}
           />
@@ -100,8 +99,7 @@ export default function App() {
               onSelectPlace={(id) => go('vote', id)}
               onWizard={() => { setRegisterInitialType(undefined); go('wizard'); }}
               onSearch={() => go('search')}
-              onQR={() => go('qr')}
-              onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
+                onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
               onLogin={() => go('login')}
             />
           );

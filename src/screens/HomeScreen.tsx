@@ -12,7 +12,6 @@ interface Props {
   onSelectPlace: (id: string) => void;
   onWizard: () => void;
   onSearch: () => void;
-  onQR: () => void;
   onRegister: () => void;
   onLogin?: () => void;
 }
@@ -37,7 +36,7 @@ function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: str
   );
 }
 
-export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister, onLogin }: Props) {
+export function HomeScreen({ onSelectPlace, onWizard, onSearch, onRegister, onLogin }: Props) {
   const [places, setPlaces] = useState<PlaceWithCounts[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { user, logout } = useUser();
@@ -169,33 +168,6 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
               <path d="M21 21l-4.35-4.35" stroke={TOKEN.text3} strokeWidth="2" strokeLinecap="round" />
             </svg>
             <span style={{ fontSize: 14, color: TOKEN.text3 }}>장소 이름 또는 건물 검색</span>
-          </button>
-          <button
-            onClick={onQR}
-            disabled
-            aria-label="QR 코드 스캔 (준비 중)"
-            title="QR 코드 스캔 — 곧 지원 예정"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 16px',
-              background: TOKEN.text3,
-              borderRadius: TOKEN.r.lg,
-              border: 'none',
-              cursor: 'not-allowed',
-              color: '#fff',
-              minWidth: 58,
-              fontFamily: FONT,
-              opacity: 0.5,
-            }}
-          >
-            <svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="white" strokeWidth="1.8" />
-              <rect x="3" y="14" width="7" height="7" rx="1.5" stroke="white" strokeWidth="1.8" />
-              <rect x="14" y="3" width="7" height="7" rx="1.5" stroke="white" strokeWidth="1.8" />
-              <path d="M14 14h2v2h-2zM18 14v2h2M14 18h2v2M20 18v2h-2" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
           </button>
         </div>
       </div>
