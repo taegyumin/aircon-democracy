@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { handle } from 'hono/cloudflare-pages';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { sign as jwtSign, verify as jwtVerify } from 'hono/jwt';
-import { csrfGuard } from './_abuse';
+import { csrfGuard, validatePlaceInput, VALID_PLACE_TYPES } from './_abuse';
 
 type Bindings = {
   DB: D1Database;
@@ -333,28 +333,26 @@ app.post('/places', async (c) => {
     return c.json({ error: 'invalid_json' }, 400);
   }
 
-  const name = typeof body.name === 'string' ? body.name.trim() : '';
-  const type = typeof body.type === 'string' ? body.type : '';
-  const district = typeof body.district === 'string' ? body.district.trim() || null : null;
-  const detail = typeof body.detail === 'string' ? body.detail.trim() || null : null;
-
-  if (!name || name.length > 120) return c.json({ error: 'invalid_name' }, 400);
-  if (!PLACE_TYPES.includes(type as PlaceType)) return c.json({ error: 'invalid_type' }, 400);
-  if (district && district.length > 60) return c.json({ error: 'invalid_district' }, 400);
-  if (detail && detail.length > 200) return c.json({ error: 'invalid_detail' }, 400);
+  const v = validatePlaceInput(body);
+  if (!v.ok) return c.json({ error: v.error }, 400);
 
   const id = crypto.randomUUID();
   const now = Date.now();
   await c.env.DB.prepare(
-    'INSERT INTO places (id, name, type, district, detail, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO places (id, name, type, district, detail, created_at, created_by, normalized_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   )
-    .bind(id, name, type, district, detail, now, c.get('voterId'))
+    .bind(id, v.name, v.type, v.district, v.detail, now, c.get('voterId'), v.normalized)
     .run();
 
-  return c.json({ id, name, type, district, detail, created_at: now }, 201);
+  return c.json({ id, name: v.name, type: v.type, district: v.district, detail: v.detail, created_at: now }, 201);
 });
 
 // POST /api/places/upsert — idempotent create (used for lazy subway station materialization)
+// Caller passes a deterministic id like "subway:강남:2호선,신분당선"; we require
+// the id to be prefixed with the declared type so a `type: 'cafe'` body can't
+// claim a `subway:…` id.
+const UPSERT_ID_RE = /^[a-z]+:[\p{L}\p{N}\s,()/:·.\-]{1,180}$/u;
+
 app.post('/places/upsert', async (c) => {
   let body: { id?: unknown; name?: unknown; type?: unknown; district?: unknown; detail?: unknown };
   try {
@@ -363,21 +361,23 @@ app.post('/places/upsert', async (c) => {
     return c.json({ error: 'invalid_json' }, 400);
   }
   const id = typeof body.id === 'string' ? body.id.trim() : '';
-  const name = typeof body.name === 'string' ? body.name.trim() : '';
   const type = typeof body.type === 'string' ? body.type : '';
-  const district = typeof body.district === 'string' ? body.district.trim() || null : null;
-  const detail = typeof body.detail === 'string' ? body.detail.trim() || null : null;
 
   if (!id || id.length > 200) return c.json({ error: 'invalid_id' }, 400);
-  if (!name || name.length > 120) return c.json({ error: 'invalid_name' }, 400);
-  if (!PLACE_TYPES.includes(type as PlaceType)) return c.json({ error: 'invalid_type' }, 400);
+  if (!VALID_PLACE_TYPES.has(type)) return c.json({ error: 'invalid_type' }, 400);
+  if (!UPSERT_ID_RE.test(id) || !id.startsWith(`${type}:`)) {
+    return c.json({ error: 'invalid_id' }, 400);
+  }
+
+  const v = validatePlaceInput(body);
+  if (!v.ok) return c.json({ error: v.error }, 400);
 
   await c.env.DB.prepare(
-    `INSERT INTO places (id, name, type, district, detail, created_at, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO places (id, name, type, district, detail, created_at, created_by, normalized_name)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO NOTHING`
   )
-    .bind(id, name, type, district, detail, Date.now(), c.get('voterId'))
+    .bind(id, v.name, v.type, v.district, v.detail, Date.now(), c.get('voterId'), v.normalized)
     .run();
 
   return c.json({ id });
