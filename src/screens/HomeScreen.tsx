@@ -109,19 +109,22 @@ export function HomeScreen({ onSelectPlace, onSearch, onQR, onRegister }: Props)
           </button>
           <button
             onClick={onQR}
-            aria-label="QR 코드 스캔"
+            disabled
+            aria-label="QR 코드 스캔 (준비 중)"
+            title="QR 코드 스캔 — 곧 지원 예정"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               padding: '0 16px',
-              background: TOKEN.cold,
+              background: TOKEN.text3,
               borderRadius: TOKEN.r.lg,
               border: 'none',
-              cursor: 'pointer',
+              cursor: 'not-allowed',
               color: '#fff',
               minWidth: 58,
               fontFamily: FONT,
+              opacity: 0.5,
             }}
           >
             <svg width={22} height={22} viewBox="0 0 24 24" fill="none">

@@ -100,6 +100,7 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: 10,
                   padding: '15px 14px',
                   borderRadius: TOKEN.r.lg,
@@ -327,8 +328,18 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
         {step < 3 && (
           <div style={{ padding: '6px 20px 14px', display: 'flex', gap: 8, alignItems: 'center' }}>
             {stepLabels.map((l, i) => (
-              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: i < stepLabels.length - 1 ? 1 : 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div
+                key={l}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  flex: i < stepLabels.length - 1 ? 1 : 'none',
+                  flexShrink: 0,
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                   <div
                     style={{
                       width: 20,
@@ -350,12 +361,27 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
                       <span style={{ fontSize: 10, fontWeight: 700, color: i + 1 === step ? '#fff' : TOKEN.text3 }}>{i + 1}</span>
                     )}
                   </div>
-                  <span style={{ fontSize: 11, color: i + 1 === step ? TOKEN.cold : TOKEN.text3, fontWeight: i + 1 === step ? 700 : 400 }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: i + 1 === step ? TOKEN.cold : TOKEN.text3,
+                      fontWeight: i + 1 === step ? 700 : 400,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {l}
                   </span>
                 </div>
                 {i < stepLabels.length - 1 && (
-                  <div style={{ flex: 1, height: 1, background: i + 1 < step ? TOKEN.cold : TOKEN.border, transition: 'background 0.3s' }} />
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 8,
+                      height: 1,
+                      background: i + 1 < step ? TOKEN.cold : TOKEN.border,
+                      transition: 'background 0.3s',
+                    }}
+                  />
                 )}
               </div>
             ))}
