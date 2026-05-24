@@ -7,6 +7,7 @@ import { BackIcon } from '../components/Icons';
 interface Props {
   onBack: () => void;
   onComplete: (placeId: string) => void;
+  initialType?: PlaceType;
 }
 
 const TYPE_OPTIONS: { k: PlaceType; icon: string; label: string }[] = [
@@ -46,9 +47,9 @@ function MiniQR() {
   );
 }
 
-export function RegisterScreen({ onBack, onComplete }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [type, setType] = useState<PlaceType | null>(null);
+export function RegisterScreen({ onBack, onComplete, initialType }: Props) {
+  const [step, setStep] = useState<1 | 2 | 3>(initialType ? 2 : 1);
+  const [type, setType] = useState<PlaceType | null>(initialType ?? null);
   const [name, setName] = useState('');
   const [detail, setDetail] = useState('');
   const [district, setDistrict] = useState('');

@@ -5,6 +5,7 @@ import { PlaceCard } from '../components/PlaceCard';
 
 interface Props {
   onSelectPlace: (id: string) => void;
+  onWizard: () => void;
   onSearch: () => void;
   onQR: () => void;
   onRegister: () => void;
@@ -30,7 +31,7 @@ function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: str
   );
 }
 
-export function HomeScreen({ onSelectPlace, onSearch, onQR, onRegister }: Props) {
+export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister }: Props) {
   const [places, setPlaces] = useState<PlaceWithCounts[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -137,7 +138,37 @@ export function HomeScreen({ onSelectPlace, onSearch, onQR, onRegister }: Props)
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 80px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 80px' }}>
+        {/* Primary CTA: location wizard */}
+        <button
+          onClick={onWizard}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            width: '100%',
+            padding: '18px 18px',
+            background: TOKEN.cold,
+            border: 'none',
+            borderRadius: TOKEN.r.lg,
+            cursor: 'pointer',
+            fontFamily: FONT,
+            color: '#fff',
+            boxShadow: `0 8px 24px ${TOKEN.cold}40`,
+            marginBottom: 22,
+            textAlign: 'left',
+          }}
+        >
+          <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>📍</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 900, letterSpacing: '-0.4px' }}>지금 어디 계세요?</div>
+            <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>지하철 · 버스 · 강의실 · 사무실 · 기타</div>
+          </div>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+            <path d="M9 6l6 6-6 6" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+
         {error && (
           <div style={{ padding: 14, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 13, marginBottom: 16 }}>
             장소를 불러오지 못했어요: {error}

@@ -187,11 +187,11 @@ export function SearchScreen({ onBack, onSelectPlace, onRegister }: Props) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
       {/* Header */}
-      <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '10px 16px 12px' }}>
+      <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '10px 16px 12px', minWidth: 0 }}>
           <button
             onClick={onBack}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center', flexShrink: 0 }}
             aria-label="뒤로"
           >
             <BackIcon />
@@ -199,6 +199,7 @@ export function SearchScreen({ onBack, onSelectPlace, onRegister }: Props) {
           <div
             style={{
               flex: 1,
+              minWidth: 0,
               display: 'flex',
               alignItems: 'center',
               gap: 10,

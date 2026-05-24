@@ -6,12 +6,15 @@ import { SearchScreen } from './screens/SearchScreen';
 import { QRScreen } from './screens/QRScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
+import { LocationWizardScreen } from './screens/LocationWizardScreen';
+import type { PlaceType } from './lib/places';
 
-type Screen = 'home' | 'vote' | 'search' | 'qr' | 'login' | 'register';
+type Screen = 'home' | 'vote' | 'search' | 'qr' | 'login' | 'register' | 'wizard';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [registerInitialType, setRegisterInitialType] = useState<PlaceType | undefined>(undefined);
 
   const go = useCallback((next: Screen, placeId?: string) => {
     if (placeId) setSelectedPlaceId(placeId);
@@ -24,9 +27,18 @@ export default function App() {
         return (
           <HomeScreen
             onSelectPlace={(id) => go('vote', id)}
+            onWizard={() => { setRegisterInitialType(undefined); go('wizard'); }}
             onSearch={() => go('search')}
             onQR={() => go('qr')}
-            onRegister={() => go('register')}
+            onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
+          />
+        );
+      case 'wizard':
+        return (
+          <LocationWizardScreen
+            onBack={() => go('home')}
+            onPicked={(id) => go('vote', id)}
+            onRegisterFreeform={(t) => { setRegisterInitialType(t); go('register'); }}
           />
         );
       case 'search':
@@ -34,7 +46,7 @@ export default function App() {
           <SearchScreen
             onBack={() => go('home')}
             onSelectPlace={(id) => go('vote', id)}
-            onRegister={() => go('register')}
+            onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
           />
         );
       case 'qr':
@@ -44,9 +56,10 @@ export default function App() {
           return (
             <HomeScreen
               onSelectPlace={(id) => go('vote', id)}
+              onWizard={() => { setRegisterInitialType(undefined); go('wizard'); }}
               onSearch={() => go('search')}
               onQR={() => go('qr')}
-              onRegister={() => go('register')}
+              onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
             />
           );
         }
@@ -61,7 +74,13 @@ export default function App() {
       case 'login':
         return <LoginScreen onBack={() => go('vote')} />;
       case 'register':
-        return <RegisterScreen onBack={() => go('home')} onComplete={(id) => go('vote', id)} />;
+        return (
+          <RegisterScreen
+            onBack={() => go('home')}
+            onComplete={(id) => go('vote', id)}
+            initialType={registerInitialType}
+          />
+        );
     }
   };
 
