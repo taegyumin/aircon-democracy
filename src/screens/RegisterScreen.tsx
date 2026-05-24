@@ -93,34 +93,60 @@ export function RegisterScreen({ onBack, onComplete, initialType }: Props) {
             유형을 선택하면 검색에서 더 잘 찾을 수 있어요
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {TYPE_OPTIONS.map((o) => (
-              <button
-                key={o.k}
-                onClick={() => {
-                  setType(o.k);
-                  setTimeout(() => setStep(2), 180);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
-                  padding: '15px 14px',
-                  borderRadius: TOKEN.r.lg,
-                  border: `2px solid ${type === o.k ? TOKEN.cold : TOKEN.border}`,
-                  background: type === o.k ? TOKEN.coldBg : TOKEN.surface,
-                  cursor: 'pointer',
-                  fontFamily: FONT,
-                  transition: 'all 0.15s',
-                  transform: type === o.k ? 'scale(1.02)' : 'scale(1)',
-                }}
-              >
-                <span style={{ fontSize: 22 }}>{o.icon}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: type === o.k ? TOKEN.cold : TOKEN.text1, letterSpacing: '-0.2px' }}>
-                  {o.label}
-                </span>
-              </button>
-            ))}
+            {TYPE_OPTIONS.map((o) => {
+              const Icon = o.Icon;
+              const active = type === o.k;
+              return (
+                <button
+                  key={o.k}
+                  onClick={() => {
+                    setType(o.k);
+                    setTimeout(() => setStep(2), 180);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    gap: 10,
+                    padding: '14px 12px',
+                    borderRadius: TOKEN.r.lg,
+                    border: `2px solid ${active ? TOKEN.cold : TOKEN.border}`,
+                    background: active ? TOKEN.coldBg : TOKEN.surface,
+                    cursor: 'pointer',
+                    fontFamily: FONT,
+                    transition: 'all 0.15s',
+                    transform: active ? 'scale(1.02)' : 'scale(1)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 9,
+                      background: o.tint + (active ? '22' : '15'),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon size={18} color={o.tint} strokeWidth={2.1} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: active ? TOKEN.cold : TOKEN.text1,
+                      letterSpacing: '-0.2px',
+                      lineHeight: 1.25,
+                      textAlign: 'left',
+                    }}
+                  >
+                    {o.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       );
@@ -136,8 +162,9 @@ export function RegisterScreen({ onBack, onComplete, initialType }: Props) {
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none">
               <path d="M15 18l-6-6 6-6" stroke={TOKEN.text3} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span style={{ fontSize: 12, color: TOKEN.text3, fontFamily: FONT }}>
-              {sel?.icon} {sel?.label}
+            <span style={{ fontSize: 12, color: TOKEN.text3, fontFamily: FONT, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {sel && <sel.Icon size={13} color={sel.tint} strokeWidth={2.2} />}
+              {sel?.label}
             </span>
           </button>
           <div style={{ fontSize: 19, fontWeight: 900, color: TOKEN.text1, marginBottom: 22, letterSpacing: '-0.4px' }}>
