@@ -72,6 +72,7 @@ export default function App() {
             onSearch={() => go('search')}
             onQR={() => go('qr')}
             onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
+            onLogin={() => go('login')}
           />
         );
       case 'wizard':
@@ -101,6 +102,7 @@ export default function App() {
               onSearch={() => go('search')}
               onQR={() => go('qr')}
               onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
+              onLogin={() => go('login')}
             />
           );
         }

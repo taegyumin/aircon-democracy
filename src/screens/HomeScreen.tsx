@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api, type PlaceWithCounts } from '../lib/api';
+import { useUser } from '../lib/useUser';
 import { PlaceCard } from '../components/PlaceCard';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   onSearch: () => void;
   onQR: () => void;
   onRegister: () => void;
+  onLogin?: () => void;
 }
 
 function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: string }) {
@@ -31,9 +33,11 @@ function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: str
   );
 }
 
-export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister }: Props) {
+export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister, onLogin }: Props) {
   const [places, setPlaces] = useState<PlaceWithCounts[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { user, logout } = useUser();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,25 +68,77 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
             <div style={{ fontSize: 9, color: TOKEN.text3, letterSpacing: '1.8px', marginTop: 1 }}>AIRCON DEMOCRACY</div>
           </div>
           <div style={{ flex: 1 }} />
-          <button
-            style={{
-              background: TOKEN.bg,
-              border: 'none',
-              borderRadius: 999,
-              width: 34,
-              height: 34,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-            aria-label="프로필"
-          >
-            <svg width={17} height={17} viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="8" r="4" stroke={TOKEN.text3} strokeWidth="1.8" />
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={TOKEN.text3} strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => {
+                if (user) setMenuOpen((v) => !v);
+                else onLogin?.();
+              }}
+              style={{
+                background: TOKEN.bg,
+                border: 'none',
+                borderRadius: 999,
+                width: 34,
+                height: 34,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                padding: 0,
+                overflow: 'hidden',
+              }}
+              aria-label={user ? '계정 메뉴' : '로그인'}
+            >
+              {user?.profile_image_url ? (
+                <img src={user.profile_image_url} alt="" width={34} height={34} style={{ display: 'block', objectFit: 'cover' }} />
+              ) : (
+                <svg width={17} height={17} viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="8" r="4" stroke={TOKEN.text3} strokeWidth="1.8" />
+                  <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={TOKEN.text3} strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
+            {user && menuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 42,
+                  minWidth: 180,
+                  background: TOKEN.surface,
+                  border: `1px solid ${TOKEN.border}`,
+                  borderRadius: TOKEN.r.md,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                  zIndex: 100,
+                  padding: '8px 0',
+                }}
+              >
+                <div style={{ padding: '8px 14px', borderBottom: `1px solid ${TOKEN.border}` }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: TOKEN.text1 }}>{user.display_name ?? '사용자'}</div>
+                  <div style={{ fontSize: 10, color: TOKEN.text3, marginTop: 2 }}>{user.provider}</div>
+                </div>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    logout();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    background: 'none',
+                    border: 'none',
+                    fontSize: 13,
+                    color: TOKEN.text1,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: FONT,
+                  }}
+                >
+                  로그아웃
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: 8, padding: '10px 20px 16px' }}>

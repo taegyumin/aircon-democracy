@@ -1,14 +1,24 @@
 import { TOKEN, FONT } from '../lib/tokens';
 import { BackIcon } from '../components/Icons';
+import { KAKAO_LOGIN_URL } from '../lib/api';
 
 interface Props {
   onBack: () => void;
 }
 
-const PROVIDERS = [
-  { label: '카카오로 계속하기', bg: '#FEE500', color: '#191919' },
-  { label: '네이버로 계속하기', bg: '#03C75A', color: '#ffffff' },
-  { label: '애플로 계속하기', bg: '#000000', color: '#ffffff' },
+interface Provider {
+  id: 'kakao' | 'naver' | 'apple';
+  label: string;
+  bg: string;
+  color: string;
+  href?: string;
+  disabledNote?: string;
+}
+
+const PROVIDERS: Provider[] = [
+  { id: 'kakao', label: '카카오로 계속하기', bg: '#FEE500', color: '#191919', href: KAKAO_LOGIN_URL },
+  { id: 'naver', label: '네이버로 계속하기 (준비 중)', bg: '#03C75A', color: '#ffffff', disabledNote: 'soon' },
+  { id: 'apple', label: '애플로 계속하기 (준비 중)',  bg: '#000000', color: '#ffffff', disabledNote: 'soon' },
 ];
 
 export function LoginScreen({ onBack }: Props) {
@@ -43,26 +53,32 @@ export function LoginScreen({ onBack }: Props) {
           로그인하면 장소 관리 기능을 쓸 수 있어요.
         </div>
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {PROVIDERS.map((p) => (
-            <button
-              key={p.label}
-              style={{
-                padding: '15px',
-                background: p.bg,
-                color: p.color,
-                border: 'none',
-                borderRadius: TOKEN.r.lg,
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: 'pointer',
-                width: '100%',
-                fontFamily: FONT,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
+          {PROVIDERS.map((p) => {
+            const disabled = !p.href;
+            return (
+              <button
+                key={p.id}
+                onClick={() => p.href && (window.location.href = p.href)}
+                disabled={disabled}
+                style={{
+                  padding: '15px',
+                  background: p.bg,
+                  color: p.color,
+                  border: 'none',
+                  borderRadius: TOKEN.r.lg,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  width: '100%',
+                  fontFamily: FONT,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                  opacity: disabled ? 0.55 : 1,
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
         </div>
         <button
           onClick={onBack}

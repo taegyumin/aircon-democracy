@@ -10,6 +10,12 @@
     "deploy": "npm run build && wrangler pages deploy \"$PWD/dist\" --project-name=aircon-democracy --branch=main"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "hono": "^4.12.22",
     "lucide-react": "^1.16.0",
     "react": "^18.3.1",

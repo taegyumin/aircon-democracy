@@ -77,6 +77,19 @@ export const api = {
       `/api/places/${encodeURIComponent(placeId)}/vote`,
       { method: 'POST', body: JSON.stringify({ vote }) }
     ),
+
+  // ── Auth ─────────────────────────────────────────────────────────
+  me: () => request<{ user: User | null }>('/api/me'),
+  logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
 };
+
+export interface User {
+  id: string;
+  display_name: string | null;
+  profile_image_url: string | null;
+  provider: string;
+}
+
+export const KAKAO_LOGIN_URL = '/api/auth/kakao';
 
 export { ApiError };
