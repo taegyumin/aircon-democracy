@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { GraduationCap, Library, Coffee, TrainFront, Bus, Building2 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api } from '../lib/api';
 import type { PlaceType } from '../lib/places';
@@ -10,13 +12,13 @@ interface Props {
   initialType?: PlaceType;
 }
 
-const TYPE_OPTIONS: { k: PlaceType; icon: string; label: string }[] = [
-  { k: 'classroom', icon: '🏫', label: '강의실/세미나실' },
-  { k: 'library', icon: '📚', label: '도서관' },
-  { k: 'cafe', icon: '☕', label: '카페/식당' },
-  { k: 'subway', icon: '🚇', label: '지하철' },
-  { k: 'bus', icon: '🚌', label: '버스' },
-  { k: 'office', icon: '🏢', label: '사무실' },
+const TYPE_OPTIONS: { k: PlaceType; Icon: LucideIcon; tint: string; label: string }[] = [
+  { k: 'classroom', Icon: GraduationCap, tint: '#7C3AED', label: '강의실/세미나실' },
+  { k: 'library',   Icon: Library,       tint: '#0891B2', label: '도서관' },
+  { k: 'cafe',      Icon: Coffee,        tint: '#A16207', label: '카페/식당' },
+  { k: 'subway',    Icon: TrainFront,    tint: '#1B53E5', label: '지하철' },
+  { k: 'bus',       Icon: Bus,           tint: '#16A34A', label: '버스' },
+  { k: 'office',    Icon: Building2,     tint: '#475569', label: '사무실' },
 ];
 
 function MiniQR() {

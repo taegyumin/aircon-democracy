@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { TrainFront, Bus, GraduationCap, Building2, MapPin } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api } from '../lib/api';
 import type { PlaceType } from '../lib/places';
@@ -13,12 +15,12 @@ interface Props {
 
 type Category = 'subway' | 'bus' | 'classroom' | 'office' | 'other';
 
-const CATEGORIES: { key: Category; emoji: string; label: string; sub: string }[] = [
-  { key: 'subway',    emoji: '🚇', label: '지하철',  sub: '열차 안' },
-  { key: 'bus',       emoji: '🚌', label: '버스',    sub: '시내·시외' },
-  { key: 'classroom', emoji: '🏫', label: '강의실',  sub: '학교' },
-  { key: 'office',    emoji: '🏢', label: '사무실',  sub: '회사' },
-  { key: 'other',     emoji: '📍', label: '기타',    sub: '카페·도서관 등' },
+const CATEGORIES: { key: Category; Icon: LucideIcon; tint: string; label: string; sub: string }[] = [
+  { key: 'subway',    Icon: TrainFront,    tint: '#1B53E5', label: '지하철',  sub: '열차 안' },
+  { key: 'bus',       Icon: Bus,           tint: '#16A34A', label: '버스',    sub: '시내·시외' },
+  { key: 'classroom', Icon: GraduationCap, tint: '#7C3AED', label: '강의실',  sub: '학교' },
+  { key: 'office',    Icon: Building2,     tint: '#475569', label: '사무실',  sub: '회사' },
+  { key: 'other',     Icon: MapPin,        tint: '#F97316', label: '기타',    sub: '카페·도서관 등' },
 ];
 
 const CAR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -118,37 +120,53 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
             장소 유형을 골라주시면 빠르게 투표할 수 있어요
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {CATEGORIES.map((c) => (
-              <button
-                key={c.key}
-                onClick={() => {
-                  if (c.key === 'subway' || c.key === 'bus') setCategory(c.key);
-                  else onRegisterFreeform(c.key);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 16,
-                  padding: '18px 18px',
-                  borderRadius: TOKEN.r.lg,
-                  border: `2px solid ${TOKEN.border}`,
-                  background: TOKEN.surface,
-                  cursor: 'pointer',
-                  fontFamily: FONT,
-                  transition: 'all 0.15s',
-                  textAlign: 'left',
-                }}
-              >
-                <span style={{ fontSize: 32, lineHeight: 1 }}>{c.emoji}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: TOKEN.text1, letterSpacing: '-0.3px' }}>{c.label}</div>
-                  <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>{c.sub}</div>
-                </div>
-                <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                  <path d="M9 6l6 6-6 6" stroke={TOKEN.text3} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            ))}
+            {CATEGORIES.map((c) => {
+              const Icon = c.Icon;
+              return (
+                <button
+                  key={c.key}
+                  onClick={() => {
+                    if (c.key === 'subway' || c.key === 'bus') setCategory(c.key);
+                    else onRegisterFreeform(c.key);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: '16px 18px',
+                    borderRadius: TOKEN.r.lg,
+                    border: `1.5px solid ${TOKEN.border}`,
+                    background: TOKEN.surface,
+                    cursor: 'pointer',
+                    fontFamily: FONT,
+                    transition: 'all 0.15s',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: c.tint + '15',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon size={22} color={c.tint} strokeWidth={2} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: TOKEN.text1, letterSpacing: '-0.3px' }}>{c.label}</div>
+                    <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>{c.sub}</div>
+                  </div>
+                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                    <path d="M9 6l6 6-6 6" stroke={TOKEN.text3} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
