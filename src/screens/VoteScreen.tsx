@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TOKEN, VOTE_CONFIG, FONT, type VoteType } from '../lib/tokens';
-import type { Place } from '../lib/places';
+import { api, ApiError, type PlaceDetail } from '../lib/api';
 import { VoteButton } from '../components/VoteButton';
 import { ResultBar } from '../components/ResultBar';
 import { PlaceIcon, BackIcon } from '../components/Icons';
 
 interface Props {
-  place: Place;
+  placeId: string;
   onBack: () => void;
   onLogin: () => void;
 }
+
+const POLL_INTERVAL_MS = 5000;
 
 function CooldownView({ cooldown, currentVote, prevVote }: { cooldown: number; currentVote: VoteType | null; prevVote: VoteType | null }) {
   const vc = currentVote ? VOTE_CONFIG[currentVote] : null;
@@ -36,16 +38,7 @@ function CooldownView({ cooldown, currentVote, prevVote }: { cooldown: number; c
             style={{ transition: 'stroke-dashoffset 0.9s linear' }}
           />
         </svg>
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: 26, fontWeight: 900, color: TOKEN.text1, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
             {cooldown}
           </span>
@@ -90,14 +83,7 @@ function LoginPromptCard({ onLogin }: { onLogin: () => void }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
         <button
           onClick={() => setDismissed(true)}
-          style={{
-            fontSize: 11,
-            color: TOKEN.text3,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontFamily: FONT,
-          }}
+          style={{ fontSize: 11, color: TOKEN.text3, background: 'none', border: 'none', cursor: 'pointer', fontFamily: FONT }}
         >
           나중에
         </button>
@@ -122,60 +108,125 @@ function LoginPromptCard({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-export function VoteScreen({ place, onBack, onLogin }: Props) {
-  const [vote, setVote] = useState<VoteType | null>(null);
-  const [prevVote, setPrevVote] = useState<VoteType | null>(null);
+export function VoteScreen({ placeId, onBack, onLogin }: Props) {
+  const [detail, setDetail] = useState<PlaceDetail | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
-  const [expired, setExpired] = useState(false);
-  const [votes, setVotes] = useState({ ...place.votes });
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [prevVote, setPrevVote] = useState<VoteType | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const total = (votes.cold || 0) + (votes.ok || 0) + (votes.hot || 0);
-
-  const handleVote = (type: VoteType) => {
-    if (cooldown > 0 || type === vote) return;
-    const next = { ...votes };
-    if (vote) next[vote] = Math.max(0, (next[vote] || 0) - 1);
-    next[type] = (next[type] || 0) + 1;
-    if (vote !== null) {
-      setPrevVote(vote);
-      setCooldown(30);
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        setCooldown((c) => {
-          if (c <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            return 0;
-          }
-          return c - 1;
-        });
-      }, 1000);
-    }
-    setVote(type);
-    setVotes(next);
-    setExpired(false);
-  };
-
-  const simulateExpiry = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setCooldown(0);
-    setExpired(true);
-    setVote(null);
-    setVotes({ ...place.votes });
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+  const startCooldown = useCallback((seconds: number) => {
+    setCooldown(seconds);
+    if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+    cooldownTimerRef.current = setInterval(() => {
+      setCooldown((c) => {
+        if (c <= 1) {
+          if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
   }, []);
 
+  const load = useCallback(async () => {
+    try {
+      const d = await api.getPlace(placeId);
+      setDetail(d);
+      setLoadError(null);
+      if (d.me && d.me.cooldown_remaining_ms > 0) {
+        startCooldown(Math.ceil(d.me.cooldown_remaining_ms / 1000));
+      }
+    } catch (e) {
+      setLoadError((e as Error).message);
+    }
+  }, [placeId, startCooldown]);
+
+  useEffect(() => {
+    load();
+    pollTimerRef.current = setInterval(load, POLL_INTERVAL_MS);
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+    };
+  }, [load]);
+
+  const handleVote = async (type: VoteType) => {
+    if (cooldown > 0 || submitting || !detail) return;
+    if (detail.me?.vote === type) return;
+
+    setPrevVote(detail.me?.vote ?? null);
+    setSubmitting(true);
+
+    // Optimistic update
+    const prev = detail;
+    const nextVotes = { ...prev.votes };
+    if (prev.me?.vote) nextVotes[prev.me.vote] = Math.max(0, nextVotes[prev.me.vote] - 1);
+    nextVotes[type] = nextVotes[type] + 1;
+    setDetail({
+      ...prev,
+      votes: nextVotes,
+      me: {
+        vote: type,
+        voted_at: Date.now(),
+        changed_at: prev.me?.vote && prev.me.vote !== type ? Date.now() : (prev.me?.changed_at ?? Date.now()),
+        expires_at: Date.now() + 60 * 60 * 1000,
+        cooldown_remaining_ms: prev.me?.vote && prev.me.vote !== type ? 30000 : 0,
+      },
+    });
+
+    try {
+      await api.vote(placeId, type);
+      if (prev.me?.vote && prev.me.vote !== type) {
+        startCooldown(30);
+      }
+      // Refresh authoritative state
+      await load();
+    } catch (e) {
+      // Rollback on error
+      setDetail(prev);
+      if (e instanceof ApiError && e.status === 429) {
+        const remaining = (e.body as { remaining_ms?: number } | null)?.remaining_ms ?? 0;
+        startCooldown(Math.ceil(remaining / 1000));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loadError && !detail) {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, background: TOKEN.bg, fontFamily: FONT, padding: 20 }}>
+        <div style={{ fontSize: 14, color: TOKEN.hot, fontWeight: 700 }}>장소를 불러오지 못했어요</div>
+        <div style={{ fontSize: 12, color: TOKEN.text3 }}>{loadError}</div>
+        <button
+          onClick={onBack}
+          style={{ padding: '10px 24px', background: TOKEN.cold, color: '#fff', border: 'none', borderRadius: TOKEN.r.lg, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: FONT, marginTop: 8 }}
+        >
+          돌아가기
+        </button>
+      </div>
+    );
+  }
+
+  if (!detail) {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: TOKEN.bg, fontFamily: FONT, color: TOKEN.text3, fontSize: 13 }}>
+        불러오는 중…
+      </div>
+    );
+  }
+
+  const total = detail.votes.cold + detail.votes.ok + detail.votes.hot;
+  const myVote = detail.me?.vote ?? null;
   const dominant: VoteType | null =
     total === 0
       ? null
-      : votes.cold >= votes.ok && votes.cold >= votes.hot
+      : detail.votes.cold >= detail.votes.ok && detail.votes.cold >= detail.votes.hot
         ? 'cold'
-        : votes.hot > votes.ok
+        : detail.votes.hot > detail.votes.ok
           ? 'hot'
           : 'ok';
 
@@ -183,132 +234,52 @@ export function VoteScreen({ place, onBack, onLogin }: Props) {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
       <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px 14px' }}>
-          <button
-            onClick={onBack}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center', borderRadius: TOKEN.r.sm }}
-            aria-label="뒤로"
-          >
+          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center', borderRadius: TOKEN.r.sm }} aria-label="뒤로">
             <BackIcon />
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontSize: 15,
-                fontWeight: 700,
-                color: TOKEN.text1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {place.name}
+            <div style={{ fontSize: 15, fontWeight: 700, color: TOKEN.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {detail.place.name}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
-              <PlaceIcon type={place.type} size={11} color={TOKEN.text3} />
-              <span style={{ fontSize: 11, color: TOKEN.text3 }}>{place.district}</span>
+              <PlaceIcon type={detail.place.type} size={11} color={TOKEN.text3} />
+              {detail.place.district && <span style={{ fontSize: 11, color: TOKEN.text3 }}>{detail.place.district}</span>}
             </div>
           </div>
-          <button
-            onClick={simulateExpiry}
-            title="만료 상태 시뮬레이션"
-            style={{
-              fontSize: 10,
-              color: TOKEN.text3,
-              background: TOKEN.bg,
-              border: `1px solid ${TOKEN.border}`,
-              borderRadius: 999,
-              padding: '4px 10px',
-              cursor: 'pointer',
-              flexShrink: 0,
-              fontFamily: FONT,
-            }}
-          >
-            1시간 후
-          </button>
         </div>
       </div>
 
-      {expired && (
-        <div
-          style={{
-            background: '#FFFBEB',
-            borderBottom: '1px solid #FDE68A',
-            padding: '10px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            flexShrink: 0,
-          }}
-        >
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="#D97706" strokeWidth="2" />
-            <path d="M12 7v5l3 3" stroke="#D97706" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E' }}>한 시간이 지났어요</div>
-            <div style={{ fontSize: 12, color: '#B45309' }}>지금은 어떠세요? 다시 알려주세요</div>
-          </div>
-        </div>
-      )}
-
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 80px' }}>
-        <div
-          style={{
-            background: TOKEN.surface,
-            borderRadius: TOKEN.r.xl,
-            padding: '18px 18px 16px',
-            marginBottom: 14,
-            boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
-          }}
-        >
+        <div style={{ background: TOKEN.surface, borderRadius: TOKEN.r.xl, padding: '18px 18px 16px', marginBottom: 14, boxShadow: '0 1px 6px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, letterSpacing: '0.3px' }}>지금 이 공간</span>
             <span style={{ fontSize: 12, color: TOKEN.text3 }}>{total}명 참여 중</span>
           </div>
-          <ResultBar votes={votes} myVote={vote} />
+          <ResultBar votes={detail.votes} myVote={myVote} />
           {dominant && (
             <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 12, color: TOKEN.text2 }}>전체 의견</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: VOTE_CONFIG[dominant].color }}>
-                {VOTE_CONFIG[dominant].label}
-              </span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: VOTE_CONFIG[dominant].color }}>{VOTE_CONFIG[dominant].label}</span>
             </div>
           )}
         </div>
 
-        <div
-          style={{
-            background: TOKEN.surface,
-            borderRadius: TOKEN.r.xl,
-            padding: '20px 16px',
-            boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
-            marginBottom: 14,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 900,
-              color: TOKEN.text1,
-              marginBottom: 16,
-              textAlign: 'center',
-              letterSpacing: '-0.3px',
-            }}
-          >
-            {vote && cooldown === 0 ? '내 의견' : '지금 어떠세요?'}
+        <div style={{ background: TOKEN.surface, borderRadius: TOKEN.r.xl, padding: '20px 16px', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', marginBottom: 14 }}>
+          <div style={{ fontSize: 16, fontWeight: 900, color: TOKEN.text1, marginBottom: 16, textAlign: 'center', letterSpacing: '-0.3px' }}>
+            {myVote && cooldown === 0 ? '내 의견' : '지금 어떠세요?'}
           </div>
 
           {cooldown > 0 ? (
-            <CooldownView cooldown={cooldown} currentVote={vote} prevVote={prevVote} />
+            <CooldownView cooldown={cooldown} currentVote={myVote} prevVote={prevVote} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {(['cold', 'ok', 'hot'] as const).map((type) => (
-                <VoteButton key={type} type={type} selected={vote === type} onClick={() => handleVote(type)} />
+                <VoteButton key={type} type={type} selected={myVote === type} disabled={submitting} onClick={() => handleVote(type)} />
               ))}
             </div>
           )}
 
-          {vote && cooldown === 0 && (
+          {myVote && cooldown === 0 && (
             <div style={{ textAlign: 'center', marginTop: 14 }}>
               <span style={{ fontSize: 12, color: TOKEN.text3 }}>의견은 1시간 후 자동으로 만료돼요</span>
             </div>
@@ -318,17 +289,7 @@ export function VoteScreen({ place, onBack, onLogin }: Props) {
         <LoginPromptCard onLogin={onLogin} />
 
         <div style={{ textAlign: 'center', marginTop: 18 }}>
-          <button
-            style={{
-              fontSize: 12,
-              color: TOKEN.text3,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              fontFamily: FONT,
-            }}
-          >
+          <button style={{ fontSize: 12, color: TOKEN.text3, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: FONT }}>
             장소 정보가 잘못됐나요?
           </button>
         </div>

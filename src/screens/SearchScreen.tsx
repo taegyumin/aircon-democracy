@@ -1,23 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TOKEN, FONT } from '../lib/tokens';
-import { PLACES, type Place } from '../lib/places';
+import { api, type PlaceWithCounts } from '../lib/api';
 import { PlaceCard } from '../components/PlaceCard';
 import { BackIcon } from '../components/Icons';
 
 interface Props {
   onBack: () => void;
-  onSelectPlace: (p: Place) => void;
+  onSelectPlace: (id: string) => void;
   onRegister: () => void;
 }
+
+const CHIP_TO_TYPE: Record<string, string> = {
+  강의실: 'classroom',
+  지하철: 'subway',
+  도서관: 'library',
+  카페: 'cafe',
+  버스: 'bus',
+};
 
 export function SearchScreen({ onBack, onSelectPlace, onRegister }: Props) {
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(true);
+  const [places, setPlaces] = useState<PlaceWithCounts[] | null>(null);
 
-  const chips = ['강의실', '지하철', '도서관', '카페', '버스'];
+  useEffect(() => {
+    api.listPlaces().then((r) => setPlaces(r.places)).catch(() => setPlaces([]));
+  }, []);
 
-  const filtered = query.trim()
-    ? PLACES.filter((p) => p.name.includes(query) || p.district.includes(query) || p.type.includes(query))
+  const chips = Object.keys(CHIP_TO_TYPE);
+  const trimmed = query.trim();
+  const filtered = trimmed && places
+    ? places.filter((p) => {
+        const target = CHIP_TO_TYPE[trimmed];
+        if (target) return p.type === target;
+        return (
+          p.name.includes(trimmed) ||
+          (p.district ?? '').includes(trimmed) ||
+          p.type.includes(trimmed.toLowerCase())
+        );
+      })
     : [];
 
   return (
@@ -69,15 +90,7 @@ export function SearchScreen({ onBack, onSelectPlace, onRegister }: Props) {
             {query && (
               <button
                 onClick={() => setQuery('')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: TOKEN.text3,
-                  fontSize: 18,
-                  lineHeight: 1,
-                  padding: 0,
-                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: TOKEN.text3, fontSize: 18, lineHeight: 1, padding: 0 }}
                 aria-label="검색어 지우기"
               >
                 ×
@@ -113,8 +126,8 @@ export function SearchScreen({ onBack, onSelectPlace, onRegister }: Props) {
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 10, letterSpacing: '0.3px' }}>모든 장소</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {PLACES.map((p) => (
-                <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p)} />
+              {(places ?? []).map((p) => (
+                <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p.id)} />
               ))}
             </div>
           </>
@@ -125,7 +138,7 @@ export function SearchScreen({ onBack, onSelectPlace, onRegister }: Props) {
             <div style={{ fontSize: 12, color: TOKEN.text3, marginBottom: 10 }}>"{query}" 결과 {filtered.length}개</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {filtered.map((p) => (
-                <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p)} />
+                <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p.id)} />
               ))}
             </div>
           </>

@@ -10,10 +10,12 @@
     "deploy": "npm run build && wrangler pages deploy dist --project-name=aircon-democracy --branch=main"
   },
   "dependencies": {
+    "hono": "^4.12.22",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260524.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",

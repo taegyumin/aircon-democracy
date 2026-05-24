@@ -1,21 +1,21 @@
 import { useState } from 'react';
 import { TOKEN, VOTE_CONFIG, FONT, type VoteType } from '../lib/tokens';
-import type { Place } from '../lib/places';
+import type { PlaceWithCounts } from '../lib/api';
 import { PlaceIcon } from './Icons';
 
 interface Props {
-  place: Place;
+  place: PlaceWithCounts;
   onTap: () => void;
 }
 
 export function PlaceCard({ place, onTap }: Props) {
-  const total = (place.votes.cold || 0) + (place.votes.ok || 0) + (place.votes.hot || 0);
+  const total = (place.cold || 0) + (place.ok || 0) + (place.hot || 0);
   const dominant: VoteType =
     total === 0
       ? 'ok'
-      : place.votes.cold >= place.votes.ok && place.votes.cold >= place.votes.hot
+      : place.cold >= place.ok && place.cold >= place.hot
         ? 'cold'
-        : place.votes.hot > place.votes.ok
+        : place.hot > place.ok
           ? 'hot'
           : 'ok';
   const dc = VOTE_CONFIG[dominant];
@@ -69,24 +69,30 @@ export function PlaceCard({ place, onTap }: Props) {
         >
           {place.name}
         </div>
-        <div style={{ fontSize: 12, color: TOKEN.text3, marginTop: 2 }}>
-          {place.district} · {place.distance}
-        </div>
+        {place.district && (
+          <div style={{ fontSize: 12, color: TOKEN.text3, marginTop: 2 }}>{place.district}</div>
+        )}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: dc.color,
-            background: dc.bg,
-            padding: '3px 9px',
-            borderRadius: 999,
-          }}
-        >
-          {dc.label}
-        </span>
-        <span style={{ fontSize: 11, color: TOKEN.text3 }}>{total}명</span>
+        {total > 0 ? (
+          <>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: dc.color,
+                background: dc.bg,
+                padding: '3px 9px',
+                borderRadius: 999,
+              }}
+            >
+              {dc.label}
+            </span>
+            <span style={{ fontSize: 11, color: TOKEN.text3 }}>{total}명</span>
+          </>
+        ) : (
+          <span style={{ fontSize: 11, color: TOKEN.text3 }}>의견 없음</span>
+        )}
       </div>
     </button>
   );

@@ -1,9 +1,10 @@
+import { useEffect, useState } from 'react';
 import { TOKEN, FONT } from '../lib/tokens';
-import { PLACES, type Place } from '../lib/places';
+import { api, type PlaceWithCounts } from '../lib/api';
 import { PlaceCard } from '../components/PlaceCard';
 
 interface Props {
-  onSelectPlace: (p: Place) => void;
+  onSelectPlace: (id: string) => void;
   onSearch: () => void;
   onQR: () => void;
   onRegister: () => void;
@@ -30,8 +31,25 @@ function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: str
 }
 
 export function HomeScreen({ onSelectPlace, onSearch, onQR, onRegister }: Props) {
-  const nearby = PLACES.slice(0, 3);
-  const recent = PLACES.slice(3, 6);
+  const [places, setPlaces] = useState<PlaceWithCounts[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.listPlaces()
+      .then((res) => {
+        if (!cancelled) setPlaces(res.places);
+      })
+      .catch((e: Error) => {
+        if (!cancelled) setError(e.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const active = places?.filter((p) => p.cold + p.ok + p.hot > 0) ?? [];
+  const idle = places?.filter((p) => p.cold + p.ok + p.hot === 0) ?? [];
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
@@ -119,19 +137,39 @@ export function HomeScreen({ onSelectPlace, onSearch, onQR, onRegister }: Props)
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 80px' }}>
-        <SectionHeader icon="location" label="내 주변" />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
-          {nearby.map((p) => (
-            <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p)} />
-          ))}
-        </div>
+        {error && (
+          <div style={{ padding: 14, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 13, marginBottom: 16 }}>
+            장소를 불러오지 못했어요: {error}
+          </div>
+        )}
 
-        <SectionHeader icon="clock" label="최근 방문" />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
-          {recent.map((p) => (
-            <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p)} />
-          ))}
-        </div>
+        {!places && !error && (
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: TOKEN.text3, fontSize: 13 }}>
+            불러오는 중…
+          </div>
+        )}
+
+        {active.length > 0 && (
+          <>
+            <SectionHeader icon="location" label="지금 의견이 모이고 있어요" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
+              {active.map((p) => (
+                <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p.id)} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {idle.length > 0 && (
+          <>
+            <SectionHeader icon="clock" label="장소" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
+              {idle.map((p) => (
+                <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p.id)} />
+              ))}
+            </div>
+          </>
+        )}
 
         <button
           onClick={onRegister}

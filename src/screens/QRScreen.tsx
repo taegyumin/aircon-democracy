@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { TOKEN, FONT } from '../lib/tokens';
-import { PLACES, type Place } from '../lib/places';
+import { api, type PlaceWithCounts } from '../lib/api';
 
 interface Props {
   onBack: () => void;
-  onSuccess: (place: Place) => void;
+  onSuccess: (placeId: string) => void;
 }
 
 function QRScanFrame() {
@@ -28,12 +28,20 @@ function QRScanFrame() {
 
 export function QRScreen({ onBack, onSuccess }: Props) {
   const [phase, setPhase] = useState<'scanning' | 'found'>('scanning');
-  const [foundPlace, setFoundPlace] = useState<Place | null>(null);
+  const [foundPlace, setFoundPlace] = useState<PlaceWithCounts | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setFoundPlace(PLACES[0]);
-      setPhase('found');
+    const t = setTimeout(async () => {
+      try {
+        const res = await api.listPlaces();
+        const first = res.places[0];
+        if (first) {
+          setFoundPlace(first);
+          setPhase('found');
+        }
+      } catch {
+        // ignore, stay on scanning
+      }
     }, 2400);
     return () => clearTimeout(t);
   }, []);
@@ -41,11 +49,7 @@ export function QRScreen({ onBack, onSuccess }: Props) {
   return (
     <div style={{ height: '100%', background: '#0D0D13', display: 'flex', flexDirection: 'column', fontFamily: FONT }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '68px 20px 16px' }}>
-        <button
-          onClick={onBack}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-          aria-label="뒤로"
-        >
+        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }} aria-label="뒤로">
           <svg width={24} height={24} viewBox="0 0 24 24" fill="none">
             <path d="M15 18l-6-6 6-6" stroke="rgba(255,255,255,0.75)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -86,7 +90,7 @@ export function QRScreen({ onBack, onSuccess }: Props) {
             <div style={{ color: 'white', fontSize: 22, fontWeight: 900, marginBottom: 8 }}>장소를 찾았어요!</div>
             <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, marginBottom: 36, lineHeight: 1.5 }}>{foundPlace.name}</div>
             <button
-              onClick={() => onSuccess(foundPlace)}
+              onClick={() => onSuccess(foundPlace.id)}
               style={{
                 padding: '16px 52px',
                 background: TOKEN.cold,

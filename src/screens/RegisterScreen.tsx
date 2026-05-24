@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { TOKEN, FONT } from '../lib/tokens';
-import type { Place, PlaceType } from '../lib/places';
+import { api } from '../lib/api';
+import type { PlaceType } from '../lib/places';
 import { BackIcon } from '../components/Icons';
 
 interface Props {
   onBack: () => void;
-  onComplete: (place: Place) => void;
+  onComplete: (placeId: string) => void;
 }
 
 const TYPE_OPTIONS: { k: PlaceType; icon: string; label: string }[] = [
@@ -26,12 +27,7 @@ function MiniQR() {
     [7, 0], [7, 1], [7, 3], [7, 5], [8, 0], [8, 2], [8, 4], [8, 6], [8, 8],
   ];
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      style={{ flexShrink: 0, border: `1px solid ${TOKEN.border}`, borderRadius: 6 }}
-    >
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0, border: `1px solid ${TOKEN.border}`, borderRadius: 6 }}>
       <rect width={size} height={size} fill="white" />
       {[0, 1, 2, 3, 4, 5, 6].flatMap((r) =>
         [0, 1, 2, 3, 4, 5, 6].map((c) => {
@@ -55,9 +51,33 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
   const [type, setType] = useState<PlaceType | null>(null);
   const [name, setName] = useState('');
   const [detail, setDetail] = useState('');
+  const [district, setDistrict] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
   const stepLabels = ['유형 선택', '이름 입력', '등록 완료'];
   const sel = TYPE_OPTIONS.find((o) => o.k === type);
+
+  const submit = async () => {
+    if (!type || !name.trim() || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const created = await api.createPlace({
+        name: name.trim(),
+        type,
+        district: district.trim() || undefined,
+        detail: detail.trim() || undefined,
+      });
+      setCreatedId(created.id);
+      setStep(3);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const renderStep = () => {
     if (step === 1) {
@@ -92,14 +112,7 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
                 }}
               >
                 <span style={{ fontSize: 22 }}>{o.icon}</span>
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: type === o.k ? TOKEN.cold : TOKEN.text1,
-                    letterSpacing: '-0.2px',
-                  }}
-                >
+                <span style={{ fontSize: 13, fontWeight: 700, color: type === o.k ? TOKEN.cold : TOKEN.text1, letterSpacing: '-0.2px' }}>
                   {o.label}
                 </span>
               </button>
@@ -114,16 +127,7 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
         <div>
           <button
             onClick={() => setStep(1)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              marginBottom: 18,
-              padding: 0,
-            }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 18, padding: 0 }}
           >
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none">
               <path d="M15 18l-6-6 6-6" stroke={TOKEN.text3} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -137,9 +141,7 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, display: 'block', marginBottom: 8 }}>
-              장소 이름 *
-            </label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, display: 'block', marginBottom: 8 }}>장소 이름 *</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -160,10 +162,29 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
             />
           </div>
 
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, display: 'block', marginBottom: 8 }}>지역 (선택)</label>
+            <input
+              value={district}
+              onChange={(e) => setDistrict(e.target.value)}
+              placeholder="예: 관악구"
+              style={{
+                width: '100%',
+                padding: '13px 14px',
+                border: `2px solid ${TOKEN.border}`,
+                borderRadius: TOKEN.r.md,
+                fontSize: 14,
+                fontFamily: FONT,
+                color: TOKEN.text1,
+                background: TOKEN.bg,
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
           <div style={{ marginBottom: 24 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, display: 'block', marginBottom: 8 }}>
-              추가 설명 (선택)
-            </label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, display: 'block', marginBottom: 8 }}>추가 설명 (선택)</label>
             <input
               value={detail}
               onChange={(e) => setDetail(e.target.value)}
@@ -183,38 +204,35 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
             />
           </div>
 
+          {error && (
+            <div style={{ marginBottom: 12, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12 }}>
+              등록 실패: {error}
+            </div>
+          )}
+
           <button
-            onClick={() => name.trim() && setStep(3)}
-            disabled={!name.trim()}
+            onClick={submit}
+            disabled={!name.trim() || submitting}
             style={{
               width: '100%',
               padding: '16px',
-              background: name.trim() ? TOKEN.cold : TOKEN.border,
+              background: name.trim() && !submitting ? TOKEN.cold : TOKEN.border,
               color: '#fff',
               border: 'none',
               borderRadius: TOKEN.r.lg,
               fontSize: 15,
               fontWeight: 700,
-              cursor: name.trim() ? 'pointer' : 'default',
+              cursor: name.trim() && !submitting ? 'pointer' : 'default',
               fontFamily: FONT,
               transition: 'background 0.18s',
-              boxShadow: name.trim() ? `0 6px 20px ${TOKEN.cold}35` : 'none',
+              boxShadow: name.trim() && !submitting ? `0 6px 20px ${TOKEN.cold}35` : 'none',
             }}
           >
-            장소 등록하기
+            {submitting ? '등록 중…' : '장소 등록하기'}
           </button>
         </div>
       );
     }
-
-    const newPlace: Place = {
-      id: Date.now(),
-      name: name.trim(),
-      type: type || 'other',
-      district: '등록된 장소',
-      distance: '방금',
-      votes: { cold: 0, ok: 0, hot: 0 },
-    };
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10 }}>
@@ -248,7 +266,7 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
             <MiniQR />
             <div>
               <div style={{ fontSize: 12, color: TOKEN.text3, lineHeight: 1.6 }}>
-                QR을 스캔하면 바로 투표 화면으로 이동해요. 관리자 페이지에서 인쇄 가능해요.
+                QR을 스캔하면 바로 투표 화면으로 이동해요. (실제 QR 생성은 다음 업데이트에서)
               </div>
             </div>
           </div>
@@ -256,7 +274,8 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignSelf: 'stretch' }}>
           <button
-            onClick={() => onComplete(newPlace)}
+            onClick={() => createdId && onComplete(createdId)}
+            disabled={!createdId}
             style={{
               width: '100%',
               padding: '15px',
@@ -266,9 +285,10 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
               borderRadius: TOKEN.r.lg,
               fontSize: 15,
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor: createdId ? 'pointer' : 'default',
               fontFamily: FONT,
               boxShadow: `0 6px 20px ${TOKEN.cold}35`,
+              opacity: createdId ? 1 : 0.5,
             }}
           >
             지금 바로 투표하기
@@ -298,11 +318,7 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
       <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px 10px' }}>
-          <button
-            onClick={onBack}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}
-            aria-label="뒤로"
-          >
+          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }} aria-label="뒤로">
             <BackIcon />
           </button>
           <span style={{ fontSize: 16, fontWeight: 700, color: TOKEN.text1 }}>장소 등록</span>
@@ -334,25 +350,12 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
                       <span style={{ fontSize: 10, fontWeight: 700, color: i + 1 === step ? '#fff' : TOKEN.text3 }}>{i + 1}</span>
                     )}
                   </div>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: i + 1 === step ? TOKEN.cold : TOKEN.text3,
-                      fontWeight: i + 1 === step ? 700 : 400,
-                    }}
-                  >
+                  <span style={{ fontSize: 11, color: i + 1 === step ? TOKEN.cold : TOKEN.text3, fontWeight: i + 1 === step ? 700 : 400 }}>
                     {l}
                   </span>
                 </div>
                 {i < stepLabels.length - 1 && (
-                  <div
-                    style={{
-                      flex: 1,
-                      height: 1,
-                      background: i + 1 < step ? TOKEN.cold : TOKEN.border,
-                      transition: 'background 0.3s',
-                    }}
-                  />
+                  <div style={{ flex: 1, height: 1, background: i + 1 < step ? TOKEN.cold : TOKEN.border, transition: 'background 0.3s' }} />
                 )}
               </div>
             ))}
@@ -361,9 +364,7 @@ export function RegisterScreen({ onBack, onComplete }: Props) {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px 60px' }}>
-        <div key={step} style={{ animation: 'fadeUp 0.22s ease' }}>
-          {renderStep()}
-        </div>
+        <div key={step} style={{ animation: 'fadeUp 0.22s ease' }}>{renderStep()}</div>
       </div>
     </div>
   );

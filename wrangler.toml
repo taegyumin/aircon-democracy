@@ -1,0 +1,11 @@
+name = "aircon-democracy"
+compatibility_date = "2026-05-24"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aircon-democracy"
+database_id = "daee340e-0b42-4141-93e4-c0c09077405b"
+
+# Production secrets/env are set via `wrangler pages secret put` or the dashboard.
+# Required: COOKIE_SECRET
