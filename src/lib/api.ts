@@ -40,11 +40,16 @@ class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? 'GET').toUpperCase();
+  const isMutation = method !== 'GET' && method !== 'HEAD';
   const res = await fetch(path, {
     ...init,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      // Server's csrfGuard requires this header on mutations in addition
+      // to the same-origin Origin check (functions/api/_abuse.ts).
+      ...(isMutation ? { 'X-Aircon-Intent': 'user-action' } : {}),
       ...(init?.headers ?? {}),
     },
   });

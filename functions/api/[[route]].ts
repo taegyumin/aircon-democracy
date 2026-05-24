@@ -3,11 +3,13 @@ import { Hono } from 'hono';
 import { handle } from 'hono/cloudflare-pages';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { sign as jwtSign, verify as jwtVerify } from 'hono/jwt';
+import { csrfGuard } from './_abuse';
 
 type Bindings = {
   DB: D1Database;
   COOKIE_SECRET: string;
   SESSION_SECRET: string;
+  ABUSE_SECRET: string;
   KAKAO_REST_API_KEY?: string;
   KAKAO_CLIENT_SECRET?: string;
 };
@@ -112,6 +114,9 @@ app.use('*', async (c, next) => {
   c.set('voterId', voterId);
   await next();
 });
+
+// CSRF/Origin guard for mutating requests. Exempts OAuth callbacks; see _abuse.ts.
+app.use('*', csrfGuard());
 
 // Health check
 app.get('/health', (c) => c.json({ ok: true, ts: Date.now() }));

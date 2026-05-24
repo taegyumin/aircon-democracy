@@ -7,4 +7,7 @@ database_name = "aircon-democracy"
 database_id = "daee340e-0b42-4141-93e4-c0c09077405b"
 
 # Production secrets/env are set via `wrangler pages secret put` or the dashboard.
-# Required: COOKIE_SECRET
+# Required:
+#   COOKIE_SECRET   — voter cookie signing
+#   SESSION_SECRET  — OAuth session JWT
+#   ABUSE_SECRET    — HMAC for rate-limit keys, audit hashes (docs/ABUSE_PREVENTION_POLICY.md)
