@@ -150,4 +150,83 @@ test.describe('API 회귀', () => {
     const body = await res.json();
     expect(body).toHaveProperty('user');
   });
+
+  // BUG: redirect URI 정정 오타가 자주 발생함 (ttps:// 같은). 시작 endpoint가
+  // 정확한 redirect_uri로 302 보내는지 회귀 방지.
+  test.describe('OAuth 시작 endpoint', () => {
+    const providers = [
+      { id: 'kakao',  authHost: 'kauth.kakao.com' },
+      { id: 'naver',  authHost: 'nid.naver.com' },
+      { id: 'google', authHost: 'accounts.google.com' },
+    ];
+    for (const p of providers) {
+      test(`/api/auth/${p.id} → 302 to ${p.authHost} with valid redirect_uri`, async ({ request }) => {
+        const res = await request.get(`/api/auth/${p.id}`, { maxRedirects: 0 });
+        expect(res.status()).toBe(302);
+        const loc = res.headers()['location'];
+        expect(loc).toContain(p.authHost);
+        // redirect_uri는 정확히 https://aircondemocracy.com/api/auth/.../callback
+        expect(loc).toContain(encodeURIComponent(`https://aircondemocracy.com/api/auth/${p.id}/callback`));
+        // oauth_state cookie + state param 동시 설정
+        const cookies = res.headersArray().filter((h) => h.name.toLowerCase() === 'set-cookie').map((h) => h.value);
+        expect(cookies.some((c) => c.startsWith('oauth_state='))).toBe(true);
+        expect(loc).toMatch(/[&?]state=[a-f0-9-]{8,}/);
+      });
+    }
+  });
+});
+
+test.describe('카테고리별 wizard 진입', () => {
+  test('카페·음식점 카드 → NaverMapPicker 화면 진입', async ({ page }) => {
+    await page.goto('/wizard');
+    await page.getByText('카페·음식점').first().click();
+    // header 변경
+    await expect(page.getByText(/카페·음식점 위치/)).toBeVisible({ timeout: 5000 });
+    // picker bottom CTA
+    await expect(page.getByText(/먼저 지도에서 위치를 찍어주세요/)).toBeVisible();
+  });
+
+  test('강의실 → university picker → 연세대 카드 진입', async ({ page }) => {
+    await page.goto('/wizard');
+    await page.getByText('강의실').first().click();
+    // university picker에 SNU + 연세대 카드 표시
+    await expect(page.getByText('서울대학교').first()).toBeVisible();
+    await expect(page.getByText('연세대학교').first()).toBeVisible();
+    // 연세대 클릭 시 crash 없이 진입
+    await page.getByText('연세대학교').first().click();
+    // Yonsei wizard에 신촌 관련 텍스트가 보여야 함
+    await expect(page.getByText(/신촌|건물|호실/).first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('버스 카드 → 버스 wizard 진입', async ({ page }) => {
+    await page.goto('/wizard');
+    await page.getByText('버스').first().click();
+    await expect(page.getByPlaceholder(/예: 272|5511|M7106/)).toBeVisible({ timeout: 5000 });
+  });
+});
+
+test.describe('홈 화면 구성', () => {
+  // BUG: 이전엔 idle 장소들을 "장소" 섹션에 줄줄이 표시했음. 노이즈라
+  // 제거하기로 결정 (2026-05-26). 회귀 방지.
+  test('idle "장소" 섹션은 사라졌어야 함', async ({ page }) => {
+    await page.goto('/');
+    // 헤더 'AIRCON DEMOCRACY' 옆 작은 라벨이 아닌, 섹션 제목 '장소' 정확 일치만 검사
+    const sectionHeader = page.getByText(/^장소$/);
+    await expect(sectionHeader).toHaveCount(0);
+  });
+
+  // BUG: 비로그인 시 즐겨찾기 별 누르면 로그인 페이지로 가야 함.
+  // VoteScreen 진입 후 별 버튼 동작 확인.
+  test('비로그인 즐겨찾기 별 → 로그인 페이지', async ({ page, request }) => {
+    // place 한 개 만들기 (upsert)
+    await request.post('/api/places/upsert', {
+      headers: { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' },
+      data: { id: 'other:e2e-fav-test', name: 'E2E 즐겨찾기 테스트', type: 'other' },
+    }).catch(() => { /* 이미 있을 수 있음 — 무시 */ });
+    await page.goto('/p/other:e2e-fav-test');
+    // 별 버튼 클릭
+    const star = page.getByLabel(/로그인 후 즐겨찾기|즐겨찾기 추가|즐겨찾기 해제/);
+    await star.click();
+    await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+  });
 });
