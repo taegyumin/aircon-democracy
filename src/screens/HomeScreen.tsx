@@ -193,46 +193,7 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 80px' }}>
-        {/* Favorites: pinned places */}
-        {favorites.length > 0 && (
-          <div style={{ marginBottom: 22 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 10, letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Star size={12} color="#F59E0B" fill="#F59E0B" strokeWidth={0} />
-              <span>고정한 장소</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {favorites.slice(0, 3).map((f) => (
-                <QuickVoteCard
-                  key={f.id}
-                  place={{ id: f.id, name: f.name, type: f.type, district: f.district, lastVisitedAt: f.pinnedAt }}
-                  onVoted={(id) => onSelectPlace(id)}
-                  onOpen={(id) => onSelectPlace(id)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* QuickVote: recent places with inline vote buttons */}
-        {recent.filter((r) => !favorites.find((f) => f.id === r.id)).length > 0 && (
-          <div style={{ marginBottom: 22 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 10, letterSpacing: '0.3px' }}>
-              여기 맞으면 바로 한 표
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {recent.filter((r) => !favorites.find((f) => f.id === r.id)).map((p) => (
-                <QuickVoteCard
-                  key={p.id}
-                  place={p}
-                  onVoted={(id) => onSelectPlace(id)}
-                  onOpen={(id) => onSelectPlace(id)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Primary CTA: location wizard (full width) */}
+        {/* Primary CTA: location wizard — ALWAYS top (under search bar) */}
         <button
           onClick={onWizard}
           style={{
@@ -273,6 +234,45 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
             <path d="M9 6l6 6-6 6" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
+
+        {/* Favorites: pinned places */}
+        {favorites.length > 0 && (
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 10, letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Star size={12} color="#F59E0B" fill="#F59E0B" strokeWidth={0} />
+              <span>고정한 장소</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {favorites.slice(0, 3).map((f) => (
+                <QuickVoteCard
+                  key={f.id}
+                  place={{ id: f.id, name: f.name, type: f.type, district: f.district, lastVisitedAt: f.pinnedAt }}
+                  onVoted={(id) => onSelectPlace(id)}
+                  onOpen={(id) => onSelectPlace(id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* QuickVote: recent places with inline vote buttons */}
+        {recent.filter((r) => !favorites.find((f) => f.id === r.id)).length > 0 && (
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 10, letterSpacing: '0.3px' }}>
+              여기 맞으면 바로 한 표
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recent.filter((r) => !favorites.find((f) => f.id === r.id)).map((p) => (
+                <QuickVoteCard
+                  key={p.id}
+                  place={p}
+                  onVoted={(id) => onSelectPlace(id)}
+                  onOpen={(id) => onSelectPlace(id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div style={{ padding: 14, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 13, marginBottom: 16 }}>

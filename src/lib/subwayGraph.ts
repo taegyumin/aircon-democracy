@@ -1,12 +1,23 @@
 import rawAdjacency from '../data/subway-adjacency.json';
+import rawTrainAdjacency from '../data/train-adjacency.json';
 
 export interface AdjEdge {
   from: string;
   to: string;
   line: string;
+  /** 도시 — 다중 도시 "1호선" 충돌 해소용. 수도권 라인은 "서울"로 통일. */
+  city: string;
+}
+
+export interface TrainAdjEdge {
+  from: string;
+  to: string;
+  line: string;
+  operator: string;
 }
 
 export const ADJACENCY: AdjEdge[] = rawAdjacency as AdjEdge[];
+export const TRAIN_ADJACENCY: TrainAdjEdge[] = rawTrainAdjacency as TrainAdjEdge[];
 
 // Stations dataset names end with "역" (서울대입구역) but the upstream graph
 // (parsed from GML) stripped it (서울대입구). Normalize at the boundary so
@@ -26,51 +37,93 @@ function norm(s: string): string {
  */
 export interface Segment {
   line: string;
+  city: string;
   prev: string;
   next: string;
 }
 
-export function findSegments(prev: string, next: string): Segment[] {
+/**
+ * @param city - optional filter; multi-city "1호선" disambiguation. When the
+ *   caller knows the user is in 부산 (from station selection), pass "부산" to
+ *   avoid matching the 서울 1호선 segment with the same station name pair.
+ */
+export function findSegments(prev: string, next: string, city?: string): Segment[] {
   if (!prev || !next || prev === next) return [];
   const p = norm(prev);
   const n = norm(next);
   const out: Segment[] = [];
   for (const e of ADJACENCY) {
+    if (city && e.city !== city) continue;
     const ef = norm(e.from);
     const et = norm(e.to);
     if ((ef === p && et === n) || (ef === n && et === p)) {
-      out.push({ line: e.line, prev, next });
+      out.push({ line: e.line, city: e.city, prev, next });
     }
   }
-  // Dedup by line (in case the source data has duplicates)
+  // Dedup by (city, line)
   const seen = new Set<string>();
   return out.filter((s) => {
-    if (seen.has(s.line)) return false;
-    seen.add(s.line);
+    const k = `${s.city}::${s.line}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
     return true;
   });
 }
 
-/** Adjacent stations of a given station (optionally filtered by line). */
-export function neighborsOf(station: string, line?: string): { name: string; line: string }[] {
+export interface TrainSegment {
+  line: string;
+  operator: string;
+  prev: string;
+  next: string;
+}
+
+/** KTX/SRT/ITX/무궁화호 인접역 매칭. */
+export function findTrainSegments(prev: string, next: string): TrainSegment[] {
+  if (!prev || !next || prev === next) return [];
+  const p = norm(prev);
+  const n = norm(next);
+  const out: TrainSegment[] = [];
+  for (const e of TRAIN_ADJACENCY) {
+    const ef = norm(e.from);
+    const et = norm(e.to);
+    if ((ef === p && et === n) || (ef === n && et === p)) {
+      out.push({ line: e.line, operator: e.operator, prev, next });
+    }
+  }
+  const seen = new Set<string>();
+  return out.filter((s) => {
+    const k = `${s.operator}::${s.line}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+/** Adjacent stations of a given station (optionally filtered by line and city). */
+export function neighborsOf(
+  station: string,
+  opts?: { line?: string; city?: string },
+): { name: string; line: string; city: string }[] {
   const s = norm(station);
-  const out: { name: string; line: string }[] = [];
+  const out: { name: string; line: string; city: string }[] = [];
   for (const e of ADJACENCY) {
-    if (line && e.line !== line) continue;
+    if (opts?.line && e.line !== opts.line) continue;
+    if (opts?.city && e.city !== opts.city) continue;
     const ef = norm(e.from);
     const et = norm(e.to);
     // Return the original station-side name (caller may want display form);
     // append "역" to keep parity with STATIONS.name convention.
-    if (ef === s) out.push({ name: et + '역', line: e.line });
-    else if (et === s) out.push({ name: ef + '역', line: e.line });
+    if (ef === s) out.push({ name: et + '역', line: e.line, city: e.city });
+    else if (et === s) out.push({ name: ef + '역', line: e.line, city: e.city });
   }
   return out;
 }
 
-/** Distinct neighbor station names (lines aggregated). */
-export function neighborNames(station: string): string[] {
+/** Distinct neighbor station names (lines aggregated). City filter avoids
+ *  mixing neighbors of different cities' same-named stations (교대역, 시청역). */
+export function neighborNames(station: string, city?: string): string[] {
   const seen = new Set<string>();
-  for (const n of neighborsOf(station)) seen.add(n.name);
+  for (const n of neighborsOf(station, { city })) seen.add(n.name);
   return Array.from(seen);
 }
 

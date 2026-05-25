@@ -9,6 +9,7 @@ import { BackIcon } from '../components/Icons';
 import { recordLine } from '../lib/recentPlaces';
 import { distanceM, formatDistance, requestCoords, type Coords } from '../lib/geo';
 import { findSegments, segmentPlaceId, platformPlaceId, neighborNames } from '../lib/subwayGraph';
+import { SNUClassroomWizard } from './SNUClassroomWizard';
 
 interface Props {
   onBack: () => void;
@@ -119,7 +120,7 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
     return (
       <WizardLanding
         onPickCategory={(k) => {
-          if (k === 'subway' || k === 'bus' || k === 'train') setCategory(k);
+          if (k === 'subway' || k === 'bus' || k === 'train' || k === 'classroom') setCategory(k);
           else onRegisterFreeform(k as PlaceType);
         }}
         onPickPlaceId={onPicked}
@@ -133,6 +134,17 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
     return (
       <SubwayWizard
         onPicked={onPicked}
+        renderHeader={(t) => renderHeader(t, () => { setCategory(null); })}
+      />
+    );
+  }
+
+  // ── STEP 2: CLASSROOM (서울대) ─────────────────────────────────────
+  if (category === 'classroom') {
+    return (
+      <SNUClassroomWizard
+        onPicked={onPicked}
+        onFreeform={() => onRegisterFreeform('classroom')}
         renderHeader={(t) => renderHeader(t, () => { setCategory(null); })}
       />
     );
@@ -320,10 +332,12 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Segment resolution
+  // Segment resolution — pass city to disambiguate multi-city "1호선" etc.
   const segments = useMemo(() => {
     if (!prevStation || !nextStationSel) return [];
-    return findSegments(prevStation.name, nextStationSel.name);
+    // Both stations should share a city for a valid same-line segment.
+    const city = prevStation.city === nextStationSel.city ? prevStation.city : undefined;
+    return findSegments(prevStation.name, nextStationSel.name, city);
   }, [prevStation, nextStationSel]);
 
   const resolvedSegment = useMemo(() => {
@@ -384,15 +398,19 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
   const platformCanSubmit = !!platStation && !submitting;
   // When one side is selected, restrict the other side's suggestions to ACTUAL
   // adjacent stations — turns autocomplete into a "pick one of N neighbors" UI.
+  // City-scope the neighbor lookup so 교대역(서울)'s 부산 neighbors don't leak in.
   const restrictNamesFor = (anchor: Station | null): Set<string> | null => {
     if (!anchor) return null;
-    return new Set(neighborNames(anchor.name));
+    return new Set(neighborNames(anchor.name, anchor.city));
   };
 
   const prevSuggestions = useMemo(() => {
     const restrict = restrictNamesFor(nextStationSel);
     if (restrict) {
-      const all = STATIONS.filter((s) => restrict.has(s.name));
+      // Same-city restriction keeps multi-city collisions (시청, 교대) clean.
+      const all = STATIONS.filter(
+        (s) => restrict.has(s.name) && (!nextStationSel || s.city === nextStationSel.city),
+      );
       const q = prevQuery.trim();
       return (q ? all.filter((s) => s.name.includes(q)) : all).slice(0, 8);
     }
@@ -402,7 +420,9 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
   const nextSuggestions = useMemo(() => {
     const restrict = restrictNamesFor(prevStation);
     if (restrict) {
-      const all = STATIONS.filter((s) => restrict.has(s.name));
+      const all = STATIONS.filter(
+        (s) => restrict.has(s.name) && (!prevStation || s.city === prevStation.city),
+      );
       const q = nextQuery.trim();
       return (q ? all.filter((s) => s.name.includes(q)) : all).slice(0, 8);
     }
