@@ -8,6 +8,13 @@ export interface AdjEdge {
 
 export const ADJACENCY: AdjEdge[] = rawAdjacency as AdjEdge[];
 
+// Stations dataset names end with "역" (서울대입구역) but the upstream graph
+// (parsed from GML) stripped it (서울대입구). Normalize at the boundary so
+// callers can pass either form.
+function norm(s: string): string {
+  return s.endsWith('역') ? s.slice(0, -1) : s;
+}
+
 /**
  * Given two stations the user observed (just-passed → about-to-arrive),
  * return all matching same-line segments. Edges in GML are undirected;
@@ -25,9 +32,13 @@ export interface Segment {
 
 export function findSegments(prev: string, next: string): Segment[] {
   if (!prev || !next || prev === next) return [];
+  const p = norm(prev);
+  const n = norm(next);
   const out: Segment[] = [];
   for (const e of ADJACENCY) {
-    if ((e.from === prev && e.to === next) || (e.from === next && e.to === prev)) {
+    const ef = norm(e.from);
+    const et = norm(e.to);
+    if ((ef === p && et === n) || (ef === n && et === p)) {
       out.push({ line: e.line, prev, next });
     }
   }
@@ -42,11 +53,16 @@ export function findSegments(prev: string, next: string): Segment[] {
 
 /** Adjacent stations of a given station (optionally filtered by line). */
 export function neighborsOf(station: string, line?: string): { name: string; line: string }[] {
+  const s = norm(station);
   const out: { name: string; line: string }[] = [];
   for (const e of ADJACENCY) {
     if (line && e.line !== line) continue;
-    if (e.from === station) out.push({ name: e.to, line: e.line });
-    else if (e.to === station) out.push({ name: e.from, line: e.line });
+    const ef = norm(e.from);
+    const et = norm(e.to);
+    // Return the original station-side name (caller may want display form);
+    // append "역" to keep parity with STATIONS.name convention.
+    if (ef === s) out.push({ name: et + '역', line: e.line });
+    else if (et === s) out.push({ name: ef + '역', line: e.line });
   }
   return out;
 }
