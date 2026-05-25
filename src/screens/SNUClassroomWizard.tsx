@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, GraduationCap, Building2, DoorOpen } from 'lucide-react';
+import { Search, GraduationCap, Building2, DoorOpen, Check, Edit3 } from 'lucide-react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api } from '../lib/api';
+import { BackIcon } from '../components/Icons';
 import {
   BUILDINGS,
   loadRooms,
@@ -30,12 +31,67 @@ type View =
 // the user explicitly toggles "전체" — voting on a private office is meaningless.
 const PUBLIC_KINDS: SNURoom['kind'][] = ['classroom', 'lab', 'lounge', 'other'];
 
+// Universities with structured building/room data. Currently SNU only; the
+// picker keeps the door open for 연세대/고려대/카이스트 등 as we add datasets.
+interface KnownUniv {
+  id: 'snu';
+  name: string;
+  aliases: string[];
+  badge: string;          // small chip text shown on the card
+  roomCount: number;
+}
+
+const KNOWN_UNIVS: KnownUniv[] = [
+  {
+    id: 'snu',
+    name: '서울대학교',
+    aliases: ['서울대', 'SNU', '관악', '관악캠퍼스', '연건', '서울대학'],
+    badge: '관악·연건',
+    roomCount: 1976,
+  },
+];
+
 export function SNUClassroomWizard({ onPicked, onFreeform, renderHeader }: Props) {
+  // Step 1: which university? null = picker showing.
+  const [univ, setUniv] = useState<KnownUniv['id'] | null>(null);
+  // Step 2 state (SNU wizard) — only meaningful once univ is set.
   const [view, setView] = useState<View>({ mode: 'search' });
   const [query, setQuery] = useState('');
   const [rooms, setRooms] = useState<SNURoom[] | null>(null);
   const [roomsErr, setRoomsErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
+
+  // Custom header used inside the SNU sub-wizard so the back button goes to
+  // the university picker instead of the category picker.
+  const innerHeader = (title: string) => (
+    <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px 14px' }}>
+        <button
+          onClick={() => {
+            if (view.mode === 'building') setView({ mode: 'search' });
+            else if (view.mode === 'college') setView({ mode: 'search' });
+            else setUniv(null);
+          }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}
+          aria-label="뒤로"
+        >
+          <BackIcon />
+        </button>
+        <span style={{ fontSize: 16, fontWeight: 700, color: TOKEN.text1 }}>{title}</span>
+      </div>
+    </div>
+  );
+
+  // ─── Step 1: university picker ─────────────────────────────────────
+  if (univ === null) {
+    return (
+      <UniversityPicker
+        onPickSNU={() => setUniv('snu')}
+        onFreeform={onFreeform}
+        renderHeader={renderHeader}
+      />
+    );
+  }
 
   useEffect(() => {
     let alive = true;
@@ -71,7 +127,7 @@ export function SNUClassroomWizard({ onPicked, onFreeform, renderHeader }: Props
     const allRooms = rooms ? roomsForBuilding(b.code, rooms) : [];
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-        {renderHeader(`${b.code}동 ${b.name}`)}
+        {innerHeader(`${b.code}동 ${b.name}`)}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 80px' }}>
           <div style={{ padding: '14px 16px', background: TOKEN.coldBg, borderRadius: TOKEN.r.md, marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: TOKEN.text2, marginBottom: 4 }}>{b.college} · {b.campus}캠퍼스</div>
@@ -108,7 +164,7 @@ export function SNUClassroomWizard({ onPicked, onFreeform, renderHeader }: Props
     const list = BUILDINGS.filter((b) => b.college === view.college);
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-        {renderHeader(view.college)}
+        {innerHeader(view.college)}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 80px' }}>
           <div style={{ fontSize: 12, color: TOKEN.text2, marginBottom: 10 }}>
             {list.length}개 건물
@@ -126,7 +182,7 @@ export function SNUClassroomWizard({ onPicked, onFreeform, renderHeader }: Props
   // ─── Search view ─────────────────────────────────────────────────────
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-      {renderHeader('서울대 강의실')}
+      {innerHeader('서울대 강의실')}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 80px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: TOKEN.surface, border: `1.5px solid ${TOKEN.border}`, borderRadius: TOKEN.r.lg, padding: '12px 14px', marginBottom: 14 }}>
           <Search size={18} color={TOKEN.text3} />
@@ -456,4 +512,118 @@ function primaryButtonStyle(enabled: boolean): React.CSSProperties {
     fontFamily: FONT,
     boxShadow: enabled ? `0 6px 20px ${TOKEN.cold}30` : 'none',
   };
+}
+
+// ─── University picker ───────────────────────────────────────────────
+
+function UniversityPicker({
+  onPickSNU,
+  onFreeform,
+  renderHeader,
+}: {
+  onPickSNU: () => void;
+  onFreeform: () => void;
+  renderHeader: (title: string) => React.ReactNode;
+}) {
+  const [q, setQ] = useState('');
+  const ql = q.trim().toLowerCase();
+  const filtered = ql
+    ? KNOWN_UNIVS.filter((u) =>
+        u.name.toLowerCase().includes(ql) || u.aliases.some((a) => a.toLowerCase().includes(ql))
+      )
+    : KNOWN_UNIVS;
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
+      {renderHeader('강의실')}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 60px' }}>
+        <div style={{ fontSize: 20, fontWeight: 900, color: TOKEN.text1, marginBottom: 6, letterSpacing: '-0.4px' }}>
+          어느 학교에 계세요?
+        </div>
+        <div style={{ fontSize: 13, color: TOKEN.text2, marginBottom: 18, lineHeight: 1.6 }}>
+          데이터가 등록된 학교를 골라주세요.<br />없으면 직접 입력하실 수 있어요.
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: TOKEN.surface, border: `1.5px solid ${TOKEN.border}`, borderRadius: TOKEN.r.lg, padding: '12px 14px', marginBottom: 16 }}>
+          <Search size={18} color={TOKEN.text3} />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="학교 이름 검색"
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 14, fontFamily: FONT, color: TOKEN.text1, minWidth: 0 }}
+            autoFocus
+          />
+          {q && (
+            <button onClick={() => setQ('')} aria-label="지우기" style={{ background: 'none', border: 'none', cursor: 'pointer', color: TOKEN.text3, fontSize: 18, padding: 0 }}>×</button>
+          )}
+        </div>
+
+        {filtered.length > 0 ? (
+          <>
+            <Label>데이터 등록된 학교</Label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+              {filtered.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() => { if (u.id === 'snu') onPickSNU(); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    width: '100%', padding: '14px 16px',
+                    background: TOKEN.surface, border: `1.5px solid ${TOKEN.cold}40`,
+                    borderRadius: TOKEN.r.lg, cursor: 'pointer', fontFamily: FONT, textAlign: 'left',
+                  }}
+                >
+                  <div style={{ width: 38, height: 38, borderRadius: 11, background: TOKEN.coldBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <GraduationCap size={20} color={TOKEN.cold} strokeWidth={2.2} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: TOKEN.text1, letterSpacing: '-0.3px' }}>{u.name}</div>
+                    <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>
+                      {u.badge} · 호실 {u.roomCount.toLocaleString()}개 등록
+                    </div>
+                  </div>
+                  <Check size={16} color={TOKEN.cold} strokeWidth={2.5} />
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div style={{ padding: '20px 14px', background: TOKEN.surface, border: `1px dashed ${TOKEN.border}`, borderRadius: TOKEN.r.md, textAlign: 'center', marginBottom: 20 }}>
+            <div style={{ fontSize: 13, color: TOKEN.text2, marginBottom: 4 }}>
+              "<b>{q}</b>"는 아직 등록되지 않았어요.
+            </div>
+            <div style={{ fontSize: 11, color: TOKEN.text3 }}>
+              아래 "직접 입력하기"로 강의실을 등록할 수 있어요.
+            </div>
+          </div>
+        )}
+
+        <Label>내 학교가 없어요</Label>
+        <button
+          onClick={onFreeform}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            width: '100%', padding: '14px 16px',
+            background: TOKEN.surface, border: `1.5px dashed ${TOKEN.border}`,
+            borderRadius: TOKEN.r.lg, cursor: 'pointer', fontFamily: FONT, textAlign: 'left',
+          }}
+        >
+          <div style={{ width: 38, height: 38, borderRadius: 11, background: TOKEN.surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Edit3 size={18} color={TOKEN.text2} strokeWidth={2.2} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: TOKEN.text1, letterSpacing: '-0.3px' }}>직접 입력하기</div>
+            <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>
+              학교·건물·강의실 이름을 자유롭게 적을 수 있어요
+            </div>
+          </div>
+        </button>
+
+        <div style={{ marginTop: 22, fontSize: 11, color: TOKEN.text3, textAlign: 'center', lineHeight: 1.6 }}>
+          다른 학교는 곧 추가될 예정이에요.<br />
+          학교 데이터 제보·요청은 언제든 환영합니다.
+        </div>
+      </div>
+    </div>
+  );
 }
