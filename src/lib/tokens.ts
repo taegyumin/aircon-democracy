@@ -23,4 +23,4 @@ export const VOTE_CONFIG: Record<VoteType, { label: string; color: string; bg: s
   hot: { label: '더워요', color: TOKEN.hot, bg: TOKEN.hotBg },
 };
 
-export const FONT = "'Noto Sans KR', sans-serif";
+export const FONT = "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";

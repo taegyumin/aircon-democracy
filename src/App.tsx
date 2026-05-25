@@ -176,7 +176,7 @@ export default function App() {
         justifyContent: 'center',
         background: isPhoneFrame ? 'linear-gradient(160deg, #ECE9E2 0%, #E4E0D8 100%)' : '#F2F2F7',
         padding: isPhoneFrame ? '32px 16px' : 0,
-        fontFamily: "'Noto Sans KR', sans-serif",
+        fontFamily: "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif",
       }}
     >
       {isPhoneFrame ? (
