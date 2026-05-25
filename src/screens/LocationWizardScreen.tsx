@@ -4,26 +4,11 @@ import type { LucideIcon } from 'lucide-react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api } from '../lib/api';
 import type { PlaceType } from '../lib/places';
-import { ALL_LINES, lineColor, searchStations, STATIONS, type Station } from '../lib/subway';
+import { lineColor, searchStations, STATIONS, type Station } from '../lib/subway';
 import { BackIcon } from '../components/Icons';
-import { recordLine, getRecentLines } from '../lib/recentPlaces';
+import { recordLine } from '../lib/recentPlaces';
 import { distanceM, formatDistance, requestCoords, type Coords } from '../lib/geo';
-
-const POPULAR_LINES = ['1호선', '2호선', '3호선', '4호선', '5호선', '7호선', '9호선', '신분당선', '공항철도'];
-
-function priorityLines(): string[] {
-  const recent = getRecentLines();
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const l of [...recent, ...POPULAR_LINES]) {
-    if (ALL_LINES.includes(l) && !seen.has(l)) {
-      seen.add(l);
-      out.push(l);
-    }
-    if (out.length >= 10) break;
-  }
-  return out;
-}
+import { findSegments, segmentPlaceId, platformPlaceId } from '../lib/subwayGraph';
 
 interface Props {
   onBack: () => void;
@@ -51,12 +36,6 @@ const TRAIN_CAR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
 export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: Props) {
   const [category, setCategory] = useState<Category | null>(null);
 
-  // Subway state
-  const [subLine, setSubLine] = useState<string | null>(null);
-  const [subCar, setSubCar] = useState<number | 'unknown' | null>(null);
-  const [subStationQuery, setSubStationQuery] = useState('');
-  const [subStation, setSubStation] = useState<Station | null>(null);
-
   // Bus state
   const [busRoute, setBusRoute] = useState('');
   const [busStop, setBusStop] = useState('');
@@ -68,32 +47,6 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const submitSubway = async () => {
-    if (!subLine || !subCar) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const carLabel = subCar === 'unknown' ? '칸 미정' : `${subCar}번칸`;
-      const carIdPart = subCar === 'unknown' ? 'x' : String(subCar);
-      const stationPart = subStation ? `:${subStation.name}` : '';
-      const id = `subway:${subLine}${stationPart}:${carIdPart}`;
-      const name = subStation ? `${subLine} ${subStation.name} ${carLabel}` : `${subLine} ${carLabel}`;
-      const district = subStation ? `${subStation.city}${subStation.areas[0] ? ' ' + subStation.areas[0] : ''}` : null;
-      await api.upsertPlace({
-        id,
-        name,
-        type: 'subway',
-        district: district ?? undefined,
-        detail: subStation ? `${subLine} · ${subStation.areas.join(', ')}` : subLine,
-      });
-      onPicked(id);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const submitTrain = async () => {
     if (!trainType || !trainCar) return;
@@ -177,17 +130,12 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
 
   // ── STEP 2: SUBWAY ────────────────────────────────────────────────
   if (category === 'subway') {
-    return <SubwayWizard
-      line={subLine} setLine={setSubLine}
-      car={subCar} setCar={setSubCar}
-      stationQuery={subStationQuery} setStationQuery={setSubStationQuery}
-      station={subStation} setStation={setSubStation}
-      submitting={submitting}
-      error={error}
-      onBack={() => { setCategory(null); setSubLine(null); setSubCar(null); setSubStation(null); setSubStationQuery(''); }}
-      onSubmit={submitSubway}
-      renderHeader={(t) => renderHeader(t, () => { setCategory(null); setSubLine(null); setSubCar(null); setSubStation(null); })}
-    />;
+    return (
+      <SubwayWizard
+        onPicked={onPicked}
+        renderHeader={(t) => renderHeader(t, () => { setCategory(null); })}
+      />
+    );
   }
 
   // ── STEP 2: TRAIN ─────────────────────────────────────────────────
@@ -347,181 +295,427 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
 // ── Subway wizard sub-component ─────────────────────────────────────
 
 interface SubwayWizardProps {
-  line: string | null;
-  setLine: (v: string | null) => void;
-  car: number | 'unknown' | null;
-  setCar: (v: number | 'unknown' | null) => void;
-  stationQuery: string;
-  setStationQuery: (v: string) => void;
-  station: Station | null;
-  setStation: (v: Station | null) => void;
-  submitting: boolean;
-  error: string | null;
-  onBack: () => void;
-  onSubmit: () => void;
+  onPicked: (placeId: string) => void;
   renderHeader: (title: string) => React.ReactNode;
 }
 
-function SubwayWizard({
-  line, setLine,
-  car, setCar,
-  stationQuery, setStationQuery,
-  station, setStation,
-  submitting, error,
-  onBack: _onBack,
-  onSubmit,
-  renderHeader,
-}: SubwayWizardProps) {
-  const stationResults = useMemo(() => {
-    if (!stationQuery.trim()) return [];
-    return searchStations({ query: stationQuery, lineFilter: line, limit: 8 });
-  }, [stationQuery, line]);
+type SubwayMode = 'train' | 'platform';
 
-  const canSubmit = !!line && !!car && !submitting;
+function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
+  const [mode, setMode] = useState<SubwayMode>('train');
+
+  // 열차 안 (train mode) state
+  const [prevQuery, setPrevQuery] = useState('');
+  const [prevStation, setPrevStation] = useState<Station | null>(null);
+  const [nextQuery, setNextQuery] = useState('');
+  const [nextStationSel, setNextStationSel] = useState<Station | null>(null);
+  const [pickedLine, setPickedLine] = useState<string | null>(null);
+
+  // 플랫폼 (platform mode) state
+  const [platQuery, setPlatQuery] = useState('');
+  const [platStation, setPlatStation] = useState<Station | null>(null);
+
+  // Shared
+  const [car, setCar] = useState<number | 'unknown' | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Segment resolution
+  const segments = useMemo(() => {
+    if (!prevStation || !nextStationSel) return [];
+    return findSegments(prevStation.name, nextStationSel.name);
+  }, [prevStation, nextStationSel]);
+
+  const resolvedSegment = useMemo(() => {
+    if (segments.length === 0) return null;
+    if (segments.length === 1) return segments[0];
+    return pickedLine ? segments.find((s) => s.line === pickedLine) ?? null : null;
+  }, [segments, pickedLine]);
+
+  const noMatch = prevStation && nextStationSel && segments.length === 0;
+
+  const submitTrain = async () => {
+    if (!resolvedSegment || car === null || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const id = segmentPlaceId(resolvedSegment.line, resolvedSegment.prev, resolvedSegment.next, car);
+      const carPart = car === 'unknown' ? '' : ` ${car}호차`;
+      const name = `${resolvedSegment.line} ${resolvedSegment.prev}→${resolvedSegment.next}${carPart}`;
+      await api.upsertPlace({
+        id,
+        name,
+        type: 'subway',
+        district: undefined,
+        detail: `${resolvedSegment.line} · ${resolvedSegment.prev}→${resolvedSegment.next} 구간`,
+      });
+      recordLine(resolvedSegment.line);
+      onPicked(id);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitPlatform = async () => {
+    if (!platStation || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const id = platformPlaceId(platStation.name, platStation.lines);
+      const name = `${platStation.name} 플랫폼`;
+      await api.upsertPlace({
+        id,
+        name,
+        type: 'subway',
+        district: platStation.city + (platStation.areas[0] ? ' ' + platStation.areas[0] : ''),
+        detail: platStation.lines.join(' · '),
+      });
+      onPicked(id);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const trainCanSubmit = !!resolvedSegment && car !== null && !submitting;
+  const platformCanSubmit = !!platStation && !submitting;
+  const prevSuggestions = useMemo(() => prevQuery.trim() ? searchStations({ query: prevQuery, limit: 5 }) : [], [prevQuery]);
+  const nextSuggestions = useMemo(() => nextQuery.trim() ? searchStations({ query: nextQuery, limit: 5 }) : [], [nextQuery]);
+  const platSuggestions = useMemo(() => platQuery.trim() ? searchStations({ query: platQuery, limit: 8 }) : [], [platQuery]);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
       {renderHeader('지하철')}
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 80px' }}>
-        {/* Line picker — recent + popular first, others behind toggle */}
-        <Label>어느 노선 타고 계세요?</Label>
-        <LinePicker selected={line} onSelect={(l) => {
-          setLine(l);
-          if (l) recordLine(l);
-          if (line && line !== l) setStation(null);
-        }} />
-        <div style={{ height: 24 }} />
-
-        {/* Car picker — "모름" FIRST (정상 경로) */}
-        <Label>몇 번 칸이에요?</Label>
-        <button
-          onClick={() => setCar(car === 'unknown' ? null : 'unknown')}
-          style={{
-            width: '100%',
-            padding: '14px',
-            background: car === 'unknown' ? TOKEN.cold : TOKEN.surface,
-            color: car === 'unknown' ? '#fff' : TOKEN.text1,
-            border: `1.5px dashed ${car === 'unknown' ? TOKEN.cold : TOKEN.border}`,
-            borderRadius: TOKEN.r.md,
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontFamily: FONT,
-            marginBottom: 8,
-          }}
-        >
-          {car === 'unknown' ? '✓ 칸 모름' : '칸 모름 — 그래도 투표할게요'}
-        </button>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 24 }}>
-          {CAR_OPTIONS.map((n) => {
-            const active = car === n;
-            return (
-              <button
-                key={n}
-                onClick={() => setCar(active ? null : n)}
-                style={{
-                  padding: '14px 0',
-                  background: active ? TOKEN.cold : TOKEN.surface,
-                  color: active ? '#fff' : TOKEN.text1,
-                  border: `1.5px solid ${active ? TOKEN.cold : TOKEN.border}`,
-                  borderRadius: TOKEN.r.md,
-                  fontSize: 16,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  fontFamily: FONT,
-                  transition: 'all 0.12s',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
-                {n}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Station (optional) */}
-        <Label>지나고 있는 역 <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(선택)</span></Label>
-        {station ? (
-          <div
+        {/* Mode toggle */}
+        <div style={{ display: 'flex', background: TOKEN.bg, border: `1px solid ${TOKEN.border}`, borderRadius: TOKEN.r.lg, padding: 4, marginBottom: 20 }}>
+          <button
+            onClick={() => setMode('train')}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '12px 14px',
-              background: TOKEN.coldBg,
-              border: `2px solid ${TOKEN.cold}`,
-              borderRadius: TOKEN.r.lg,
-              marginBottom: 24,
+              flex: 1, padding: '10px',
+              background: mode === 'train' ? TOKEN.surface : 'transparent',
+              border: 'none', borderRadius: TOKEN.r.md,
+              fontSize: 13, fontWeight: 700,
+              color: mode === 'train' ? TOKEN.text1 : TOKEN.text3,
+              cursor: 'pointer', fontFamily: FONT,
+              boxShadow: mode === 'train' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: TOKEN.text1 }}>{station.name}</div>
-              <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>
-                {station.lines.join(' · ')} {station.city ? '· ' + station.city : ''}
+            🚇 열차 안
+          </button>
+          <button
+            onClick={() => setMode('platform')}
+            style={{
+              flex: 1, padding: '10px',
+              background: mode === 'platform' ? TOKEN.surface : 'transparent',
+              border: 'none', borderRadius: TOKEN.r.md,
+              fontSize: 13, fontWeight: 700,
+              color: mode === 'platform' ? TOKEN.text1 : TOKEN.text3,
+              cursor: 'pointer', fontFamily: FONT,
+              boxShadow: mode === 'platform' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+            }}
+          >
+            🚏 플랫폼 대기
+          </button>
+        </div>
+
+        {mode === 'train' ? (
+          <TrainModeBody
+            prevQuery={prevQuery} setPrevQuery={setPrevQuery}
+            prevStation={prevStation} setPrevStation={setPrevStation}
+            nextQuery={nextQuery} setNextQuery={setNextQuery}
+            nextStation={nextStationSel} setNextStation={setNextStationSel}
+            prevSuggestions={prevSuggestions}
+            nextSuggestions={nextSuggestions}
+            segments={segments}
+            resolvedSegment={resolvedSegment}
+            pickedLine={pickedLine}
+            setPickedLine={setPickedLine}
+            noMatch={!!noMatch}
+            car={car} setCar={setCar}
+            error={error}
+            submitting={submitting}
+            canSubmit={trainCanSubmit}
+            onSubmit={submitTrain}
+          />
+        ) : (
+          <PlatformModeBody
+            query={platQuery} setQuery={setPlatQuery}
+            station={platStation} setStation={setPlatStation}
+            suggestions={platSuggestions}
+            error={error}
+            submitting={submitting}
+            canSubmit={platformCanSubmit}
+            onSubmit={submitPlatform}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Train mode body ─────────────────────────────────────────────────
+
+interface TrainModeBodyProps {
+  prevQuery: string; setPrevQuery: (v: string) => void;
+  prevStation: Station | null; setPrevStation: (v: Station | null) => void;
+  nextQuery: string; setNextQuery: (v: string) => void;
+  nextStation: Station | null; setNextStation: (v: Station | null) => void;
+  prevSuggestions: Station[];
+  nextSuggestions: Station[];
+  segments: { line: string; prev: string; next: string }[];
+  resolvedSegment: { line: string; prev: string; next: string } | null;
+  pickedLine: string | null; setPickedLine: (v: string | null) => void;
+  noMatch: boolean;
+  car: number | 'unknown' | null; setCar: (v: number | 'unknown' | null) => void;
+  error: string | null;
+  submitting: boolean;
+  canSubmit: boolean;
+  onSubmit: () => void;
+}
+
+function TrainModeBody(p: TrainModeBodyProps) {
+  return (
+    <>
+      <div style={{ fontSize: 13, color: TOKEN.text2, marginBottom: 14, lineHeight: 1.6 }}>
+        안내방송 들리는 대로 두 역만 입력하세요. 노선과 방향은 자동으로 알아낼게요.
+      </div>
+
+      <StationAutocomplete
+        label="🔵 방금 지나간 역"
+        query={p.prevQuery}
+        setQuery={p.setPrevQuery}
+        station={p.prevStation}
+        setStation={p.setPrevStation}
+        suggestions={p.prevSuggestions}
+        placeholder="예: 강남"
+      />
+      <div style={{ height: 12 }} />
+      <StationAutocomplete
+        label="🔴 다음 도착 역"
+        query={p.nextQuery}
+        setQuery={p.setNextQuery}
+        station={p.nextStation}
+        setStation={p.setNextStation}
+        suggestions={p.nextSuggestions}
+        placeholder="예: 역삼"
+      />
+
+      <div style={{ height: 18 }} />
+
+      {/* Match feedback */}
+      {p.prevStation && p.nextStation && (
+        <>
+          {p.segments.length === 0 && (
+            <div style={{ padding: '14px', background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 13, lineHeight: 1.6, marginBottom: 14 }}>
+              두 역이 인접해 있지 않아요.<br />
+              <span style={{ fontSize: 11, color: TOKEN.text2 }}>오타가 있거나 다음역이 아닐 수 있어요. 다시 확인해주세요.</span>
+            </div>
+          )}
+          {p.segments.length === 1 && (
+            <div style={{ padding: '14px', background: TOKEN.coldBg, border: `1.5px solid ${TOKEN.cold}`, borderRadius: TOKEN.r.md, marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: TOKEN.text2, marginBottom: 4 }}>자동 매칭</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: TOKEN.cold, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: lineColor(p.segments[0].line) }} />
+                {p.segments[0].line} · {p.segments[0].prev} → {p.segments[0].next}
               </div>
             </div>
-            <button
-              onClick={() => { setStation(null); setStationQuery(''); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: TOKEN.text2, fontSize: 13, fontFamily: FONT }}
-            >
-              변경
-            </button>
-          </div>
-        ) : (
-          <>
-            <input
-              value={stationQuery}
-              onChange={(e) => setStationQuery(e.target.value)}
-              placeholder={line ? `${line} 역 검색 (초성도 OK)` : '역 검색 (초성도 OK)'}
-              style={fieldStyle(!!stationQuery)}
-            />
-            {stationResults.length > 0 && (
-              <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 24 }}>
-                {stationResults.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => { setStation(s); setStationQuery(''); }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      padding: '10px 14px',
-                      background: TOKEN.surface,
-                      border: `1px solid ${TOKEN.border}`,
-                      borderRadius: TOKEN.r.md,
-                      cursor: 'pointer',
-                      fontFamily: FONT,
-                      textAlign: 'left',
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: TOKEN.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {s.name}
-                      </div>
-                      <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 1 }}>
-                        {s.lines.join(' · ')} · {s.city}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+          )}
+          {p.segments.length > 1 && (
+            <div style={{ marginBottom: 14 }}>
+              <Label>이 구간은 여러 노선이 있어요. 어느 노선?</Label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {p.segments.map((s) => {
+                  const active = p.pickedLine === s.line;
+                  return (
+                    <button
+                      key={s.line}
+                      onClick={() => p.setPickedLine(active ? null : s.line)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '8px 14px',
+                        background: active ? lineColor(s.line) : TOKEN.surface,
+                        color: active ? '#fff' : TOKEN.text1,
+                        border: `1.5px solid ${active ? lineColor(s.line) : TOKEN.border}`,
+                        borderRadius: 999, fontSize: 13, fontWeight: 700,
+                        cursor: 'pointer', fontFamily: FONT,
+                      }}
+                    >
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: active ? '#fff' : lineColor(s.line) }} />
+                      {s.line}
+                    </button>
+                  );
+                })}
               </div>
-            )}
-            {!stationResults.length && <div style={{ height: 24 }} />}
-          </>
-        )}
+            </div>
+          )}
+        </>
+      )}
 
-        {error && (
-          <div style={{ marginBottom: 14, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12 }}>{error}</div>
-        )}
+      {/* Car picker only after segment resolved */}
+      {p.resolvedSegment && (
+        <>
+          <Label>몇 호차예요?</Label>
+          <button
+            onClick={() => p.setCar(p.car === 'unknown' ? null : 'unknown')}
+            style={{
+              width: '100%', padding: '14px',
+              background: p.car === 'unknown' ? TOKEN.cold : TOKEN.surface,
+              color: p.car === 'unknown' ? '#fff' : TOKEN.text1,
+              border: `1.5px dashed ${p.car === 'unknown' ? TOKEN.cold : TOKEN.border}`,
+              borderRadius: TOKEN.r.md, fontSize: 14, fontWeight: 700,
+              cursor: 'pointer', fontFamily: FONT, marginBottom: 8,
+            }}
+          >
+            {p.car === 'unknown' ? '✓ 칸 모름' : '칸 모름 — 그래도 투표할게요'}
+          </button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, marginBottom: 20 }}>
+            {CAR_OPTIONS.map((n) => {
+              const active = p.car === n;
+              return (
+                <button
+                  key={n}
+                  onClick={() => p.setCar(active ? null : n)}
+                  style={{
+                    padding: '12px 0',
+                    background: active ? TOKEN.cold : TOKEN.surface,
+                    color: active ? '#fff' : TOKEN.text1,
+                    border: `1.5px solid ${active ? TOKEN.cold : TOKEN.border}`,
+                    borderRadius: TOKEN.r.md,
+                    fontSize: 16, fontWeight: 800, cursor: 'pointer',
+                    fontFamily: FONT, fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
-        <button
-          onClick={onSubmit}
-          disabled={!canSubmit}
-          style={primaryButtonStyle(canSubmit)}
-        >
-          {submitting ? '이동 중…' : '투표하러 가기'}
-        </button>
+      {p.error && (
+        <div style={{ marginBottom: 14, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12 }}>{p.error}</div>
+      )}
+
+      <button onClick={p.onSubmit} disabled={!p.canSubmit} style={primaryButtonStyle(p.canSubmit)}>
+        {p.submitting ? '이동 중…' : '투표하러 가기'}
+      </button>
+    </>
+  );
+}
+
+// ── Platform mode body ──────────────────────────────────────────────
+
+interface PlatformModeBodyProps {
+  query: string; setQuery: (v: string) => void;
+  station: Station | null; setStation: (v: Station | null) => void;
+  suggestions: Station[];
+  error: string | null;
+  submitting: boolean;
+  canSubmit: boolean;
+  onSubmit: () => void;
+}
+
+function PlatformModeBody(p: PlatformModeBodyProps) {
+  return (
+    <>
+      <div style={{ fontSize: 13, color: TOKEN.text2, marginBottom: 14, lineHeight: 1.6 }}>
+        지금 어느 역 플랫폼에 계세요? 그 역에서 기다리는 모든 분들과 같은 의견이 모입니다.
       </div>
+      <StationAutocomplete
+        label="역 이름"
+        query={p.query}
+        setQuery={p.setQuery}
+        station={p.station}
+        setStation={p.setStation}
+        suggestions={p.suggestions}
+        placeholder="예: 강남, ㄱㄴ"
+      />
+      <div style={{ height: 20 }} />
+      {p.error && (
+        <div style={{ marginBottom: 14, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12 }}>{p.error}</div>
+      )}
+      <button onClick={p.onSubmit} disabled={!p.canSubmit} style={primaryButtonStyle(p.canSubmit)}>
+        {p.submitting ? '이동 중…' : '투표하러 가기'}
+      </button>
+    </>
+  );
+}
+
+// ── Station autocomplete (shared) ──────────────────────────────────
+
+function StationAutocomplete({ label, query, setQuery, station, setStation, suggestions, placeholder }: {
+  label: string;
+  query: string; setQuery: (v: string) => void;
+  station: Station | null; setStation: (v: Station | null) => void;
+  suggestions: Station[];
+  placeholder: string;
+}) {
+  if (station) {
+    return (
+      <div>
+        <Label>{label}</Label>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 14px',
+          background: TOKEN.coldBg, border: `2px solid ${TOKEN.cold}`,
+          borderRadius: TOKEN.r.md,
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: TOKEN.text1 }}>{station.name}</div>
+            <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>
+              {station.lines.join(' · ')}{station.city ? ' · ' + station.city : ''}
+            </div>
+          </div>
+          <button
+            onClick={() => { setStation(null); setQuery(''); }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: TOKEN.text2, fontSize: 13, fontFamily: FONT }}
+          >
+            변경
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <Label>{label}</Label>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={placeholder}
+        style={fieldStyle(!!query)}
+      />
+      {suggestions.length > 0 && (
+        <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {suggestions.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => { setStation(s); setQuery(''); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px',
+                background: TOKEN.surface, border: `1px solid ${TOKEN.border}`,
+                borderRadius: TOKEN.r.md, cursor: 'pointer', fontFamily: FONT,
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: TOKEN.text1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.name}
+                </div>
+                <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 1 }}>
+                  {s.lines.join(' · ')} · {s.city}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -814,66 +1008,6 @@ function StationRow({ station, distance, loading, onTap }: { station: Station; d
   );
 }
 
-// ── Line picker ─────────────────────────────────────────────────────
-
-function LinePicker({ selected, onSelect }: { selected: string | null; onSelect: (l: string | null) => void }) {
-  const [showAll, setShowAll] = useState(false);
-  const top = priorityLines();
-  const rest = ALL_LINES.filter((l) => !top.includes(l));
-  const list = showAll ? [...top, ...rest] : top;
-
-  return (
-    <div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {list.map((l) => {
-          const active = selected === l;
-          return (
-            <button
-              key={l}
-              onClick={() => onSelect(active ? null : l)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 12px',
-                background: active ? lineColor(l) : TOKEN.surface,
-                color: active ? '#fff' : TOKEN.text1,
-                border: `1.5px solid ${active ? lineColor(l) : TOKEN.border}`,
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontFamily: FONT,
-                transition: 'all 0.12s',
-              }}
-            >
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: active ? '#fff' : lineColor(l), flexShrink: 0 }} />
-              {l}
-            </button>
-          );
-        })}
-      </div>
-      {!showAll && rest.length > 0 && (
-        <button
-          onClick={() => setShowAll(true)}
-          style={{
-            marginTop: 10,
-            background: 'none',
-            border: 'none',
-            color: TOKEN.cold,
-            fontSize: 12,
-            fontWeight: 700,
-            cursor: 'pointer',
-            fontFamily: FONT,
-            padding: 0,
-          }}
-        >
-          + 전체 노선 보기 ({rest.length})
-        </button>
-      )}
-    </div>
-  );
-}
 
 // ── Style helpers ───────────────────────────────────────────────────
 
