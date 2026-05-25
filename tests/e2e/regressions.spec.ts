@@ -239,6 +239,106 @@ test.describe('카테고리별 wizard 진입', () => {
   });
 });
 
+test.describe('Vote 흐름 (E2E API)', () => {
+  // 매 테스트마다 다른 placeId로 격리. 같은 voter cookie(test request context)가
+  // 재사용되니 cooldown 등 영향 받으므로 placeId 다르게.
+  const ts = Date.now();
+  const placeId = `other:e2e-vote-${ts}`;
+
+  test('전체 흐름: upsert → 첫 vote → counts 반영 → withdraw', async ({ request }) => {
+    const headers = { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' };
+
+    // 1. 새 place upsert
+    const upsert = await request.post('/api/places/upsert', {
+      headers,
+      data: { id: placeId, name: 'E2E vote 테스트', type: 'other' },
+    });
+    expect(upsert.ok()).toBe(true);
+
+    // 2. 처음엔 me === null
+    const before = await request.get(`/api/places/${encodeURIComponent(placeId)}`);
+    expect(before.ok()).toBe(true);
+    const beforeBody = await before.json();
+    expect(beforeBody.me).toBeNull();
+    expect(beforeBody.votes).toEqual({ cold: 0, ok: 0, hot: 0 });
+
+    // 3. cold 투표
+    const vote = await request.post(`/api/places/${encodeURIComponent(placeId)}/vote`, {
+      headers,
+      data: { vote: 'cold' },
+    });
+    expect(vote.ok()).toBe(true);
+    const voteBody = await vote.json();
+    expect(voteBody.vote).toBe('cold');
+
+    // 4. me 가 cold 로 갱신, counts 1+
+    const after = await request.get(`/api/places/${encodeURIComponent(placeId)}`);
+    const afterBody = await after.json();
+    expect(afterBody.me?.vote).toBe('cold');
+    expect(afterBody.votes.cold).toBeGreaterThanOrEqual(1);
+
+    // 5. withdraw
+    const del = await request.delete(`/api/places/${encodeURIComponent(placeId)}/vote`, { headers });
+    expect(del.ok()).toBe(true);
+
+    // 6. 다시 me === null
+    const final = await request.get(`/api/places/${encodeURIComponent(placeId)}`);
+    const finalBody = await final.json();
+    expect(finalBody.me).toBeNull();
+  });
+
+  test('vote 변경 시 30s cooldown 강제 (두 번째 변경부터)', async ({ request }) => {
+    // 디자인 노트: 첫 vote → 두 번째 변경은 cooldown 없음 (첫 변경은 자유).
+    // 두 번째 변경 후 즉시 세 번째 변경 시도하면 cooldown 발동.
+    const headers = { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' };
+    const cooldownPlace = `other:e2e-cooldown-${ts}`;
+    await request.post('/api/places/upsert', { headers, data: { id: cooldownPlace, name: 'cooldown test', type: 'other' } });
+    // 1. 첫 vote
+    const first = await request.post(`/api/places/${encodeURIComponent(cooldownPlace)}/vote`, { headers, data: { vote: 'cold' } });
+    expect(first.ok()).toBe(true);
+    // 2. 첫 변경 (cold → hot) — cooldown 없음
+    const second = await request.post(`/api/places/${encodeURIComponent(cooldownPlace)}/vote`, { headers, data: { vote: 'hot' } });
+    expect(second.ok()).toBe(true);
+    // 3. 즉시 세 번째 변경 (hot → ok) — cooldown 발동
+    const third = await request.post(`/api/places/${encodeURIComponent(cooldownPlace)}/vote`, { headers, data: { vote: 'ok' } });
+    expect(third.status()).toBe(429);
+    const body = await third.json();
+    expect(body.error).toBe('cooldown');
+    expect(body.remaining_ms).toBeGreaterThan(0);
+    // 정리
+    await request.delete(`/api/places/${encodeURIComponent(cooldownPlace)}/vote`, { headers });
+  });
+
+  test('CSRF guard: Origin/Intent 헤더 없으면 vote 거부', async ({ request }) => {
+    // X-Aircon-Intent 누락
+    const noIntent = await request.post(`/api/places/${encodeURIComponent(placeId)}/vote`, {
+      headers: { Origin: 'https://aircondemocracy.com' },
+      data: { vote: 'cold' },
+    });
+    expect(noIntent.status()).toBe(403);
+    const body = await noIntent.json();
+    expect(body.reason).toBe('csrf_origin');
+  });
+
+  test('잘못된 vote 값은 400', async ({ request }) => {
+    const headers = { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' };
+    const res = await request.post(`/api/places/${encodeURIComponent(placeId)}/vote`, {
+      headers,
+      data: { vote: 'lukewarm' },
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test('place ID 타입-prefix 검증: subway: 인데 type=other 거부', async ({ request }) => {
+    const headers = { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' };
+    const res = await request.post('/api/places/upsert', {
+      headers,
+      data: { id: 'subway:fake:test', name: '가짜', type: 'other' },
+    });
+    expect(res.status()).toBe(400);
+  });
+});
+
 test.describe('홈 화면 구성', () => {
   // BUG: 이전엔 idle 장소들을 "장소" 섹션에 줄줄이 표시했음. 노이즈라
   // 제거하기로 결정 (2026-05-26). 회귀 방지.
