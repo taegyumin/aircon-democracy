@@ -15,6 +15,8 @@ import {
   type SNUBuilding,
   type SNURoom,
 } from '../lib/snu';
+import { BUILDINGS as YONSEI_BUILDINGS } from '../lib/yonsei';
+import { YonseiClassroomWizard } from './YonseiClassroomWizard';
 
 interface Props {
   onPicked: (placeId: string) => void;
@@ -31,14 +33,17 @@ type View =
 // the user explicitly toggles "전체" — voting on a private office is meaningless.
 const PUBLIC_KINDS: SNURoom['kind'][] = ['classroom', 'lab', 'lounge', 'other'];
 
-// Universities with structured building/room data. Currently SNU only; the
-// picker keeps the door open for 연세대/고려대/카이스트 등 as we add datasets.
+// Universities with building/room data. Each entry drives a card in the picker
+// and routes to the school-specific wizard. Adding 고려대/카이스트 등 = one
+// more entry + one more wizard component.
 interface KnownUniv {
-  id: 'snu';
+  id: 'snu' | 'yonsei';
   name: string;
   aliases: string[];
   badge: string;          // small chip text shown on the card
-  roomCount: number;
+  buildingCount: number;
+  roomCount?: number;     // omitted when we only have building-level data
+  note?: string;          // extra hint shown under the badge (e.g. "호실 직접 입력")
 }
 
 const KNOWN_UNIVS: KnownUniv[] = [
@@ -47,7 +52,16 @@ const KNOWN_UNIVS: KnownUniv[] = [
     name: '서울대학교',
     aliases: ['서울대', 'SNU', '관악', '관악캠퍼스', '연건', '서울대학'],
     badge: '관악·연건',
+    buildingCount: 160,
     roomCount: 1976,
+  },
+  {
+    id: 'yonsei',
+    name: '연세대학교',
+    aliases: ['연세대', '연대', 'Yonsei', '신촌', '신촌캠퍼스', '연세대학'],
+    badge: '신촌',
+    buildingCount: YONSEI_BUILDINGS.length,
+    note: '호실은 직접 입력',
   },
 ];
 
@@ -86,9 +100,37 @@ export function SNUClassroomWizard({ onPicked, onFreeform, renderHeader }: Props
   if (univ === null) {
     return (
       <UniversityPicker
-        onPickSNU={() => setUniv('snu')}
+        onPick={(id) => setUniv(id)}
         onFreeform={onFreeform}
         renderHeader={renderHeader}
+      />
+    );
+  }
+
+  // ─── Step 2a: Yonsei wizard ────────────────────────────────────────
+  if (univ === 'yonsei') {
+    // Yonsei's wizard renders its own header with custom back handlers, so
+    // we provide a (title, onBack) renderer that styles the bar the same way.
+    const yRenderHeader = (title: string, onBack: () => void) => (
+      <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px 14px' }}>
+          <button
+            onClick={onBack}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}
+            aria-label="뒤로"
+          >
+            <BackIcon />
+          </button>
+          <span style={{ fontSize: 16, fontWeight: 700, color: TOKEN.text1 }}>{title}</span>
+        </div>
+      </div>
+    );
+    return (
+      <YonseiClassroomWizard
+        onPicked={onPicked}
+        onFreeform={onFreeform}
+        renderHeader={yRenderHeader}
+        onExit={() => setUniv(null)}
       />
     );
   }
@@ -517,11 +559,11 @@ function primaryButtonStyle(enabled: boolean): React.CSSProperties {
 // ─── University picker ───────────────────────────────────────────────
 
 function UniversityPicker({
-  onPickSNU,
+  onPick,
   onFreeform,
   renderHeader,
 }: {
-  onPickSNU: () => void;
+  onPick: (id: KnownUniv['id']) => void;
   onFreeform: () => void;
   renderHeader: (title: string) => React.ReactNode;
 }) {
@@ -565,7 +607,7 @@ function UniversityPicker({
               {filtered.map((u) => (
                 <button
                   key={u.id}
-                  onClick={() => { if (u.id === 'snu') onPickSNU(); }}
+                  onClick={() => onPick(u.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     width: '100%', padding: '14px 16px',
@@ -579,7 +621,8 @@ function UniversityPicker({
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 800, color: TOKEN.text1, letterSpacing: '-0.3px' }}>{u.name}</div>
                     <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>
-                      {u.badge} · 호실 {u.roomCount.toLocaleString()}개 등록
+                      {u.badge} · 건물 {u.buildingCount}개{u.roomCount ? ` · 호실 ${u.roomCount.toLocaleString()}개` : ''}
+                      {u.note ? <span style={{ marginLeft: 6, color: TOKEN.text2 }}>({u.note})</span> : null}
                     </div>
                   </div>
                   <Check size={16} color={TOKEN.cold} strokeWidth={2.5} />
