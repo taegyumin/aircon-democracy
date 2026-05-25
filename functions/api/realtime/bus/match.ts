@@ -204,8 +204,11 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     } satisfies MatchResponse), { headers: { 'content-type': 'application/json' } });
   } catch (e) {
     const msg = (e as Error).message;
+    // Return 200 + matched:false so Cloudflare doesn't replace our JSON body
+    // with its platform-level "error code: 502" plain text. Real upstream
+    // errors are surfaced in `reason` for the client to act on.
     return new Response(JSON.stringify({ matched: false, reason: msg } satisfies MatchResponse), {
-      status: 502, headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
     });
   }
 };

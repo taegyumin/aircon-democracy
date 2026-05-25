@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy \"$PWD/dist\" --project-name=aircon-democracy --branch=main"
+    "deploy": "npm run build && wrangler pages deploy \"$PWD/dist\" --project-name=aircon-democracy --branch=main",
+    "test:e2e": "playwright test",
+    "test:e2e:prod": "BASE_URL=https://aircondemocracy.com playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
@@ -25,6 +28,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260524.1",
+    "@playwright/test": "^1.60.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",

@@ -12,3 +12,8 @@ dist-ssr
 # Wrangler / Cloudflare local state (when we add Workers)
 .wrangler
 .dev.vars
+
+# Playwright test artifacts
+playwright-report
+test-results
+.playwright
