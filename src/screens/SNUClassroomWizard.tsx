@@ -75,6 +75,19 @@ export function SNUClassroomWizard({ onPicked, onFreeform, renderHeader }: Props
   const [roomsErr, setRoomsErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
 
+  // Hooks must run on every render — DO NOT move below the early returns
+  // (Rules of Hooks). loadRooms is idempotent so it's safe to invoke even
+  // when the user ends up picking 연세대 instead of 서울대.
+  useEffect(() => {
+    let alive = true;
+    loadRooms()
+      .then((r) => { if (alive) setRooms(r); })
+      .catch((e) => { if (alive) setRoomsErr((e as Error).message); });
+    return () => { alive = false; };
+  }, []);
+
+  const hits = useMemo(() => search(query, rooms, 20), [query, rooms]);
+
   // Custom header used inside the SNU sub-wizard so the back button goes to
   // the university picker instead of the category picker.
   const innerHeader = (title: string) => (
@@ -134,16 +147,6 @@ export function SNUClassroomWizard({ onPicked, onFreeform, renderHeader }: Props
       />
     );
   }
-
-  useEffect(() => {
-    let alive = true;
-    loadRooms()
-      .then((r) => { if (alive) setRooms(r); })
-      .catch((e) => { if (alive) setRoomsErr((e as Error).message); });
-    return () => { alive = false; };
-  }, []);
-
-  const hits = useMemo(() => search(query, rooms, 20), [query, rooms]);
 
   const pickPlace = async (b: SNUBuilding, room?: SNURoom) => {
     const id = snuPlaceId(b, room);
