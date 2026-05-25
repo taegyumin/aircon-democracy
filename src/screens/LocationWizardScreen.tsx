@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { TramFront, TrainFront, Bus, GraduationCap, Building2, MapPin, LocateFixed, Search } from 'lucide-react';
+import { TramFront, TrainFront, Bus, GraduationCap, Building2, MapPin, LocateFixed, Search, Hourglass } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { TOKEN, FONT } from '../lib/tokens';
 import { api } from '../lib/api';
@@ -364,7 +364,7 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
     setError(null);
     try {
       const id = platformPlaceId(platStation.name, platStation.lines);
-      const name = `${platStation.name} 플랫폼`;
+      const name = `${platStation.name} 승강장`;
       await api.upsertPlace({
         id,
         name,
@@ -402,9 +402,11 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
               color: mode === 'train' ? TOKEN.text1 : TOKEN.text3,
               cursor: 'pointer', fontFamily: FONT,
               boxShadow: mode === 'train' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
-            🚇 열차 안
+            <TramFront size={16} color={mode === 'train' ? TOKEN.text1 : TOKEN.text3} strokeWidth={2} />
+            열차 안
           </button>
           <button
             onClick={() => setMode('platform')}
@@ -416,9 +418,11 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
               color: mode === 'platform' ? TOKEN.text1 : TOKEN.text3,
               cursor: 'pointer', fontFamily: FONT,
               boxShadow: mode === 'platform' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
           >
-            🚏 플랫폼 대기
+            <Hourglass size={16} color={mode === 'platform' ? TOKEN.text1 : TOKEN.text3} strokeWidth={2} />
+            열차 기다리는 중
           </button>
         </div>
 
@@ -624,7 +628,7 @@ function PlatformModeBody(p: PlatformModeBodyProps) {
   return (
     <>
       <div style={{ fontSize: 13, color: TOKEN.text2, marginBottom: 14, lineHeight: 1.6 }}>
-        지금 어느 역 플랫폼에 계세요? 그 역에서 기다리는 모든 분들과 같은 의견이 모입니다.
+        어느 역에서 열차 기다리고 계세요? 그 역에서 기다리는 모든 분들과 같은 의견이 모입니다.
       </div>
       <StationAutocomplete
         label="역 이름"

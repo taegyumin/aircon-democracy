@@ -29,19 +29,55 @@ function normalizeLine(line: string): string {
   return map[line] ?? line;
 }
 
-export const STATIONS: Station[] = (rawStations as RawStation[]).map((s) => {
-  const lines = Array.from(new Set(s.lines.map(normalizeLine))).sort();
-  const id = `subway:${s.name}:${lines.join(',')}`;
-  return {
-    id,
-    name: s.name,
-    city: s.city,
-    areas: s.areas ?? [],
-    lines,
-    lat: s.lat,
-    lng: s.lng,
-  };
-});
+// Haversine distance in meters (kept local to avoid circular import with geo.ts)
+function distM(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371_000;
+  const φ1 = (aLat * Math.PI) / 180;
+  const φ2 = (bLat * Math.PI) / 180;
+  const dφ = ((bLat - aLat) * Math.PI) / 180;
+  const dλ = ((bLng - aLng) * Math.PI) / 180;
+  const x = Math.sin(dφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(dλ / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+// Merge duplicate raw entries with the same name when they're within MERGE_RADIUS_M.
+// Different stations sharing a name but far apart (예: 양평역 서울 vs 경기) stay separate.
+const MERGE_RADIUS_M = 500;
+
+function buildStations(raw: RawStation[]): Station[] {
+  const byName = new Map<string, RawStation[]>();
+  for (const s of raw) {
+    const arr = byName.get(s.name) ?? [];
+    arr.push(s);
+    byName.set(s.name, arr);
+  }
+  const result: Station[] = [];
+  for (const [name, group] of byName) {
+    // Greedy clustering by proximity
+    const clusters: RawStation[][] = [];
+    for (const s of group) {
+      const home = clusters.find((c) => distM(c[0].lat, c[0].lng, s.lat, s.lng) <= MERGE_RADIUS_M);
+      if (home) home.push(s);
+      else clusters.push([s]);
+    }
+    for (const cluster of clusters) {
+      const lines = Array.from(new Set(cluster.flatMap((s) => s.lines.map(normalizeLine)))).sort();
+      const rep = cluster[0];
+      result.push({
+        id: `subway:${name}:${lines.join(',')}`,
+        name,
+        city: rep.city,
+        areas: rep.areas ?? [],
+        lines,
+        lat: rep.lat,
+        lng: rep.lng,
+      });
+    }
+  }
+  return result;
+}
+
+export const STATIONS: Station[] = buildStations(rawStations as RawStation[]);
 
 // All distinct lines, sorted by display priority
 const LINE_ORDER = [
