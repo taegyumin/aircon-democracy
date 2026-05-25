@@ -67,6 +67,13 @@ export function neighborsOf(station: string, line?: string): { name: string; lin
   return out;
 }
 
+/** Distinct neighbor station names (lines aggregated). */
+export function neighborNames(station: string): string[] {
+  const seen = new Set<string>();
+  for (const n of neighborsOf(station)) seen.add(n.name);
+  return Array.from(seen);
+}
+
 // ── Place ID helpers ────────────────────────────────────────────────
 
 /** 열차 안 — directional segment bucket. */

@@ -8,7 +8,7 @@ import { lineColor, searchStations, STATIONS, type Station } from '../lib/subway
 import { BackIcon } from '../components/Icons';
 import { recordLine } from '../lib/recentPlaces';
 import { distanceM, formatDistance, requestCoords, type Coords } from '../lib/geo';
-import { findSegments, segmentPlaceId, platformPlaceId } from '../lib/subwayGraph';
+import { findSegments, segmentPlaceId, platformPlaceId, neighborNames } from '../lib/subwayGraph';
 
 interface Props {
   onBack: () => void;
@@ -382,8 +382,33 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
 
   const trainCanSubmit = !!resolvedSegment && car !== null && !submitting;
   const platformCanSubmit = !!platStation && !submitting;
-  const prevSuggestions = useMemo(() => prevQuery.trim() ? searchStations({ query: prevQuery, limit: 5 }) : [], [prevQuery]);
-  const nextSuggestions = useMemo(() => nextQuery.trim() ? searchStations({ query: nextQuery, limit: 5 }) : [], [nextQuery]);
+  // When one side is selected, restrict the other side's suggestions to ACTUAL
+  // adjacent stations — turns autocomplete into a "pick one of N neighbors" UI.
+  const restrictNamesFor = (anchor: Station | null): Set<string> | null => {
+    if (!anchor) return null;
+    return new Set(neighborNames(anchor.name));
+  };
+
+  const prevSuggestions = useMemo(() => {
+    const restrict = restrictNamesFor(nextStationSel);
+    if (restrict) {
+      const all = STATIONS.filter((s) => restrict.has(s.name));
+      const q = prevQuery.trim();
+      return (q ? all.filter((s) => s.name.includes(q)) : all).slice(0, 8);
+    }
+    return prevQuery.trim() ? searchStations({ query: prevQuery, limit: 5 }) : [];
+  }, [prevQuery, nextStationSel]);
+
+  const nextSuggestions = useMemo(() => {
+    const restrict = restrictNamesFor(prevStation);
+    if (restrict) {
+      const all = STATIONS.filter((s) => restrict.has(s.name));
+      const q = nextQuery.trim();
+      return (q ? all.filter((s) => s.name.includes(q)) : all).slice(0, 8);
+    }
+    return nextQuery.trim() ? searchStations({ query: nextQuery, limit: 5 }) : [];
+  }, [nextQuery, prevStation]);
+
   const platSuggestions = useMemo(() => platQuery.trim() ? searchStations({ query: platQuery, limit: 8 }) : [], [platQuery]);
 
   return (
