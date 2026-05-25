@@ -212,7 +212,10 @@ app.get('/auth/kakao', (c) => {
     redirect_uri: redirectUri,
     response_type: 'code',
     state,
-    scope: 'profile_nickname profile_image account_email',
+    // account_email은 카카오 콘솔에서 비즈니스 권한 또는 별도 활성화 필요.
+    // 활성화 안 된 상태에서 요청하면 scope_not_allowed 에러 나서 콜백 실패.
+    // 닉네임·프사 두 개는 default 활성 → 무료 앱이라도 안전.
+    scope: 'profile_nickname profile_image',
   });
   return c.redirect(`https://kauth.kakao.com/oauth/authorize?${params.toString()}`);
 });

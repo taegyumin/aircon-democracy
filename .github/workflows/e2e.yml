@@ -1,0 +1,47 @@
+name: E2E (Playwright)
+
+# CF Pages auto-deploy 직후마다 prod 대상 E2E 회귀 실행.
+# 회귀 감지 시 GitHub PR/commit에 빨간색 표시.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 매일 04:00 KST (UTC 19:00) — 외부 API 변경 회귀 조기 감지
+    - cron: '0 19 * * *'
+
+jobs:
+  prod-e2e:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Wait for CF Pages deploy
+        if: github.event_name == 'push'
+        # CF Pages는 push 후 1~3분 안에 deploy 완료. polling.
+        run: |
+          for i in {1..30}; do
+            sleep 10
+            CURRENT_COMMIT=$(curl -s https://aircondemocracy.com | grep -oE 'data-deploy-commit="[a-f0-9]+"' | head -1 || echo "")
+            echo "Attempt $i: $CURRENT_COMMIT"
+            # 단순화: 30초 대기 후 강제 실행 (정확한 commit verification 어려움)
+            if [ "$i" -ge 3 ]; then break; fi
+          done
+      - name: Run E2E against prod
+        run: BASE_URL=https://aircondemocracy.com npx playwright test --reporter=github
+        env:
+          CI: true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

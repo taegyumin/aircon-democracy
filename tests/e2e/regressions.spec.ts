@@ -240,12 +240,15 @@ test.describe('카테고리별 wizard 진입', () => {
 });
 
 test.describe('Vote 흐름 (E2E API)', () => {
-  // 매 테스트마다 다른 placeId로 격리. 같은 voter cookie(test request context)가
-  // 재사용되니 cooldown 등 영향 받으므로 placeId 다르게.
+  // 매 테스트마다 다른 placeId. mobile + desktop 워커가 평행 실행되니
+  // 같은 ID를 쓰면 race condition. workerInfo + random으로 격리.
+  function newPlaceId(prefix: string, workerIndex: number) {
+    return `other:e2e-${prefix}-${Date.now()}-${workerIndex}-${Math.random().toString(36).slice(2, 8)}`;
+  }
   const ts = Date.now();
-  const placeId = `other:e2e-vote-${ts}`;
 
-  test('전체 흐름: upsert → 첫 vote → counts 반영 → withdraw', async ({ request }) => {
+  test('전체 흐름: upsert → 첫 vote → counts 반영 → withdraw', async ({ request }, testInfo) => {
+    const placeId = newPlaceId('vote', testInfo.workerIndex);
     const headers = { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' };
 
     // 1. 새 place upsert
@@ -287,11 +290,11 @@ test.describe('Vote 흐름 (E2E API)', () => {
     expect(finalBody.me).toBeNull();
   });
 
-  test('vote 변경 시 30s cooldown 강제 (두 번째 변경부터)', async ({ request }) => {
+  test('vote 변경 시 30s cooldown 강제 (두 번째 변경부터)', async ({ request }, testInfo) => {
     // 디자인 노트: 첫 vote → 두 번째 변경은 cooldown 없음 (첫 변경은 자유).
     // 두 번째 변경 후 즉시 세 번째 변경 시도하면 cooldown 발동.
     const headers = { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' };
-    const cooldownPlace = `other:e2e-cooldown-${ts}`;
+    const cooldownPlace = newPlaceId('cooldown', testInfo.workerIndex);
     await request.post('/api/places/upsert', { headers, data: { id: cooldownPlace, name: 'cooldown test', type: 'other' } });
     // 1. 첫 vote
     const first = await request.post(`/api/places/${encodeURIComponent(cooldownPlace)}/vote`, { headers, data: { vote: 'cold' } });
@@ -309,9 +312,11 @@ test.describe('Vote 흐름 (E2E API)', () => {
     await request.delete(`/api/places/${encodeURIComponent(cooldownPlace)}/vote`, { headers });
   });
 
-  test('CSRF guard: Origin/Intent 헤더 없으면 vote 거부', async ({ request }) => {
+  test('CSRF guard: Origin/Intent 헤더 없으면 vote 거부', async ({ request }, testInfo) => {
+    // 어떤 placeId든 OK (csrf guard는 path 검사 안 함)
+    const csrfPlace = newPlaceId('csrf', testInfo.workerIndex);
     // X-Aircon-Intent 누락
-    const noIntent = await request.post(`/api/places/${encodeURIComponent(placeId)}/vote`, {
+    const noIntent = await request.post(`/api/places/${encodeURIComponent(csrfPlace)}/vote`, {
       headers: { Origin: 'https://aircondemocracy.com' },
       data: { vote: 'cold' },
     });
@@ -320,9 +325,15 @@ test.describe('Vote 흐름 (E2E API)', () => {
     expect(body.reason).toBe('csrf_origin');
   });
 
-  test('잘못된 vote 값은 400', async ({ request }) => {
+  test('잘못된 vote 값은 400', async ({ request }, testInfo) => {
+    const validPlace = newPlaceId('badvote', testInfo.workerIndex);
     const headers = { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' };
-    const res = await request.post(`/api/places/${encodeURIComponent(placeId)}/vote`, {
+    // upsert 먼저 (place 없으면 vote가 404 반환)
+    await request.post('/api/places/upsert', {
+      headers,
+      data: { id: validPlace, name: 'badvote test', type: 'other' },
+    });
+    const res = await request.post(`/api/places/${encodeURIComponent(validPlace)}/vote`, {
       headers,
       data: { vote: 'lukewarm' },
     });
