@@ -9,6 +9,8 @@ import { BackIcon } from '../components/Icons';
 import { recordLine } from '../lib/recentPlaces';
 import { distanceM, formatDistance, requestCoords, type Coords } from '../lib/geo';
 import { findSegments, findTrainSegments, segmentPlaceId, platformPlaceId, neighborNames } from '../lib/subwayGraph';
+import type { SubwayMatchResult, BusMatchResult } from '../lib/api';
+import { NaverMapPicker } from '../components/NaverMapPicker';
 import { searchTrainStations } from '../lib/train';
 import { SNUClassroomWizard } from './SNUClassroomWizard';
 
@@ -21,12 +23,12 @@ interface Props {
 type Category = 'subway' | 'train' | 'bus' | 'classroom' | 'office' | 'other';
 
 const CATEGORIES: { key: Category; Icon: LucideIcon; tint: string; label: string; sub: string }[] = [
-  { key: 'subway',    Icon: TramFront,     tint: '#1B53E5', label: '지하철',  sub: '도시철도' },
-  { key: 'train',     Icon: TrainFront,    tint: '#DC2626', label: '기차',    sub: 'KTX·SRT·무궁화호 등' },
-  { key: 'bus',       Icon: Bus,           tint: '#16A34A', label: '버스',    sub: '시내·시외' },
-  { key: 'classroom', Icon: GraduationCap, tint: '#7C3AED', label: '강의실',  sub: '학교' },
-  { key: 'office',    Icon: Building2,     tint: '#475569', label: '사무실',  sub: '회사' },
-  { key: 'other',     Icon: MapPin,        tint: '#F97316', label: '기타',    sub: '카페·도서관 등' },
+  { key: 'subway',    Icon: TramFront,     tint: '#1B53E5', label: '지하철',     sub: '도시철도' },
+  { key: 'train',     Icon: TrainFront,    tint: '#DC2626', label: '기차',       sub: 'KTX·SRT·무궁화호 등' },
+  { key: 'bus',       Icon: Bus,           tint: '#16A34A', label: '버스',       sub: '시내·시외' },
+  { key: 'classroom', Icon: GraduationCap, tint: '#7C3AED', label: '강의실',     sub: '학교' },
+  { key: 'other',     Icon: MapPin,        tint: '#F97316', label: '카페·음식점', sub: '지도에서 위치 찍기' },
+  { key: 'office',    Icon: Building2,     tint: '#475569', label: '사무실',     sub: '회사' },
 ];
 
 const CAR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -41,6 +43,9 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
   // Bus state
   const [busRoute, setBusRoute] = useState('');
   const [busStop, setBusStop] = useState('');
+  const [busMatch, setBusMatch] = useState<BusMatchResult | null>(null);
+  const [busMatchLoading, setBusMatchLoading] = useState(false);
+  const [busMatchTriggered, setBusMatchTriggered] = useState(false);
 
   // Train state
   const [trainType, setTrainType] = useState<TrainType | null>(null);
@@ -109,6 +114,24 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
     }
   };
 
+  const tryMatchBus = async () => {
+    const route = busRoute.trim();
+    const stop = busStop.trim();
+    if (!route || !stop) return;
+    setBusMatchLoading(true);
+    setBusMatchTriggered(true);
+    setBusMatch(null);
+    setError(null);
+    try {
+      const m = await api.matchBusVehicle({ routeName: route, stopName: stop });
+      setBusMatch(m);
+    } catch (e) {
+      setBusMatch({ matched: false, reason: (e as Error).message });
+    } finally {
+      setBusMatchLoading(false);
+    }
+  };
+
   const submitBus = async () => {
     const route = busRoute.trim();
     if (!route) return;
@@ -116,14 +139,25 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
     setError(null);
     try {
       const stop = busStop.trim();
-      const id = stop ? `bus:${route}:${stop}` : `bus:${route}`;
-      const name = stop ? `${route}번 버스 (${stop})` : `${route}번 버스`;
+      let id: string;
+      let name: string;
+      let detail: string | undefined;
+      if (busMatch?.matched && busMatch.vehId) {
+        // 차량 단위 집계 — 같은 차량 탑승자끼리 모음
+        id = `bus:vehicle:${busMatch.vehId}`;
+        name = `${busMatch.routeName ?? route}번 [차량 ${busMatch.plainNo ?? busMatch.vehId}]`;
+        detail = busMatch.currentStop ? `${busMatch.currentStop} 지남` : undefined;
+      } else {
+        id = stop ? `bus:${route}:${stop}` : `bus:${route}`;
+        name = stop ? `${route}번 버스 (${stop})` : `${route}번 버스`;
+        detail = stop || undefined;
+      }
       await api.upsertPlace({
         id,
         name,
         type: 'bus',
         district: undefined,
-        detail: stop || undefined,
+        detail,
       });
       onPicked(id);
     } catch (e) {
@@ -154,12 +188,39 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
     return (
       <WizardLanding
         onPickCategory={(k) => {
-          if (k === 'subway' || k === 'bus' || k === 'train' || k === 'classroom') setCategory(k);
+          if (k === 'subway' || k === 'bus' || k === 'train' || k === 'classroom' || k === 'other') setCategory(k);
           else onRegisterFreeform(k as PlaceType);
         }}
         onPickPlaceId={onPicked}
         renderHeader={renderHeader}
       />
+    );
+  }
+
+  // ── STEP 2: VENUE (카페·음식점·기타) — Naver Map picker ──────────────
+  if (category === 'other') {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
+        {renderHeader('카페·음식점 위치', () => setCategory(null))}
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <NaverMapPicker
+            onConfirm={async ({ placeId, name, address, lat, lng }) => {
+              try {
+                await api.upsertPlace({
+                  id: placeId,
+                  name,
+                  type: 'other',
+                  district: address || undefined,
+                  detail: `좌표 ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+                });
+                onPicked(placeId);
+              } catch (e) {
+                alert((e as Error).message);
+              }
+            }}
+          />
+        </div>
+      </div>
     );
   }
 
@@ -357,21 +418,25 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
 
   // ── STEP 2: BUS ───────────────────────────────────────────────────
   if (category === 'bus') {
+    const canMatch = !!busRoute.trim() && !!busStop.trim() && !busMatchLoading;
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-        {renderHeader('버스', () => setCategory(null))}
+        {renderHeader('버스', () => {
+          setCategory(null);
+          setBusRoute(''); setBusStop(''); setBusMatch(null); setBusMatchTriggered(false);
+        })}
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 20px 60px' }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: TOKEN.text1, marginBottom: 6, letterSpacing: '-0.4px' }}>
             어떤 버스 타고 계세요?
           </div>
           <div style={{ fontSize: 13, color: TOKEN.text2, marginBottom: 22, lineHeight: 1.6 }}>
-            노선 번호를 입력해주세요
+            노선 번호 + 지금 지나는 정류장을 알려주시면 어떤 차량인지 찾아드릴게요.
           </div>
 
           <Label>노선 번호 *</Label>
           <input
             value={busRoute}
-            onChange={(e) => setBusRoute(e.target.value)}
+            onChange={(e) => { setBusRoute(e.target.value); setBusMatch(null); setBusMatchTriggered(false); }}
             placeholder="예: 272, 5511, M7106"
             style={fieldStyle(!!busRoute)}
             inputMode="text"
@@ -380,13 +445,69 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
 
           <div style={{ height: 14 }} />
 
-          <Label>정류장 (선택)</Label>
+          <Label>지나는 정류장 *</Label>
           <input
             value={busStop}
-            onChange={(e) => setBusStop(e.target.value)}
+            onChange={(e) => { setBusStop(e.target.value); setBusMatch(null); setBusMatchTriggered(false); }}
             placeholder="예: 신촌오거리, 강남역.강남대로"
-            style={fieldStyle(false)}
+            style={fieldStyle(!!busStop)}
           />
+
+          <div style={{ height: 18 }} />
+
+          {!busMatchTriggered && (
+            <button
+              onClick={tryMatchBus}
+              disabled={!canMatch}
+              style={{
+                width: '100%', padding: '13px',
+                background: canMatch ? TOKEN.surface : TOKEN.bg,
+                color: canMatch ? TOKEN.cold : TOKEN.text3,
+                border: `1.5px solid ${canMatch ? TOKEN.cold : TOKEN.border}`,
+                borderRadius: TOKEN.r.md, fontSize: 14, fontWeight: 700,
+                cursor: canMatch ? 'pointer' : 'default', fontFamily: FONT,
+              }}
+            >
+              너가 타고 있는 버스 찾기
+            </button>
+          )}
+
+          {busMatchLoading && (
+            <div style={{ padding: '14px', textAlign: 'center', fontSize: 13, color: TOKEN.text2 }}>
+              {busRoute}번 차량 위치 조회 중…
+            </div>
+          )}
+
+          {!busMatchLoading && busMatch && (
+            <div style={{
+              padding: '14px 16px',
+              background: busMatch.matched ? '#F0FDF4' : TOKEN.surface,
+              border: `1.5px solid ${busMatch.matched ? TOKEN.ok : TOKEN.border}`,
+              borderRadius: TOKEN.r.md,
+            }}>
+              {busMatch.matched ? (
+                <div>
+                  <div style={{ fontSize: 11, color: TOKEN.text2, marginBottom: 4 }}>이 버스 맞으시죠?</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.3px' }}>
+                    {busMatch.routeName}번 · 차량번호 {busMatch.plainNo}
+                  </div>
+                  <div style={{ fontSize: 12, color: TOKEN.text2, marginTop: 4 }}>
+                    {busMatch.currentStop} 지나는 중{busMatch.nextStop ? ` · 다음 ${busMatch.nextStop}` : ''}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: TOKEN.text3, lineHeight: 1.5 }}>
+                  {busMatch.reason === 'no_vehicle_at_stop'
+                    ? `${busRoute}번이 지금 ${busStop} 근처에 없어요. 정류장명 확인하거나 그냥 노선 단위로 투표할게요.`
+                    : busMatch.reason === 'route_or_stop_not_found'
+                    ? '노선 또는 정류장을 못 찾았어요. 정확한 이름을 입력해주세요.'
+                    : busMatch.reason === 'no_api_key'
+                    ? '아직 API 키 활성화 대기 중이에요. 잠시 후 다시 시도해주세요. (그래도 노선 단위로 투표는 가능)'
+                    : '차량을 못 찾았어요. 노선 단위로 투표할게요.'}
+                </div>
+              )}
+            </div>
+          )}
 
           {error && (
             <div style={{ marginTop: 14, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12 }}>{error}</div>
@@ -399,7 +520,7 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
             disabled={!busRoute.trim() || submitting}
             style={primaryButtonStyle(!!busRoute.trim() && !submitting)}
           >
-            {submitting ? '이동 중…' : '투표하러 가기'}
+            {submitting ? '이동 중…' : busMatch?.matched ? '이 차량으로 투표하기' : '투표하러 가기'}
           </button>
         </div>
       </div>
@@ -437,6 +558,10 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Realtime train match (auto-fired when segment resolves)
+  const [trainMatch, setTrainMatch] = useState<SubwayMatchResult | null>(null);
+  const [matchLoading, setMatchLoading] = useState(false);
+
   // Segment resolution — pass city to disambiguate multi-city "1호선" etc.
   const segments = useMemo(() => {
     if (!prevStation || !nextStationSel) return [];
@@ -453,20 +578,58 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
 
   const noMatch = prevStation && nextStationSel && segments.length === 0;
 
+  // Auto-fire realtime match once we have a resolved segment (Seoul lines 1~9 only)
+  useEffect(() => {
+    setTrainMatch(null);
+    if (!resolvedSegment) return;
+    if (!/^[1-9]호선$/.test(resolvedSegment.line)) return;
+    let cancelled = false;
+    setMatchLoading(true);
+    api.matchSubwayTrain({
+      line: resolvedSegment.line,
+      prev: resolvedSegment.prev,
+      next: resolvedSegment.next,
+    })
+      .then((res) => {
+        if (!cancelled) setTrainMatch(res);
+      })
+      .catch(() => {
+        if (!cancelled) setTrainMatch({ matched: false, reason: 'network' });
+      })
+      .finally(() => {
+        if (!cancelled) setMatchLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [resolvedSegment?.line, resolvedSegment?.prev, resolvedSegment?.next]);
+
   const submitTrain = async () => {
     if (!resolvedSegment || car === null || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
-      const id = segmentPlaceId(resolvedSegment.line, resolvedSegment.prev, resolvedSegment.next, car);
       const carPart = car === 'unknown' ? '' : ` ${car}호차`;
-      const name = `${resolvedSegment.line} ${resolvedSegment.prev}→${resolvedSegment.next}${carPart}`;
+      const carIdPart = car === 'unknown' ? 'x' : String(car);
+      // Prefer train-aware ID when realtime match succeeded — aggregates votes
+      // per physical train, not per segment (서비스 핵심 묘미).
+      let id: string;
+      let name: string;
+      let detail: string;
+      if (trainMatch?.matched && trainMatch.trainNo) {
+        id = `subway:train:${resolvedSegment.line}:${trainMatch.trainNo}:${carIdPart}`;
+        const dest = trainMatch.destination ? ` (${trainMatch.destination}행)` : '';
+        name = `${resolvedSegment.line} ${trainMatch.trainNo}번 열차${dest}${carPart}`;
+        detail = `${resolvedSegment.line} · ${trainMatch.trainNo}번 열차 · ${resolvedSegment.prev}→${resolvedSegment.next}`;
+      } else {
+        id = segmentPlaceId(resolvedSegment.line, resolvedSegment.prev, resolvedSegment.next, car);
+        name = `${resolvedSegment.line} ${resolvedSegment.prev}→${resolvedSegment.next}${carPart}`;
+        detail = `${resolvedSegment.line} · ${resolvedSegment.prev}→${resolvedSegment.next} 구간`;
+      }
       await api.upsertPlace({
         id,
         name,
         type: 'subway',
         district: undefined,
-        detail: `${resolvedSegment.line} · ${resolvedSegment.prev}→${resolvedSegment.next} 구간`,
+        detail,
       });
       recordLine(resolvedSegment.line);
       onPicked(id);
@@ -594,6 +757,8 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
             submitting={submitting}
             canSubmit={trainCanSubmit}
             onSubmit={submitTrain}
+            trainMatch={trainMatch}
+            matchLoading={matchLoading}
           />
         ) : (
           <PlatformModeBody
@@ -629,6 +794,8 @@ interface TrainModeBodyProps {
   submitting: boolean;
   canSubmit: boolean;
   onSubmit: () => void;
+  trainMatch: SubwayMatchResult | null;
+  matchLoading: boolean;
 }
 
 function TrainModeBody(p: TrainModeBodyProps) {
@@ -709,10 +876,41 @@ function TrainModeBody(p: TrainModeBodyProps) {
         </>
       )}
 
+      {/* Train identity card (realtime match) */}
+      {p.resolvedSegment && (p.matchLoading || p.trainMatch) && (
+        <div style={{
+          marginBottom: 16,
+          padding: '14px 16px',
+          background: p.trainMatch?.matched ? '#F0FDF4' : TOKEN.surface,
+          border: `1.5px solid ${p.trainMatch?.matched ? TOKEN.ok : TOKEN.border}`,
+          borderRadius: TOKEN.r.md,
+        }}>
+          {p.matchLoading ? (
+            <div style={{ fontSize: 13, color: TOKEN.text2 }}>지금 그 구간 지나는 열차 찾는 중…</div>
+          ) : p.trainMatch?.matched ? (
+            <div>
+              <div style={{ fontSize: 11, color: TOKEN.text2, marginBottom: 4 }}>이 열차 맞으시죠?</div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.3px' }}>
+                {p.resolvedSegment.line} · {p.trainMatch.trainNo}번 열차
+              </div>
+              {p.trainMatch.destination && (
+                <div style={{ fontSize: 12, color: TOKEN.text2, marginTop: 2 }}>
+                  {p.trainMatch.destination}행 · 현재 {p.trainMatch.currentStation}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: TOKEN.text3, lineHeight: 1.5 }}>
+              지금 그 구간 지나는 열차를 못 찾았어요. 구간 단위로 투표할게요.
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Car picker only after segment resolved */}
       {p.resolvedSegment && (
         <>
-          <Label>몇 호차예요?</Label>
+          <Label>{p.trainMatch?.matched ? '몇 번째 칸에 있어요?' : '몇 호차예요?'}</Label>
           <button
             onClick={() => p.setCar(p.car === 'unknown' ? null : 'unknown')}
             style={{

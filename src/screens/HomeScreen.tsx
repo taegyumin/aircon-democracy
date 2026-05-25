@@ -37,12 +37,12 @@ function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: str
   );
 }
 
-export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister, onLogin }: Props) {
+export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR, onRegister, onLogin }: Props) {
   const [places, setPlaces] = useState<PlaceWithCounts[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { user, logout } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [recent] = useState<RecentPlace[]>(() => getRecent(3));
+  const [recent] = useState<RecentPlace[]>(() => getRecent(5));
   const [favorites] = useState<FavoritePlace[]>(() => listFavorites());
 
   useEffect(() => {
@@ -60,7 +60,6 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
   }, []);
 
   const active = places?.filter((p) => p.cold + p.ok + p.hot > 0) ?? [];
-  const idle = places?.filter((p) => p.cold + p.ok + p.hot === 0) ?? [];
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
@@ -149,7 +148,7 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
 
         <div style={{ display: 'flex', gap: 8, padding: '10px 20px 16px' }}>
           <button
-            onClick={onSearch}
+            onClick={onWizard}
             style={{
               flex: 1,
               display: 'flex',
@@ -246,7 +245,7 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
               {favorites.slice(0, 3).map((f) => (
                 <QuickVoteCard
                   key={f.id}
-                  place={{ id: f.id, name: f.name, type: f.type, district: f.district, lastVisitedAt: f.pinnedAt }}
+                  place={{ id: f.id, name: f.name, type: f.type, district: f.district, lastVoteAt: f.pinnedAt }}
                   onVoted={(id) => onSelectPlace(id)}
                   onOpen={(id) => onSelectPlace(id)}
                 />
@@ -255,11 +254,11 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
           </div>
         )}
 
-        {/* QuickVote: recent places with inline vote buttons */}
+        {/* QuickVote: recently voted places with inline vote buttons */}
         {recent.filter((r) => !favorites.find((f) => f.id === r.id)).length > 0 && (
           <div style={{ marginBottom: 22 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 10, letterSpacing: '0.3px' }}>
-              여기 맞으면 바로 한 표
+              최근 투표한 곳
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {recent.filter((r) => !favorites.find((f) => f.id === r.id)).map((p) => (
@@ -291,17 +290,6 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
             <SectionHeader icon="location" label="지금 의견이 모이고 있어요" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
               {active.map((p) => (
-                <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p.id)} />
-              ))}
-            </div>
-          </>
-        )}
-
-        {idle.length > 0 && (
-          <>
-            <SectionHeader icon="clock" label="장소" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
-              {idle.map((p) => (
                 <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p.id)} />
               ))}
             </div>

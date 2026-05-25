@@ -89,10 +89,44 @@ export const api = {
       { method: 'DELETE' }
     ),
 
+  // ── Realtime: subway train identification ───────────────────────
+  matchSubwayTrain: (input: { line: string; prev: string; next: string }) =>
+    request<SubwayMatchResult>('/api/realtime/subway/match', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  // ── Realtime: bus vehicle identification (stop-based) ───────────
+  matchBusVehicle: (input: { routeName: string; stopName: string }) =>
+    request<BusMatchResult>('/api/realtime/bus/match', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
   // ── Auth ─────────────────────────────────────────────────────────
   me: () => request<{ user: User | null }>('/api/me'),
   logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
 };
+
+export interface SubwayMatchResult {
+  matched: boolean;
+  trainNo?: string;
+  direction?: 'up' | 'down';
+  currentStation?: string;
+  destination?: string;
+  reason?: string;
+}
+
+export interface BusMatchResult {
+  matched: boolean;
+  vehId?: string;
+  plainNo?: string;       // 노출용 차량 번호판
+  routeId?: string;
+  routeName?: string;
+  currentStop?: string;
+  nextStop?: string;
+  reason?: string;
+}
 
 export interface User {
   id: string;
@@ -102,5 +136,7 @@ export interface User {
 }
 
 export const KAKAO_LOGIN_URL = '/api/auth/kakao';
+export const NAVER_LOGIN_URL = '/api/auth/naver';
+export const GOOGLE_LOGIN_URL = '/api/auth/google';
 
 export { ApiError };

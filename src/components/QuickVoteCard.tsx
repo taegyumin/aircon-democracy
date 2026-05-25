@@ -21,7 +21,12 @@ export function QuickVoteCard({ place, onVoted, onOpen }: Props) {
     setSubmitting(v);
     try {
       await api.vote(place.id, v);
-      recordVote(place.id);
+      recordVote({
+        id: place.id,
+        name: place.name,
+        type: place.type,
+        district: place.district,
+      });
     } catch {
       /* tolerate — VoteScreen will resolve state */
     }
@@ -72,7 +77,7 @@ export function QuickVoteCard({ place, onVoted, onOpen }: Props) {
             {place.name}
           </div>
           <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>
-            {place.district || formatRelative(place.lastVisitedAt)}
+            {place.district || formatRelative(place.lastVoteAt)}
           </div>
         </div>
       </div>
@@ -112,10 +117,10 @@ export function QuickVoteCard({ place, onVoted, onOpen }: Props) {
 
 function formatRelative(ts: number): string {
   const sec = Math.floor((Date.now() - ts) / 1000);
-  if (sec < 60) return '방금 본 곳';
-  if (sec < 3600) return `${Math.floor(sec / 60)}분 전 본 곳`;
-  if (sec < 86400) return `${Math.floor(sec / 3600)}시간 전 본 곳`;
+  if (sec < 60) return '방금 투표';
+  if (sec < 3600) return `${Math.floor(sec / 60)}분 전 투표`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)}시간 전 투표`;
   const d = Math.floor(sec / 86400);
-  if (d === 1) return '어제 본 곳';
-  return `${d}일 전 본 곳`;
+  if (d === 1) return '어제 투표';
+  return `${d}일 전 투표`;
 }

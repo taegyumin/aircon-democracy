@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { TOKEN, VOTE_CONFIG, FONT, type VoteType } from '../lib/tokens';
 import { Star } from 'lucide-react';
 import { api, ApiError, type PlaceDetail } from '../lib/api';
-import { recordVisit, recordVote, removePlace } from '../lib/recentPlaces';
+import { recordVote, removePlace } from '../lib/recentPlaces';
 import { isFavorite, toggleFavorite } from '../lib/favorites';
+import { useUser } from '../lib/useUser';
 import { consumePendingVote, setPendingVote } from '../lib/migration';
 import { VoteButton } from '../components/VoteButton';
 import { ResultBar } from '../components/ResultBar';
@@ -117,6 +118,7 @@ function LoginPromptCard({ onLogin }: { onLogin: () => void }) {
 }
 
 export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedViaQR, onQRConsumed }: Props) {
+  const { user } = useUser();
   const [detail, setDetail] = useState<PlaceDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
@@ -147,13 +149,6 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
       const d = await api.getPlace(placeId);
       setDetail(d);
       setLoadError(null);
-      // Record visit to localStorage recent_places (client-only, anonymous)
-      recordVisit({
-        id: d.place.id,
-        name: d.place.name,
-        type: d.place.type,
-        district: d.place.district,
-      });
       if (d.me && d.me.cooldown_remaining_ms > 0) {
         startCooldown(Math.ceil(d.me.cooldown_remaining_ms / 1000));
       }
@@ -226,7 +221,12 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
       if (prev.me?.vote && prev.me.vote !== type) {
         startCooldown(30);
       }
-      recordVote(placeId);
+      recordVote({
+        id: prev.place.id,
+        name: prev.place.name,
+        type: prev.place.type,
+        district: prev.place.district,
+      });
       // Show "이 장소 맞나요?" bar for 10s only on first vote (not on changes)
       if (!prev.me?.vote) {
         setShowCorrection(true);
@@ -299,6 +299,10 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
           </div>
           <button
             onClick={() => {
+              if (!user) {
+                onLogin();
+                return;
+              }
               toggleFavorite({
                 id: detail.place.id,
                 name: detail.place.name,
@@ -307,13 +311,13 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
               });
               setFavTick((x) => x + 1);
             }}
-            aria-label={isFavorite(detail.place.id) ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+            aria-label={!user ? '로그인 후 즐겨찾기' : isFavorite(detail.place.id) ? '즐겨찾기 해제' : '즐겨찾기 추가'}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', display: 'flex', alignItems: 'center' }}
           >
             <Star
               size={22}
-              color={isFavorite(detail.place.id) ? '#F59E0B' : TOKEN.text3}
-              fill={isFavorite(detail.place.id) ? '#F59E0B' : 'none'}
+              color={user && isFavorite(detail.place.id) ? '#F59E0B' : TOKEN.text3}
+              fill={user && isFavorite(detail.place.id) ? '#F59E0B' : 'none'}
               strokeWidth={2}
             />
           </button>
