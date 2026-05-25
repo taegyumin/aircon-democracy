@@ -6,8 +6,10 @@ export interface Station {
   city: string;
   areas: string[];
   lines: string[];
-  lat: number;
-  lng: number;
+  /** Undefined for entries added from adjacency where official coords are
+   *  not yet verified. Map view should filter these out; search still works. */
+  lat?: number;
+  lng?: number;
 }
 
 interface RawStation {
@@ -15,8 +17,8 @@ interface RawStation {
   city: string;
   areas?: string[];
   lines: string[];
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
 }
 
 // Normalize line names — dataset has minor inconsistencies
@@ -53,10 +55,18 @@ function buildStations(raw: RawStation[]): Station[] {
   }
   const result: Station[] = [];
   for (const [name, group] of byName) {
-    // Greedy clustering by proximity
+    // Greedy clustering by proximity. Entries without coords cluster together
+    // (treated as one "no-coord" bucket).
     const clusters: RawStation[][] = [];
     for (const s of group) {
-      const home = clusters.find((c) => distM(c[0].lat, c[0].lng, s.lat, s.lng) <= MERGE_RADIUS_M);
+      const hasCoord = typeof s.lat === 'number' && typeof s.lng === 'number';
+      const home = clusters.find((c) => {
+        const c0 = c[0];
+        const c0HasCoord = typeof c0.lat === 'number' && typeof c0.lng === 'number';
+        if (!hasCoord && !c0HasCoord) return true;
+        if (!hasCoord || !c0HasCoord) return false;
+        return distM(c0.lat as number, c0.lng as number, s.lat as number, s.lng as number) <= MERGE_RADIUS_M;
+      });
       if (home) home.push(s);
       else clusters.push([s]);
     }
