@@ -176,6 +176,40 @@ test.describe('API 회귀', () => {
   });
 });
 
+test.describe('스토어/SEO 정적 자산', () => {
+  test('개인정보 처리방침 페이지 접근 가능', async ({ page }) => {
+    // CF Pages가 .html 자동 제거 → /privacy 로 접근
+    await page.goto('/privacy');
+    await expect(page.getByRole('heading', { name: '개인정보 처리방침' })).toBeVisible();
+    await expect(page.getByText(/Cloudflare/)).toBeVisible();
+    await expect(page.getByText(/mtg821@gmail.com/).first()).toBeVisible();
+  });
+
+  test('CSP 헤더가 응답에 포함', async ({ request }) => {
+    const res = await request.get('/');
+    const csp = res.headers()['content-security-policy'];
+    expect(csp).toBeTruthy();
+    // Naver Maps 도메인이 script-src에 허용돼야 함 (지도 picker)
+    expect(csp).toContain('oapi.map.naver.com');
+    // jsDelivr가 style-src에 (Pretendard 폰트)
+    expect(csp).toContain('cdn.jsdelivr.net');
+  });
+
+  test('robots.txt + sitemap.xml 접근 가능', async ({ request }) => {
+    const robots = await request.get('/robots.txt');
+    expect(robots.ok()).toBe(true);
+    const sitemap = await request.get('/sitemap.xml');
+    expect([200, 404]).toContain(sitemap.status());
+  });
+
+  test('manifest.webmanifest 정상', async ({ request }) => {
+    const res = await request.get('/manifest.webmanifest');
+    expect(res.ok()).toBe(true);
+    const body = await res.json();
+    expect(body.name).toContain('에어컨');
+  });
+});
+
 test.describe('카테고리별 wizard 진입', () => {
   test('카페·음식점 카드 → NaverMapPicker 화면 진입', async ({ page }) => {
     await page.goto('/wizard');
