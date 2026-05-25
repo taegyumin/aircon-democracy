@@ -170,6 +170,25 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
             </svg>
             <span style={{ fontSize: 14, color: TOKEN.text3 }}>장소 이름 또는 건물 검색</span>
           </button>
+          <button
+            onClick={onQR}
+            aria-label="QR 코드 스캔"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 16px',
+              background: TOKEN.cold,
+              borderRadius: TOKEN.r.lg,
+              border: 'none',
+              cursor: 'pointer',
+              color: '#fff',
+              minWidth: 58,
+              fontFamily: FONT,
+            }}
+          >
+            <ScanLine size={22} color="#fff" strokeWidth={2.2} />
+          </button>
         </div>
       </div>
 
@@ -213,15 +232,14 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
           </div>
         )}
 
-        {/* Primary CTAs: wizard + QR scan side by side */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
+        {/* Primary CTA: location wizard (full width) */}
         <button
           onClick={onWizard}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 14,
-            flex: 2,
+            width: '100%',
             padding: '18px 18px',
             background: TOKEN.cold,
             border: 'none',
@@ -230,6 +248,7 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
             fontFamily: FONT,
             color: '#fff',
             boxShadow: `0 8px 24px ${TOKEN.cold}40`,
+            marginBottom: 22,
             textAlign: 'left',
           }}
         >
@@ -249,36 +268,11 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch, onQR, onRegister
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 16, fontWeight: 900, letterSpacing: '-0.4px' }}>지금 어디 계세요?</div>
-            <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>지하철 · 버스 · 강의실 · 사무실 · 기타</div>
           </div>
           <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
             <path d="M9 6l6 6-6 6" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <button
-          onClick={onQR}
-          aria-label="QR 스캔"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-            flex: 1,
-            padding: '14px 8px',
-            background: '#1A1A1F',
-            border: 'none',
-            borderRadius: TOKEN.r.lg,
-            cursor: 'pointer',
-            fontFamily: FONT,
-            color: '#fff',
-            boxShadow: '0 6px 18px rgba(0,0,0,0.18)',
-          }}
-        >
-          <ScanLine size={22} color="#fff" strokeWidth={2.2} />
-          <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.9 }}>QR 스캔</span>
-        </button>
-        </div>
 
         {error && (
           <div style={{ padding: 14, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 13, marginBottom: 16 }}>
