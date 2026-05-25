@@ -215,6 +215,19 @@ test.describe('홈 화면 구성', () => {
     await expect(sectionHeader).toHaveCount(0);
   });
 
+  // BUG: callback 실패 시 LoginScreen이 ?error=xxx 안 표시 → 사용자가 왜 안 되는지 모름.
+  test('callback 실패 시 LoginScreen에 에러 표시', async ({ page }) => {
+    await page.goto('/login?error=state_mismatch');
+    // role=alert 요소가 있어야 함
+    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText(/state_mismatch|만료/);
+  });
+
+  test('callback redirect_uri 미일치 에러도 친절히 표시', async ({ page }) => {
+    await page.goto('/login?error=token_redirect_uri_mismatch');
+    await expect(page.getByRole('alert')).toContainText(/Redirect URI/);
+  });
+
   // BUG: 비로그인 시 즐겨찾기 별 누르면 로그인 페이지로 가야 함.
   // VoteScreen 진입 후 별 버튼 동작 확인.
   test('비로그인 즐겨찾기 별 → 로그인 페이지', async ({ page, request }) => {

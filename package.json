@@ -13,12 +13,11 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@capacitor/android": "^8.3.4",
-    "@capacitor/cli": "^8.3.4",
-    "@capacitor/core": "^8.3.4",
-    "@capacitor/ios": "^8.3.4",
-    "@capacitor/splash-screen": "^8.0.1",
-    "@capacitor/status-bar": "^8.0.2",
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/ios": "^6.2.1",
+    "@capacitor/splash-screen": "^6.0.4",
+    "@capacitor/status-bar": "^6.0.3",
     "hono": "^4.12.22",
     "jsqr": "^1.4.0",
     "lucide-react": "^1.16.0",
@@ -27,6 +26,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
     "@cloudflare/workers-types": "^4.20260524.1",
     "@playwright/test": "^1.60.0",
     "@types/react": "^18.3.12",
