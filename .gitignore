@@ -24,3 +24,7 @@ apps/web/out
 apps/mobile/.expo
 apps/mobile/dist
 apps/web/.vercel
+
+# Capacitor native dirs (legacy, Expo로 대체됨)
+android/
+ios/
