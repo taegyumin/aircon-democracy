@@ -10,12 +10,12 @@ import { BackIcon } from '../components/Icons';
 import { recordLine } from '../lib/recentPlaces';
 import { findSegments, segmentPlaceId, platformPlaceId, neighborNames } from '@aircon/core';
 import type { SubwayMatchResult } from '../lib/apiClient';
-import { NaverMapPicker } from '../components/NaverMapPicker';
-import { SNUClassroomWizard } from './SNUClassroomWizard';
 import { WizardLanding } from './wizard/WizardLanding';
 import { type Category } from './wizard/categories';
 import { BusWizard } from './wizard/bus/BusWizard';
 import { TrainWizard } from './wizard/train/TrainWizard';
+import { CafeWizard } from './wizard/cafe/CafeWizard';
+import { ClassroomWizard } from './wizard/classroom/ClassroomWizard';
 
 interface Props {
   onBack: () => void;
@@ -60,29 +60,7 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
 
   // ── STEP 2: VENUE (카페·음식점·기타) — Naver Map picker ──────────────
   if (category === 'other') {
-    return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-        {renderHeader('카페·음식점 위치', () => setCategory(null))}
-        <div style={{ flex: 1, minHeight: 0 }}>
-          <NaverMapPicker
-            onConfirm={async ({ placeId, name, address, lat, lng }) => {
-              try {
-                await api.upsertPlace({
-                  id: placeId,
-                  name,
-                  type: 'other',
-                  district: address || undefined,
-                  detail: `좌표 ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-                });
-                onPicked(placeId);
-              } catch (e) {
-                alert((e as Error).message);
-              }
-            }}
-          />
-        </div>
-      </div>
-    );
+    return <CafeWizard onBack={() => setCategory(null)} onPicked={onPicked} />;
   }
 
   // ── STEP 2: SUBWAY ────────────────────────────────────────────────
@@ -98,10 +76,10 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
   // ── STEP 2: CLASSROOM (서울대) ─────────────────────────────────────
   if (category === 'classroom') {
     return (
-      <SNUClassroomWizard
+      <ClassroomWizard
+        onBack={() => setCategory(null)}
         onPicked={onPicked}
         onFreeform={() => onRegisterFreeform('classroom')}
-        renderHeader={(t) => renderHeader(t, () => { setCategory(null); })}
       />
     );
   }
