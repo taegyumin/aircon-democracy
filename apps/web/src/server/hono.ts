@@ -28,8 +28,10 @@ app.route('/', realtimeRoutes);   // /realtime/subway/match, /realtime/bus/match
 app.notFound((c) => c.json({ error: 'not_found' }, 404));
 
 app.onError((err, c) => {
+  // err.message에 SQL 디테일, upstream URL (with secret), provider response 등이
+  // 들어갈 수 있어 클라이언트엔 generic. 상세는 worker log에만.
   console.error('[api error]', err);
-  return c.json({ error: 'internal_error', message: err.message }, 500);
+  return c.json({ error: 'internal_error' }, 500);
 });
 
 export default app;
