@@ -8,39 +8,21 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy \"$PWD/dist\" --project-name=aircon-democracy --branch=main",
+    "dev": "npm run -w @aircon/web dev",
+    "build:web": "npm run -w @aircon/web build && (cd apps/web && npx @cloudflare/next-on-pages)",
+    "deploy:web": "source ~/.aircon-env && npm run build:web && wrangler pages deploy apps/web/.vercel/output/static --project-name=aircon-democracy-next --branch=main",
     "test:e2e": "playwright test",
     "test:e2e:prod": "BASE_URL=https://aircondemocracy.com playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "check:data": "node scripts/check-data.mjs",
     "test:unit": "npm run -w @aircon/core test",
-    "check": "npm run check:data && npm run test:unit",
-    "turbo:build": "turbo run build",
-    "turbo:dev": "turbo run dev",
-    "turbo:lint": "turbo run lint",
-    "turbo:test": "turbo run test"
-  },
-  "dependencies": {
-    "hono": "^4.12.22",
-    "jsqr": "^1.4.0",
-    "lucide-react": "^1.16.0",
-    "qrcode.react": "^4.2.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "check:data": "node scripts/check-data.mjs",
+    "check": "npm run check:data && npm run test:unit"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260524.1",
     "@playwright/test": "^1.60.0",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
     "turbo": "^2.9.14",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11",
-    "vite-plugin-pwa": "^0.21.1",
     "wrangler": "^4.86.0"
   },
   "optionalDependencies": {
