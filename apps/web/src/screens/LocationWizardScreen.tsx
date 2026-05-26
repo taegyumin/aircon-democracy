@@ -8,14 +8,14 @@ import type { PlaceType } from '@aircon/core';
 import { lineColor, searchStations, type Station, STATIONS } from '@aircon/core';
 import { BackIcon } from '../components/Icons';
 import { recordLine } from '../lib/recentPlaces';
-import { findSegments, findTrainSegments, segmentPlaceId, platformPlaceId, neighborNames } from '@aircon/core';
+import { findSegments, segmentPlaceId, platformPlaceId, neighborNames } from '@aircon/core';
 import type { SubwayMatchResult } from '../lib/apiClient';
 import { NaverMapPicker } from '../components/NaverMapPicker';
-import { searchTrainStations } from '@aircon/core';
 import { SNUClassroomWizard } from './SNUClassroomWizard';
 import { WizardLanding } from './wizard/WizardLanding';
 import { type Category } from './wizard/categories';
 import { BusWizard } from './wizard/bus/BusWizard';
+import { TrainWizard } from './wizard/train/TrainWizard';
 
 interface Props {
   onBack: () => void;
@@ -25,79 +25,8 @@ interface Props {
 
 const CAR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-const TRAIN_TYPES = ['KTX', 'SRT', 'ITX-새마을', 'ITX-마음', '무궁화호', '누리로'] as const;
-type TrainType = (typeof TRAIN_TYPES)[number];
-const TRAIN_CAR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-
 export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: Props) {
   const [category, setCategory] = useState<Category | null>(null);
-
-  // Train state
-  const [trainType, setTrainType] = useState<TrainType | null>(null);
-  const [trainCar, setTrainCar] = useState<number | 'unknown' | null>(null);
-  const [trainDest, setTrainDest] = useState('');
-  // Optional segment-precise mode: when user provides prev+next station that
-  // matches a known KTX/SRT/ITX/무궁화호 chain, we auto-detect the line.
-  const [trainPrevQuery, setTrainPrevQuery] = useState('');
-  const [trainNextQuery, setTrainNextQuery] = useState('');
-  const [pickedTrainRoute, setPickedTrainRoute] = useState<string | null>(null); // "operator::line"
-
-  const trainSegmentMatches = useMemo(() => {
-    const a = trainPrevQuery.trim();
-    const b = trainNextQuery.trim();
-    if (!a || !b) return [];
-    return findTrainSegments(a, b);
-  }, [trainPrevQuery, trainNextQuery]);
-
-  const resolvedTrainSegment = useMemo(() => {
-    if (trainSegmentMatches.length === 0) return null;
-    if (trainSegmentMatches.length === 1) return trainSegmentMatches[0];
-    if (!pickedTrainRoute) return null;
-    return trainSegmentMatches.find((s) => `${s.operator}::${s.line}` === pickedTrainRoute) ?? null;
-  }, [trainSegmentMatches, pickedTrainRoute]);
-
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submitTrain = async () => {
-    if (!trainCar) return;
-    // Two valid paths: segment-precise (prev+next matched) OR type-based (trainType set).
-    const seg = resolvedTrainSegment;
-    if (!seg && !trainType) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const carLabel = trainCar === 'unknown' ? '호차 미정' : `${trainCar}호차`;
-      const carIdPart = trainCar === 'unknown' ? 'x' : String(trainCar);
-      let id: string;
-      let name: string;
-      let detail: string;
-      if (seg) {
-        // Segment-precise bucket — groups votes by exact route segment + car.
-        id = `train:seg:${seg.operator}:${seg.line}:${seg.prev}-${seg.next}:${carIdPart}`;
-        name = `${seg.line} ${seg.prev}→${seg.next} · ${carLabel}`;
-        detail = `${seg.operator} · ${seg.line} · ${seg.prev}→${seg.next}`;
-      } else {
-        const dest = trainDest.trim();
-        const destPart = dest ? `:${dest}` : '';
-        id = `train:${trainType}${destPart}:${carIdPart}`;
-        name = dest ? `${trainType} ${carLabel} (${dest}행)` : `${trainType} ${carLabel}`;
-        detail = dest ? `${trainType} · ${dest}행` : (trainType ?? '');
-      }
-      await api.upsertPlace({
-        id,
-        name,
-        type: 'train',
-        district: undefined,
-        detail,
-      });
-      onPicked(id);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   // Header
   const renderHeader = (title: string, onBackOverride?: () => void) => (
@@ -179,173 +108,7 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
 
   // ── STEP 2: TRAIN ─────────────────────────────────────────────────
   if (category === 'train') {
-    // Either: segment-precise (prev+next matched + car) OR legacy (trainType + car)
-    const canSubmit = !!trainCar && (resolvedTrainSegment !== null || !!trainType) && !submitting;
-    const trainStationSuggestions = (q: string): string[] => {
-      const t = q.trim();
-      if (!t) return [];
-      const fromSubway = STATIONS.filter((s) => s.name.includes(t)).slice(0, 5).map((s) => s.name.replace(/역$/, ''));
-      const fromTrain = searchTrainStations(t, 5).map((s) => s.name.replace(/역$/, ''));
-      const merged: string[] = [];
-      for (const n of [...fromSubway, ...fromTrain]) if (!merged.includes(n)) merged.push(n);
-      return merged.slice(0, 8);
-    };
-    const prevSuggestions = trainStationSuggestions(trainPrevQuery);
-    const nextSuggestions = trainStationSuggestions(trainNextQuery);
-    return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-        {renderHeader('기차', () => {
-          setCategory(null); setTrainType(null); setTrainCar(null); setTrainDest('');
-          setTrainPrevQuery(''); setTrainNextQuery(''); setPickedTrainRoute(null);
-        })}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 80px' }}>
-          {/* ── Segment-precise input (optional) ────────────────────── */}
-          <div style={{ marginBottom: 22, padding: 14, background: TOKEN.surface, border: `1px solid ${TOKEN.border}`, borderRadius: TOKEN.r.md }}>
-            <Label>방금 지나간 역 → 다음 도착 역 <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(알면 입력하세요. 노선 자동 매칭)</span></Label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <SimpleSuggestInput
-                value={trainPrevQuery}
-                setValue={(v) => { setTrainPrevQuery(v); setPickedTrainRoute(null); }}
-                placeholder="예: 대전"
-                suggestions={prevSuggestions}
-              />
-              <SimpleSuggestInput
-                value={trainNextQuery}
-                setValue={(v) => { setTrainNextQuery(v); setPickedTrainRoute(null); }}
-                placeholder="예: 김천(구미)"
-                suggestions={nextSuggestions}
-              />
-            </div>
-            {trainPrevQuery.trim() && trainNextQuery.trim() && trainSegmentMatches.length === 0 && (
-              <div style={{ marginTop: 10, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.sm, fontSize: 12, lineHeight: 1.5 }}>
-                두 역이 같은 열차 노선의 인접 정차역이 아니에요. 오타를 확인하거나, 아래에서 열차 종류를 직접 골라주세요.
-              </div>
-            )}
-            {trainSegmentMatches.length === 1 && (
-              <div style={{ marginTop: 10, padding: 10, background: TOKEN.coldBg, border: `1.5px solid ${TOKEN.cold}`, borderRadius: TOKEN.r.sm, fontSize: 13, fontWeight: 700, color: TOKEN.cold }}>
-                ✓ {trainSegmentMatches[0].operator} · {trainSegmentMatches[0].line} · {trainSegmentMatches[0].prev}→{trainSegmentMatches[0].next}
-              </div>
-            )}
-            {trainSegmentMatches.length > 1 && (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 11, color: TOKEN.text2, marginBottom: 6 }}>여러 열차가 다닙니다. 어느 열차?</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {trainSegmentMatches.map((s) => {
-                    const k = `${s.operator}::${s.line}`;
-                    const active = pickedTrainRoute === k;
-                    return (
-                      <button
-                        key={k}
-                        onClick={() => setPickedTrainRoute(active ? null : k)}
-                        style={{
-                          padding: '7px 12px',
-                          background: active ? TOKEN.cold : TOKEN.surface,
-                          color: active ? '#fff' : TOKEN.text1,
-                          border: `1.5px solid ${active ? TOKEN.cold : TOKEN.border}`,
-                          borderRadius: 999, fontSize: 12, fontWeight: 700,
-                          cursor: 'pointer', fontFamily: FONT,
-                        }}
-                      >
-                        {s.line}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <Label>{resolvedTrainSegment ? '어떤 열차 타고 계세요? (자동 감지됨)' : '어떤 열차 타고 계세요? *'}</Label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 24 }}>
-            {TRAIN_TYPES.map((t) => {
-              const active = trainType === t;
-              return (
-                <button
-                  key={t}
-                  onClick={() => setTrainType(active ? null : t)}
-                  style={{
-                    padding: '14px 10px',
-                    background: active ? '#DC2626' : TOKEN.surface,
-                    color: active ? '#fff' : TOKEN.text1,
-                    border: `1.5px solid ${active ? '#DC2626' : TOKEN.border}`,
-                    borderRadius: TOKEN.r.md,
-                    fontSize: 14,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    fontFamily: FONT,
-                    letterSpacing: '-0.3px',
-                  }}
-                >
-                  {t}
-                </button>
-              );
-            })}
-          </div>
-
-          <Label>몇 호차예요?</Label>
-          <button
-            onClick={() => setTrainCar(trainCar === 'unknown' ? null : 'unknown')}
-            style={{
-              width: '100%',
-              padding: '14px',
-              background: trainCar === 'unknown' ? TOKEN.cold : TOKEN.surface,
-              color: trainCar === 'unknown' ? '#fff' : TOKEN.text1,
-              border: `1.5px dashed ${trainCar === 'unknown' ? TOKEN.cold : TOKEN.border}`,
-              borderRadius: TOKEN.r.md,
-              fontSize: 14,
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: FONT,
-              marginBottom: 8,
-            }}
-          >
-            {trainCar === 'unknown' ? '✓ 호차 모름' : '호차 모름 — 그래도 투표할게요'}
-          </button>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 24 }}>
-            {TRAIN_CAR_OPTIONS.map((n) => {
-              const active = trainCar === n;
-              return (
-                <button
-                  key={n}
-                  onClick={() => setTrainCar(active ? null : n)}
-                  style={{
-                    padding: '12px 0',
-                    background: active ? TOKEN.cold : TOKEN.surface,
-                    color: active ? '#fff' : TOKEN.text1,
-                    border: `1.5px solid ${active ? TOKEN.cold : TOKEN.border}`,
-                    borderRadius: TOKEN.r.md,
-                    fontSize: 14,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    fontFamily: FONT,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {n}
-                </button>
-              );
-            })}
-          </div>
-
-          <Label>어디까지 가세요? <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(선택)</span></Label>
-          <input
-            value={trainDest}
-            onChange={(e) => setTrainDest(e.target.value)}
-            placeholder="예: 부산, 광주송정, 서울"
-            style={fieldStyle(!!trainDest)}
-          />
-
-          {error && (
-            <div style={{ marginTop: 14, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12 }}>{error}</div>
-          )}
-
-          <div style={{ height: 28 }} />
-          <button onClick={submitTrain} disabled={!canSubmit} style={primaryButtonStyle(canSubmit)}>
-            {submitting ? '이동 중…' : '투표하러 가기'}
-          </button>
-        </div>
-      </div>
-    );
+    return <TrainWizard onBack={() => setCategory(null)} onPicked={onPicked} />;
   }
 
   // ── STEP 2: BUS ───────────────────────────────────────────────────
@@ -826,54 +589,6 @@ function PlatformModeBody(p: PlatformModeBodyProps) {
         {p.submitting ? '이동 중…' : '투표하러 가기'}
       </button>
     </>
-  );
-}
-
-// ── Lightweight text-only suggestion input (used by train segment picker) ──
-
-function SimpleSuggestInput({ value, setValue, placeholder, suggestions }: {
-  value: string;
-  setValue: (v: string) => void;
-  placeholder: string;
-  suggestions: string[];
-}) {
-  const [focused, setFocused] = useState(false);
-  const showList = focused && value.trim() !== '' && suggestions.length > 0 &&
-    !suggestions.some((s) => s === value.trim());
-  return (
-    <div style={{ position: 'relative' }}>
-      <input
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 120)}
-        placeholder={placeholder}
-        style={fieldStyle(!!value)}
-      />
-      {showList && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
-          marginTop: 4, background: TOKEN.surface,
-          border: `1px solid ${TOKEN.border}`, borderRadius: TOKEN.r.md,
-          boxShadow: '0 4px 14px rgba(0,0,0,0.08)', overflow: 'hidden',
-        }}>
-          {suggestions.slice(0, 6).map((s) => (
-            <button
-              key={s}
-              onMouseDown={(e) => { e.preventDefault(); setValue(s); setFocused(false); }}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                padding: '10px 14px', background: 'transparent', border: 'none',
-                borderBottom: `1px solid ${TOKEN.border}`,
-                fontSize: 13, color: TOKEN.text1, cursor: 'pointer', fontFamily: FONT,
-              }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
