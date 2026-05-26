@@ -564,6 +564,9 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
   // Realtime train match (auto-fired when segment resolves)
   const [trainMatch, setTrainMatch] = useState<SubwayMatchResult | null>(null);
   const [matchLoading, setMatchLoading] = useState(false);
+  // matchNonce: "변경" 후 같은 역 재선택해도 useEffect 강제 refire.
+  // 또 사용자가 ↻ 버튼으로 manual refetch도 가능.
+  const [matchNonce, setMatchNonce] = useState(0);
 
   // Segment resolution — pass city to disambiguate multi-city "1호선" etc.
   const segments = useMemo(() => {
@@ -603,7 +606,7 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
         if (!cancelled) setMatchLoading(false);
       });
     return () => { cancelled = true; };
-  }, [resolvedSegment?.line, resolvedSegment?.prev, resolvedSegment?.next]);
+  }, [resolvedSegment?.line, resolvedSegment?.prev, resolvedSegment?.next, matchNonce]);
 
   const submitTrain = async () => {
     if (!resolvedSegment || car === null || submitting) return;
@@ -745,9 +748,11 @@ function SubwayWizard({ onPicked, renderHeader }: SubwayWizardProps) {
         {mode === 'train' ? (
           <TrainModeBody
             prevQuery={prevQuery} setPrevQuery={setPrevQuery}
-            prevStation={prevStation} setPrevStation={setPrevStation}
+            prevStation={prevStation}
+            setPrevStation={(s) => { setPrevStation(s); setMatchNonce((n) => n + 1); }}
             nextQuery={nextQuery} setNextQuery={setNextQuery}
-            nextStation={nextStationSel} setNextStation={setNextStationSel}
+            nextStation={nextStationSel}
+            setNextStation={(s) => { setNextStationSel(s); setMatchNonce((n) => n + 1); }}
             prevSuggestions={prevSuggestions}
             nextSuggestions={nextSuggestions}
             segments={segments}
