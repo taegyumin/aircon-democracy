@@ -47,7 +47,12 @@ describe('expectedUpdnLine', () => {
     });
   });
 
-  describe('단방향 노선', () => {
+  // 단방향 노선 1/3/4/5/6/7/8/9호선은 swopenAPI doc 매핑('1'=하행 정방향, '0'=상행 역방향)이
+  // 실제 응답과 일치함을 cross-check로 확인 (2026-05-26, scripts/check-updnline.mjs).
+  //   3/7/8/9호선: 100% docOk (rows 23~57개 sample 전수)
+  //   1/4/5/6호선: docSwap 0~2개. ambiguous는 지선 차량 (sequence 미커버)이지 매핑 오류 아님.
+  // 즉 swap이 필요한 건 2호선뿐. 다음번 누가 또 의심하면 위 스크립트 다시 돌리면 됨.
+  describe('단방향 노선 (swopenAPI doc 매핑 = 실제, 2026-05-26 cross-check)', () => {
     it('1호선 동대문 → 종로5가 = 하행 (1)', () => {
       expect(expectedUpdnLine('1호선', '동대문', '종로5가')).toBe('1');
     });
@@ -57,8 +62,41 @@ describe('expectedUpdnLine', () => {
     it('3호선 안국 → 종로3가 = 하행 (1)', () => {
       expect(expectedUpdnLine('3호선', '안국', '종로3가')).toBe('1');
     });
+    it('3호선 양재 → 매봉 = 하행 (1, 정방향)', () => {
+      expect(expectedUpdnLine('3호선', '양재', '매봉')).toBe('1');
+    });
     it('4호선 동대문 → 동대문역사문화공원 = 하행 (1)', () => {
       expect(expectedUpdnLine('4호선', '동대문', '동대문역사문화공원')).toBe('1');
+    });
+    it('4호선 충무로 → 명동 = 하행 (1)', () => {
+      expect(expectedUpdnLine('4호선', '충무로', '명동')).toBe('1');
+    });
+    it('5호선 명일 → 고덕 = 하행 (1)', () => {
+      expect(expectedUpdnLine('5호선', '명일', '고덕')).toBe('1');
+    });
+    it('5호선 송정 → 마곡 = 하행 (1)', () => {
+      expect(expectedUpdnLine('5호선', '송정', '마곡')).toBe('1');
+    });
+    it('6호선 약수 → 청구 = 하행 (1)', () => {
+      expect(expectedUpdnLine('6호선', '약수', '청구')).toBe('1');
+    });
+    it('6호선 태릉입구 → 화랑대 = 하행 (1)', () => {
+      expect(expectedUpdnLine('6호선', '태릉입구', '화랑대')).toBe('1');
+    });
+    it('7호선 노원 → 중계 = 하행 (1)', () => {
+      expect(expectedUpdnLine('7호선', '노원', '중계')).toBe('1');
+    });
+    it('7호선 중계 → 노원 = 상행 (0)', () => {
+      expect(expectedUpdnLine('7호선', '중계', '노원')).toBe('0');
+    });
+    it('8호선 잠실 → 석촌 = 하행 (1)', () => {
+      expect(expectedUpdnLine('8호선', '잠실', '석촌')).toBe('1');
+    });
+    it('9호선 언주 → 선정릉 = 하행 (1)', () => {
+      expect(expectedUpdnLine('9호선', '언주', '선정릉')).toBe('1');
+    });
+    it('9호선 동작 → 구반포 = 하행 (1, 정방향)', () => {
+      expect(expectedUpdnLine('9호선', '동작', '구반포')).toBe('1');
     });
   });
 
