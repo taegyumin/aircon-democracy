@@ -130,12 +130,33 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
 });
 
 // ── Bus (data.go.kr) ───────────────────────────────────────────────
+//
+// region 분기:
+//   - 'seoul' 또는 undefined → ws.bus.go.kr (서울 시내버스).
+//   - TAGO cityCode (숫자 문자열) → apis.data.go.kr/1613000/* (전국, 서울 제외).
+// Seoul과 TAGO는 응답 구조/필드 다른 별도 시스템 — 어댑터로 정규화.
+
+type Region = { kind: 'seoul' } | { kind: 'tago'; cityCode: number };
+
+function parseRegion(raw: string | undefined): Region {
+  if (!raw || raw === 'seoul' || raw === '11') return { kind: 'seoul' };
+  const n = parseInt(raw, 10);
+  if (Number.isFinite(n) && n > 0) return { kind: 'tago', cityCode: n };
+  return { kind: 'seoul' };
+}
 
 // 서울 시내버스 노선 종류 코드 (data.go.kr routeType).
 //   1=공항 2=마을 3=간선 4=지선 5=순환 6=광역 7=인천 8=경기 9=폐지 10=관광 11=공항순환
 const ROUTE_TYPE_LABEL: Record<string, string> = {
   '1': '공항', '2': '마을', '3': '간선', '4': '지선', '5': '순환',
   '6': '광역', '7': '인천', '8': '경기', '9': '폐지', '10': '관광', '11': '공항순환',
+};
+
+// TAGO routetp 분류 (각 cityCode별 의미 다를 수 있어 일반화 라벨).
+const TAGO_ROUTE_TYPE_LABEL: Record<string, string> = {
+  '11': '직행좌석', '12': '좌석', '13': '일반', '14': '광역', '15': '따복',
+  '16': '경기순환', '21': '직행좌석', '22': '광역급행', '23': '광역', '30': '마을',
+  '41': '시내', '42': '농어촌', '43': '마을', '51': '시외', '52': '공항',
 };
 
 interface BusRouteItem {
@@ -163,31 +184,68 @@ async function fetchBusJson<T>(url: string): Promise<T[]> {
   return Array.isArray(raw) ? raw : raw ? [raw] : [];
 }
 
-// 노선 자동완성 — 사용자가 버스 번호 일부 입력하면 후보 노선 list.
-// 디자인 wireframe: "271 [간선] 서울역 → 불광동" 같은 row.
-// 한 routeId는 양방향 1쌍의 종점 (stStationNm/edStationNm)을 가짐.
+// TAGO 1613000 응답 wrapper. ws.bus.go.kr와 구조 다름.
+//   { response: { header: { resultCode, resultMsg }, body: { items: { item: [...] | {...} } | '' } } }
+async function fetchTagoJson<T>(url: string): Promise<T[]> {
+  const res = await timedFetch(url, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`upstream_${res.status}`);
+  const text = await res.text();
+  let body: { response?: { header?: { resultCode?: string; resultMsg?: string }; body?: { items?: { item?: T[] | T } | '' | null } } };
+  try { body = JSON.parse(text); } catch { throw new Error(`tago_nonjson_${text.slice(0, 40)}`); }
+  const header = body.response?.header;
+  if (header?.resultCode && header.resultCode !== '00') {
+    throw new Error(`tago_${header.resultCode}_${header.resultMsg ?? ''}`);
+  }
+  const items = body.response?.body?.items;
+  if (!items || items === '') return [];
+  const item = items.item;
+  if (!item) return [];
+  return Array.isArray(item) ? item : [item];
+}
+
+// 노선 자동완성 — region 별로 dispatch.
+//   Seoul (ws.bus.go.kr): strSrch=q로 노선명 부분 검색.
+//   TAGO  (1613000): routeNo=q로 노선번호 검색. cityCode 필요.
 realtimeRoutes.get('/realtime/bus/route-search', async (c) => {
   const guard = await realtimeGuard(c);
   if (!guard.ok) return guard.res;
-  const parsed = BusRouteSearchQuerySchema.safeParse({ q: c.req.query('q') });
+  const parsed = BusRouteSearchQuerySchema.safeParse({ q: c.req.query('q'), region: c.req.query('region') });
   if (!parsed.success) return c.json({ error: 'invalid_query' }, 400);
   const { q } = parsed.data;
+  const region = parseRegion(parsed.data.region);
   const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
   if (!key) return c.json({ routes: [], reason: 'no_api_key' });
-  const HOST = 'http://ws.bus.go.kr/api/rest';
+
   try {
-    const items = await fetchBusJson<BusRouteItem>(
-      `${HOST}/busRouteInfo/getBusRouteList?serviceKey=${encodeURIComponent(key)}&strSrch=${encodeURIComponent(q)}&resultType=json`,
+    if (region.kind === 'seoul') {
+      const HOST = 'http://ws.bus.go.kr/api/rest';
+      const items = await fetchBusJson<BusRouteItem>(
+        `${HOST}/busRouteInfo/getBusRouteList?serviceKey=${encodeURIComponent(key)}&strSrch=${encodeURIComponent(q)}&resultType=json`,
+      );
+      items.sort((a, b) => (a.busRouteNm === q ? 0 : 1) - (b.busRouteNm === q ? 0 : 1));
+      const routes = items.slice(0, 12).map((r) => ({
+        id: r.busRouteId,
+        name: r.busRouteNm,
+        type: r.routeType,
+        typeLabel: ROUTE_TYPE_LABEL[r.routeType] ?? '버스',
+        startStop: r.stStationNm ?? '',
+        endStop: r.edStationNm ?? '',
+      }));
+      return c.json({ routes });
+    }
+    // TAGO
+    interface TagoRouteItem { routeid: string; routeno: string; routetp?: string; startnodenm?: string; endnodenm?: string }
+    const items = await fetchTagoJson<TagoRouteItem>(
+      `http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteNoList?serviceKey=${encodeURIComponent(key)}&cityCode=${region.cityCode}&routeNo=${encodeURIComponent(q)}&_type=json&numOfRows=20`,
     );
-    // 정확히 q와 일치하는 노선을 위로. (예: '271' 입력 시 '271'이 '2711'보다 앞).
-    items.sort((a, b) => (a.busRouteNm === q ? 0 : 1) - (b.busRouteNm === q ? 0 : 1));
+    items.sort((a, b) => (a.routeno === q ? 0 : 1) - (b.routeno === q ? 0 : 1));
     const routes = items.slice(0, 12).map((r) => ({
-      id: r.busRouteId,
-      name: r.busRouteNm,
-      type: r.routeType,
-      typeLabel: ROUTE_TYPE_LABEL[r.routeType] ?? '버스',
-      startStop: r.stStationNm ?? '',
-      endStop: r.edStationNm ?? '',
+      id: r.routeid,
+      name: r.routeno,
+      type: r.routetp ?? '',
+      typeLabel: TAGO_ROUTE_TYPE_LABEL[r.routetp ?? ''] ?? r.routetp ?? '버스',
+      startStop: r.startnodenm ?? '',
+      endStop: r.endnodenm ?? '',
     }));
     return c.json({ routes });
   } catch (e) {
@@ -195,28 +253,44 @@ realtimeRoutes.get('/realtime/bus/route-search', async (c) => {
   }
 });
 
-// 노선 정류장 sequence — 자동완성에서 노선 확정 후 정류장 picker용.
+// 노선 정류장 sequence — region 별 dispatch.
 realtimeRoutes.get('/realtime/bus/route-stations', async (c) => {
   const guard = await realtimeGuard(c);
   if (!guard.ok) return guard.res;
-  const parsed = BusRouteStationsQuerySchema.safeParse({ routeId: c.req.query('routeId') });
+  const parsed = BusRouteStationsQuerySchema.safeParse({ routeId: c.req.query('routeId'), region: c.req.query('region') });
   if (!parsed.success) return c.json({ error: 'invalid_query' }, 400);
   const { routeId } = parsed.data;
+  const region = parseRegion(parsed.data.region);
   const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
   if (!key) return c.json({ stations: [], reason: 'no_api_key' });
-  const HOST = 'http://ws.bus.go.kr/api/rest';
+
   try {
-    interface FullStation { stationNm: string; seq: string; gpsX?: string; gpsY?: string; arsId?: string }
-    const items = await fetchBusJson<FullStation>(
-      `${HOST}/busRouteInfo/getStaionByRoute?serviceKey=${encodeURIComponent(key)}&busRouteId=${encodeURIComponent(routeId)}&resultType=json`,
+    if (region.kind === 'seoul') {
+      const HOST = 'http://ws.bus.go.kr/api/rest';
+      interface FullStation { stationNm: string; seq: string; gpsX?: string; gpsY?: string; arsId?: string }
+      const items = await fetchBusJson<FullStation>(
+        `${HOST}/busRouteInfo/getStaionByRoute?serviceKey=${encodeURIComponent(key)}&busRouteId=${encodeURIComponent(routeId)}&resultType=json`,
+      );
+      const stations = items.map((s) => ({
+        seq: parseInt(s.seq, 10),
+        name: s.stationNm,
+        x: s.gpsX ? parseFloat(s.gpsX) : null,
+        y: s.gpsY ? parseFloat(s.gpsY) : null,
+        arsId: s.arsId ?? null,
+      }));
+      return c.json({ stations });
+    }
+    // TAGO
+    interface TagoStation { nodeid: string; nodenm: string; nodeord: number; gpslati?: number; gpslong?: number }
+    const items = await fetchTagoJson<TagoStation>(
+      `http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteAcctoThrghSttnList?serviceKey=${encodeURIComponent(key)}&cityCode=${region.cityCode}&routeId=${encodeURIComponent(routeId)}&_type=json&numOfRows=200`,
     );
     const stations = items.map((s) => ({
-      seq: parseInt(s.seq, 10),
-      name: s.stationNm,
-      // GPS (NearbyStopCard에서 distance 계산용). 비어있을 수 있어 number|null로.
-      x: s.gpsX ? parseFloat(s.gpsX) : null,
-      y: s.gpsY ? parseFloat(s.gpsY) : null,
-      arsId: s.arsId ?? null,
+      seq: typeof s.nodeord === 'number' ? s.nodeord : parseInt(String(s.nodeord), 10),
+      name: s.nodenm,
+      x: typeof s.gpslong === 'number' ? s.gpslong : null,
+      y: typeof s.gpslati === 'number' ? s.gpslati : null,
+      arsId: s.nodeid ?? null,
     }));
     return c.json({ stations });
   } catch (e) {
@@ -232,9 +306,64 @@ realtimeRoutes.post('/realtime/bus/match', async (c) => {
   try { raw = await c.req.json(); } catch { return c.json({ error: 'invalid_json' }, 400); }
   const parsed = BusMatchBodySchema.safeParse(raw);
   if (!parsed.success) return c.json({ error: 'invalid_body' }, 400);
-  const { routeName, stopName } = parsed.data;
+  const { routeName, stopName, routeId: passedRouteId } = parsed.data;
+  const region = parseRegion(parsed.data.region);
   const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
   if (!key) return c.json({ matched: false, reason: 'no_api_key' });
+
+  // ─── TAGO 분기 (서울 외) ───────────────────────────────────────
+  // frontend가 노선 검색 → 정류장 list 받은 상태라 routeId 직접 넘김.
+  // routeId 없으면 routeName으로 검색 후 first match — 정확도 떨어지지만 fallback.
+  if (region.kind === 'tago') {
+    try {
+      let routeId = passedRouteId;
+      if (!routeId) {
+        interface TagoRouteItem { routeid: string; routeno: string }
+        const routes = await fetchTagoJson<TagoRouteItem>(
+          `http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteNoList?serviceKey=${encodeURIComponent(key)}&cityCode=${region.cityCode}&routeNo=${encodeURIComponent(routeName)}&_type=json&numOfRows=5`,
+        );
+        const exact = routes.find((r) => r.routeno === routeName) ?? routes[0];
+        if (!exact) return c.json({ matched: false, reason: 'route_or_stop_not_found' });
+        routeId = exact.routeid;
+      }
+      // 정류장 sequence로 stopName 위치 결정 + 차량 위치 매칭.
+      interface TagoStation { nodeid: string; nodenm: string; nodeord: number }
+      const stations = await fetchTagoJson<TagoStation>(
+        `http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteAcctoThrghSttnList?serviceKey=${encodeURIComponent(key)}&cityCode=${region.cityCode}&routeId=${encodeURIComponent(routeId)}&_type=json&numOfRows=200`,
+      );
+      const target = normStop(stopName);
+      const hit = stations.find((s) => normStop(s.nodenm).includes(target) || target.includes(normStop(s.nodenm)));
+      if (!hit) return c.json({ matched: false, reason: 'route_or_stop_not_found', routeId });
+      const stopOrd = typeof hit.nodeord === 'number' ? hit.nodeord : parseInt(String(hit.nodeord), 10);
+      // 차량 위치 list.
+      interface TagoPos { vehicleno: string; nodenm: string; nodeord: number; routenm?: string; routetp?: string }
+      const positions = await fetchTagoJson<TagoPos>(
+        `http://apis.data.go.kr/1613000/BusLcInfoInqireService/getRouteAcctoBusLcList?serviceKey=${encodeURIComponent(key)}&cityCode=${region.cityCode}&routeId=${encodeURIComponent(routeId)}&_type=json&numOfRows=200`,
+      );
+      const ordOf = (p: TagoPos) => typeof p.nodeord === 'number' ? p.nodeord : parseInt(String(p.nodeord), 10);
+      const atStop = positions.find((p) => ordOf(p) === stopOrd);
+      const justBefore = positions.find((p) => ordOf(p) === stopOrd - 1);
+      const veh = atStop ?? justBefore;
+      if (!veh) {
+        return c.json({ matched: false, reason: 'no_vehicle_at_stop', routeId, routeName, currentStop: hit.nodenm });
+      }
+      const nextStation = stations.find((s) => (typeof s.nodeord === 'number' ? s.nodeord : parseInt(String(s.nodeord), 10)) === stopOrd + 1);
+      return c.json({
+        matched: true,
+        vehId: veh.vehicleno,
+        plainNo: veh.vehicleno,
+        routeId,
+        routeName,
+        routeType: veh.routetp ?? '',
+        currentStop: hit.nodenm,
+        nextStop: nextStation?.nodenm,
+      });
+    } catch (e) {
+      return c.json({ matched: false, reason: (e as Error).message });
+    }
+  }
+
+  // ─── Seoul 분기 (기존 ws.bus.go.kr) ─────────────────────────────
   const HOST = 'http://ws.bus.go.kr/api/rest';
   try {
     const routes = await fetchBusJson<BusRouteItem>(

@@ -83,20 +83,29 @@ export const SubwayMatchBodySchema = z.object({
   next: z.string().min(1).max(40),
 });
 
+// region: 'seoul' 또는 TAGO cityCode(숫자 문자열). 비어 있으면 'seoul' 기본.
+// (서울은 ws.bus.go.kr 분기, 그 외는 TAGO 1613000 분기로 라우팅.)
+const RegionSchema = z.string().trim().max(10).optional();
+
 export const BusMatchBodySchema = z.object({
   routeName: z.string().trim().min(1).max(20),
   stopName: z.string().trim().min(1).max(60),
+  region: RegionSchema,
+  // TAGO 매칭은 routeId 직접 필요 (사용자 검색 후 routeId 알려짐).
+  routeId: z.string().trim().max(40).optional(),
 });
 
 // Bus 리디자인: 노선 자동완성 / 정류장 list. data.go.kr 래핑 endpoint들.
 // query는 URL param. 한글 노선명도 받아야 해서 길이 여유.
 export const BusRouteSearchQuerySchema = z.object({
   q: z.string().trim().min(1).max(20),
+  region: RegionSchema,
 });
 
 export const BusRouteStationsQuerySchema = z.object({
   // data.go.kr의 busRouteId. 보통 9자리 숫자 문자열.
   routeId: z.string().trim().min(1).max(40),
+  region: RegionSchema,
 });
 
 // Helper for hono routes

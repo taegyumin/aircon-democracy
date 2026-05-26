@@ -112,22 +112,32 @@ export function createApiClient(options: ApiClientOptions = {}) {
       }),
 
     // ── Realtime: bus vehicle identification (stop-based) ───────────
-    matchBusVehicle: (input: { routeName: string; stopName: string }) =>
+    // region: 'seoul' (default) → ws.bus.go.kr. 그 외 cityCode 숫자 → TAGO 1613000.
+    matchBusVehicle: (input: {
+      routeName: string; stopName: string;
+      region?: string; routeId?: string;
+    }) =>
       request<BusMatchResult>('/api/realtime/bus/match', {
         method: 'POST',
         body: JSON.stringify(input),
       }),
 
     // ── Bus 리디자인: 노선 자동완성 + 정류장 list ─────────────────────
-    searchBusRoutes: (q: string) =>
-      request<{ routes: BusRouteCandidate[]; reason?: string }>(
-        `/api/realtime/bus/route-search?q=${encodeURIComponent(q)}`,
-      ),
+    searchBusRoutes: (q: string, region?: string) => {
+      const params = new URLSearchParams({ q });
+      if (region) params.set('region', region);
+      return request<{ routes: BusRouteCandidate[]; reason?: string }>(
+        `/api/realtime/bus/route-search?${params.toString()}`,
+      );
+    },
 
-    listBusRouteStations: (routeId: string) =>
-      request<{ stations: BusRouteStation[]; reason?: string }>(
-        `/api/realtime/bus/route-stations?routeId=${encodeURIComponent(routeId)}`,
-      ),
+    listBusRouteStations: (routeId: string, region?: string) => {
+      const params = new URLSearchParams({ routeId });
+      if (region) params.set('region', region);
+      return request<{ stations: BusRouteStation[]; reason?: string }>(
+        `/api/realtime/bus/route-stations?${params.toString()}`,
+      );
+    },
 
     // ── Auth ─────────────────────────────────────────────────────────
     me: () => request<{ user: User | null }>('/api/me'),
