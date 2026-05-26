@@ -873,6 +873,120 @@
           { "code": "201", "name": "자연과학대학 2호관", "aliases": [], "college": "자연과학대학" }
         ]
       }]
+    },
+    {
+      "id": "woosuk", "name": "우석대학교", "shortName": "우석대",
+      "aliases": ["Woosuk", "완주", "삼례"], "badge": "완주 (삼례)", "placeIdPrefix": "woosuk",
+      "sources": ["https://www.woosuk.ac.kr/main/?menu=74", "https://namu.wiki/w/%EC%9A%B0%EC%84%9D%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "jeonju", "name": "전주캠퍼스 (삼례)", "district": "전북 완주 우석대학교 전주캠퍼스",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": ["23층", "도서관·강당·박물관·행정 복합"], "college": "본부·복합" },
+          { "code": "한의대", "name": "한의예과 강의동", "aliases": [], "college": "한의예과" }
+        ]
+      }]
+    },
+    {
+      "id": "jj", "name": "전주대학교", "shortName": "전주대",
+      "aliases": ["Jeonju Univ", "JJ", "전주"], "badge": "전주", "placeIdPrefix": "jj",
+      "sources": ["https://www.jj.ac.kr/jj/introduction/office/general.jsp", "https://namu.wiki/w/%EC%A0%84%EC%A3%BC%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "main", "name": "전주캠퍼스", "district": "전북 전주 전주대학교",
+        "buildings": [
+          { "code": "본관", "name": "대학 본관", "aliases": [], "college": "본부" },
+          { "code": "스타센터", "name": "스타센터", "aliases": [], "college": "공용시설" },
+          { "code": "스타타워", "name": "스타타워", "aliases": [], "college": "공용시설" }
+        ]
+      }]
+    },
+    {
+      "id": "kunsan", "name": "국립군산대학교", "shortName": "군산대",
+      "aliases": ["Kunsan", "KSNU", "군산"], "badge": "군산", "placeIdPrefix": "kunsan",
+      "sources": ["https://www.kunsan.ac.kr/index.kunsan?contentsSid=583", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%EA%B5%B0%EC%82%B0%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "군산캠퍼스", "district": "전북 군산 군산대학교",
+        "buildings": [
+          { "code": "황룡관", "name": "황룡관 (본부·구 도서관)", "aliases": ["본부", "2018 리모델링"], "college": "본부" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+          { "code": "인문대학", "name": "인문대학", "aliases": [], "college": "인문대학" },
+          { "code": "자연과학대학", "name": "자연과학대학", "aliases": [], "college": "자연과학대학" },
+          { "code": "공과대학", "name": "공과대학", "aliases": [], "college": "공과대학" },
+          { "code": "해양과학대학", "name": "해양과학대학", "aliases": [], "college": "해양과학대학" }
+        ]
+      }]
+    },
+    {
+      "id": "gwnu", "name": "국립강릉원주대학교", "shortName": "강릉원주대",
+      "aliases": ["GWNU", "강릉원주", "강릉", "원주"], "badge": "강릉·원주", "placeIdPrefix": "gwnu",
+      "notes": "2009년 강릉대+원주대 통합. 두 캠퍼스 모두 사용",
+      "sources": ["https://iskul.gwnu.ac.kr/", "https://ko.wikipedia.org/wiki/%EA%B5%AD%EB%A6%BD%EA%B0%95%EB%A6%89%EC%9B%90%EC%A3%BC%EB%8C%80%ED%95%99%EA%B5%90_%EC%A4%91%EC%95%99%EB%8F%84%EC%84%9C%EA%B4%80"],
+      "campuses": [
+        {
+          "id": "gangneung", "name": "강릉캠퍼스 (본)", "district": "강원 강릉 강릉원주대학교 강릉캠퍼스",
+          "buildings": [
+            { "code": "중앙도서관", "name": "중앙도서관", "aliases": ["2006 신축"], "college": "도서관" }
+          ]
+        },
+        {
+          "id": "wonju", "name": "원주캠퍼스", "district": "강원 원주 강릉원주대학교 원주캠퍼스",
+          "buildings": [
+            { "code": "본관", "name": "대학본부", "aliases": ["2007"], "college": "본부" },
+            { "code": "원주도서관", "name": "원주도서관 (분관)", "aliases": ["1999 개관"], "college": "도서관" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cku", "name": "가톨릭관동대학교", "shortName": "가톨릭관동대",
+      "aliases": ["CKU", "관동대", "강릉"], "badge": "강릉 (내곡)", "placeIdPrefix": "cku",
+      "sources": ["https://www.cku.ac.kr/", "https://namu.wiki/w/%EA%B0%80%ED%86%A8%EB%A6%AD%EA%B4%80%EB%8F%99%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "강릉캠퍼스 (내곡)", "district": "강원 강릉 가톨릭관동대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": ["1976 완공"], "college": "본부" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": ["1985 신축, 2011~12 리모델링"], "college": "도서관" },
+          { "code": "박물관", "name": "박물관", "aliases": [], "college": "박물관" }
+        ]
+      }]
+    },
+    {
+      "id": "halla", "name": "한라대학교", "shortName": "한라대",
+      "aliases": ["Halla", "원주"], "badge": "원주", "placeIdPrefix": "halla",
+      "sources": ["https://www.halla.ac.kr/", "https://namu.wiki/w/%ED%95%9C%EB%9D%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "원주캠퍼스", "district": "강원 원주 한라대학교",
+        "buildings": [
+          { "code": "한라관", "name": "한라관 (본관)", "aliases": ["C동", "1995 준공"], "college": "본부·도서관·복합" }
+        ]
+      }]
+    },
+    {
+      "id": "dsu", "name": "동신대학교", "shortName": "동신대",
+      "aliases": ["Dongshin", "DSU", "나주"], "badge": "나주", "placeIdPrefix": "dsu",
+      "sources": ["https://www.dsu.ac.kr/kr/index.php?pCode=cammap", "https://namu.wiki/w/%EB%8F%99%EC%8B%A0%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "main", "name": "나주캠퍼스 (대호동)", "district": "전남 나주 동신대학교",
+        "buildings": [
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+          { "code": "첨단강의동", "name": "첨단강의동", "aliases": [], "college": "공용강의동" },
+          { "code": "인문관", "name": "인문관", "aliases": [], "college": "인문대학" },
+          { "code": "체육관", "name": "체육관", "aliases": [], "college": "체육" },
+          { "code": "한의대", "name": "한의과대학", "aliases": [], "college": "한의과대학" },
+          { "code": "한약자원연구센터", "name": "한약자원연구센터", "aliases": [], "college": "한약자원연구" }
+        ]
+      }]
+    },
+    {
+      "id": "dhu", "name": "대구한의대학교", "shortName": "대구한의대",
+      "aliases": ["DHU", "대구한의", "삼성캠퍼스"], "badge": "경산 (삼성)", "placeIdPrefix": "dhu",
+      "sources": ["https://www.dhu.ac.kr/", "https://namu.wiki/w/%EB%8C%80%EA%B5%AC%ED%95%9C%EC%9D%98%EB%8C%80%ED%95%99%EA%B5%90/%EA%B1%B4%EB%AC%BC"],
+      "campuses": [{
+        "id": "samseong", "name": "삼성캠퍼스 (경산)", "district": "경북 경산 대구한의대학교 삼성캠퍼스",
+        "buildings": [
+          { "code": "4호관", "name": "본부 (4호관)", "aliases": ["본부", "박물관"], "college": "본부·박물관" },
+          { "code": "한의대", "name": "한의과대학", "aliases": [], "college": "한의과대학" }
+        ]
+      }]
     }
   ]
 }
