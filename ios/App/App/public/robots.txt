@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Disallow API + assets (waste of crawl budget)
+Disallow: /api/
+Disallow: /assets/
+Disallow: /sw.js
+Disallow: /workbox-*
+
+# Korean search engines
+User-agent: Yeti
+Allow: /
+
+User-agent: NaverBot
+Allow: /
+
+User-agent: Daumoa
+Allow: /
+
+Sitemap: https://aircondemocracy.com/sitemap.xml

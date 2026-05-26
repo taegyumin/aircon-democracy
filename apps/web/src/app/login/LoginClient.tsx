@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { TOKEN } from '@aircon/core';
 import { KAKAO_LOGIN_URL, NAVER_LOGIN_URL, GOOGLE_LOGIN_URL } from '@/lib/apiClient';
 
@@ -40,10 +40,8 @@ function describeError(code: string): string {
   return `로그인 실패: ${code}`;
 }
 
-export default function LoginClient() {
-  const params = useSearchParams();
+export default function LoginClient({ error: errorParam }: { error: string | null }) {
   const router = useRouter();
-  const errorParam = params.get('error');
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>

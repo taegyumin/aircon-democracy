@@ -1,19 +1,22 @@
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
 import LoginClient from './LoginClient';
 
 export const metadata: Metadata = {
   title: '로그인 — 에어컨 민주주의',
   alternates: { canonical: '/login' },
-  // 로그인 화면은 검색 노출 안 함
   robots: { index: false, follow: true },
 };
 
-// useSearchParams는 Suspense 경계 필요 (Next.js 15)
-export default function LoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <LoginClient />
-    </Suspense>
-  );
+// searchParams 의존이므로 dynamic. CF Pages = edge runtime.
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
+interface PageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+// Server에서 error를 받아 client로 전달 — useSearchParams의 hydration timing 이슈 회피.
+export default async function LoginPage({ searchParams }: PageProps) {
+  const { error } = await searchParams;
+  return <LoginClient error={error ?? null} />;
 }

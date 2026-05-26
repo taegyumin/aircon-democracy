@@ -11,6 +11,11 @@ body {
   height: 100%;
 }
 
+/* Next.js App Router는 body > div#__next 없음. children 컨테이너에 100% 직접 적용 */
+body > * {
+  min-height: 100vh;
+}
+
 body {
   font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   -webkit-font-smoothing: antialiased;

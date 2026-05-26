@@ -124,6 +124,14 @@
       "status": 404
     },
     {
+      "src": "^/api(?:/(?<nxtPpath>.+?))?(?:\\.rsc)(?:/)?$",
+      "dest": "/api/[[...path]].rsc?nxtPpath=$nxtPpath"
+    },
+    {
+      "src": "^/api(?:/(?<nxtPpath>.+?))?(?:/)?$",
+      "dest": "/api/[[...path]]?nxtPpath=$nxtPpath"
+    },
+    {
       "src": "^/p/(?<nxtPplaceId>[^/]+?)(?:\\.rsc)(?:/)?$",
       "dest": "/p/[placeId].rsc?nxtPplaceId=$nxtPplaceId"
     },
@@ -143,7 +151,7 @@
       "handle": "hit"
     },
     {
-      "src": "/_next/static/(?:[^/]+/pages|pages|chunks|runtime|css|image|media|OAW\\-mqFZk4Y1sr1S0Y3Wh)/.+",
+      "src": "/_next/static/(?:[^/]+/pages|pages|chunks|runtime|css|image|media|hqgmudhBIF0SoJYXufpGC)/.+",
       "headers": {
         "cache-control": "public,max-age=31536000,immutable"
       },

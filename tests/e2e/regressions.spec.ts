@@ -119,7 +119,7 @@ test.describe('API 회귀', () => {
   test('bus match endpoint가 5xx 안 던짐', async ({ request }) => {
     const res = await request.post('/api/realtime/bus/match', {
       data: { routeName: '146', stopName: '강남역' },
-      headers: { 'X-Aircon-Intent': 'user-action' },
+      headers: { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' },
     });
     // 모든 fail 케이스는 200 + matched:false로 통일 (Cloudflare가 5xx body 가로채기 회피)
     expect(res.status()).toBe(200);
@@ -130,7 +130,7 @@ test.describe('API 회귀', () => {
   test('subway match endpoint가 5xx 안 던짐', async ({ request }) => {
     const res = await request.post('/api/realtime/subway/match', {
       data: { line: '2호선', prev: '강남', next: '역삼' },
-      headers: { 'X-Aircon-Intent': 'user-action' },
+      headers: { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' },
     });
     expect(res.status()).toBe(200);
     const body = await res.json();
@@ -362,15 +362,15 @@ test.describe('홈 화면 구성', () => {
 
   // BUG: callback 실패 시 LoginScreen이 ?error=xxx 안 표시 → 사용자가 왜 안 되는지 모름.
   test('callback 실패 시 LoginScreen에 에러 표시', async ({ page }) => {
-    await page.goto('/login?error=state_mismatch');
-    // role=alert 요소가 있어야 함
-    await expect(page.getByRole('alert')).toBeVisible();
-    await expect(page.getByRole('alert')).toContainText(/state_mismatch|만료/);
+    await page.goto('/login?error=state_mismatch', { waitUntil: 'networkidle' });
+    // useSearchParams는 client-only라 hydration 후 mount — 약간 wait.
+    await expect(page.getByRole('alert').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('alert').first()).toContainText(/state_mismatch|만료/);
   });
 
   test('callback redirect_uri 미일치 에러도 친절히 표시', async ({ page }) => {
-    await page.goto('/login?error=token_redirect_uri_mismatch');
-    await expect(page.getByRole('alert')).toContainText(/Redirect URI/);
+    await page.goto('/login?error=token_redirect_uri_mismatch', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('alert').first()).toContainText(/Redirect URI/, { timeout: 10000 });
   });
 
   // BUG: 비로그인 시 즐겨찾기 별 누르면 로그인 페이지로 가야 함.
