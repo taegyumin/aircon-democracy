@@ -285,7 +285,27 @@
           "district": "서울 동대문구 서울시립대학교",
           "buildings": [
             { "code": "1", "name": "전농관", "aliases": [], "college": "본부·공용" },
-            { "code": "33", "name": "미래관", "aliases": [], "college": "공용시설" }
+            { "code": "8", "name": "자연과학관", "aliases": [], "college": "자연과학대학" },
+            { "code": "15", "name": "21세기관", "aliases": ["2001 완공"], "college": "공용·국제회의장" },
+            { "code": "29", "name": "박물관", "aliases": [], "college": "박물관" },
+            { "code": "33", "name": "미래관", "aliases": [], "college": "공용시설" },
+            { "code": "35", "name": "음악관", "aliases": [], "college": "음악학부" },
+            { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+            { "code": "과학기술관", "name": "과학기술관", "aliases": [], "college": "이공계" },
+            { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+            { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+            { "code": "정보기술관", "name": "정보기술관", "aliases": [], "college": "정보기술" },
+            { "code": "법학관", "name": "법학관", "aliases": [], "college": "법학" },
+            { "code": "건설공학관", "name": "건설공학관", "aliases": [], "college": "공학" },
+            { "code": "조형관", "name": "조형관", "aliases": [], "college": "조형대학" },
+            { "code": "대강당", "name": "대강당", "aliases": [], "college": "공용시설" },
+            { "code": "100주년", "name": "100주년 기념관", "aliases": [], "college": "공용시설" },
+            { "code": "배봉관", "name": "배봉관", "aliases": [], "college": "공용시설" },
+            { "code": "시대융합관", "name": "시대융합관", "aliases": [], "college": "공용시설" },
+            { "code": "창의혁신관", "name": "창의혁신관", "aliases": [], "college": "공용시설" },
+            { "code": "인문학관", "name": "인문학관", "aliases": [], "college": "인문대학" },
+            { "code": "생활관", "name": "생활관", "aliases": ["기숙사"], "college": "기숙사" },
+            { "code": "국제학사", "name": "국제학사", "aliases": [], "college": "국제처·기숙사" }
           ]
         }
       ]
@@ -546,10 +566,11 @@
           "name": "인문사회과학캠퍼스 (명륜)",
           "district": "서울 종로구 성균관대학교 명륜캠퍼스",
           "buildings": [
+            { "code": "1", "name": "600주년기념관", "aliases": ["600관"], "college": "공용시설·식당" },
+            { "code": "5", "name": "호암관", "aliases": ["행정실"], "college": "본부·행정" },
+            { "code": "32", "name": "다산경제관", "aliases": [], "college": "경제대학" },
             { "code": "호경관", "name": "호경관", "aliases": ["경영관"], "college": "경영대학" },
-            { "code": "퇴계인문관", "name": "퇴계인문관", "aliases": [], "college": "문과대학" },
-            { "code": "600관", "name": "600주년기념관", "aliases": ["600관"], "college": "공용시설" },
-            { "code": "다산경제관", "name": "다산경제관", "aliases": [], "college": "경제대학" }
+            { "code": "퇴계인문관", "name": "퇴계인문관", "aliases": [], "college": "문과대학" }
           ]
         }
       ]
@@ -907,7 +928,12 @@
           "id": "songeui",
           "name": "성의교정 (반포)",
           "district": "서울 서초구 가톨릭대학교 성의교정",
-          "buildings": []
+          "buildings": [
+            { "code": "성의회관", "name": "성의회관", "aliases": ["강의동", "2008 완공"], "college": "의과대학·강의" },
+            { "code": "본관", "name": "본관", "aliases": [], "college": "본부·간호대학" },
+            { "code": "옴니버스파크", "name": "옴니버스 파크", "aliases": ["2022 완공"], "college": "메디컬융복합" },
+            { "code": "의학도서관", "name": "의학도서관", "aliases": ["성의회관 내"], "college": "도서관" }
+          ]
         }
       ]
     },
@@ -1188,7 +1214,11 @@
           "id": "main",
           "name": "노원캠퍼스",
           "district": "서울 노원구 한국성서대학교",
-          "buildings": []
+          "buildings": [
+            { "code": "로고스홀", "name": "로고스홀", "aliases": ["지하1층"], "college": "공용시설" },
+            { "code": "고승태홀", "name": "고승태홀", "aliases": ["1층"], "college": "공용시설" },
+            { "code": "도서관", "name": "도서관", "aliases": ["3·4층"], "college": "도서관" }
+          ]
         }
       ]
     }
