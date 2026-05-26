@@ -62,10 +62,11 @@
       "aliases": ["Hanyang Univ", "HYU", "한대", "행당", "왕십리"],
       "badge": "서울",
       "placeIdPrefix": "hanyang",
-      "notes": "9개 zone(100~900단위) 구역제 — 검증된 대표 건물만 등록",
+      "notes": "9개 zone(100~900단위) 구역제",
       "sources": [
         "https://www.hanyang.ac.kr/web/www/map_seoul",
-        "https://hyu.wiki/%EA%B1%B4%EB%AC%BC"
+        "https://hyu.wiki/%EA%B1%B4%EB%AC%BC",
+        "https://ko.wikipedia.org/wiki/%ED%95%9C%EC%96%91%EB%8C%80%ED%95%99%EA%B5%90_%EA%B1%B4%EB%AC%BC%EA%B3%BC_%EC%8B%9C%EC%84%A4_%EB%AA%A9%EB%A1%9D"
       ],
       "campuses": [
         {
@@ -74,14 +75,27 @@
           "district": "서울 성동구 한양대학교 서울캠퍼스",
           "buildings": [
             { "code": "101", "name": "본관", "aliases": ["행정 zone"], "college": "본부" },
-            { "code": "201", "name": "토목공학관", "aliases": [], "college": "공과대학" },
+            { "code": "201", "name": "재성토목관", "aliases": [], "college": "공과대학" },
+            { "code": "202", "name": "건축관", "aliases": [], "college": "공과대학" },
             { "code": "203", "name": "과학기술관", "aliases": [], "college": "공과대학" },
-            { "code": "301", "name": "메인스타디움", "aliases": [], "college": "체육" },
+            { "code": "204", "name": "신소재공학관", "aliases": [], "college": "공과대학" },
+            { "code": "206", "name": "공업센터 본관", "aliases": [], "college": "공과대학" },
+            { "code": "208", "name": "퓨전테크센터", "aliases": ["FTC"], "college": "공과대학" },
+            { "code": "210", "name": "정몽구 미래자동차연구센터", "aliases": [], "college": "공과대학" },
+            { "code": "211", "name": "제2공학관", "aliases": [], "college": "공과대학" },
+            { "code": "212", "name": "제1공학관", "aliases": [], "college": "공과대학" },
+            { "code": "301", "name": "메인스타디움", "aliases": ["대운동장"], "college": "체육" },
+            { "code": "304", "name": "산학기술관", "aliases": [], "college": "산학협력" },
+            { "code": "305", "name": "IT/BT관", "aliases": ["제2산학기술관"], "college": "공과대학·연구" },
             { "code": "306", "name": "올림픽체육관", "aliases": [], "college": "체육" },
-            { "code": "401", "name": "음악관1", "aliases": [], "college": "음악대학" },
-            { "code": "402", "name": "음악관2", "aliases": [], "college": "음악대학" },
-            { "code": "407", "name": "법학관1", "aliases": [], "college": "법과대학" },
-            { "code": "408", "name": "법학관2", "aliases": [], "college": "법과대학" },
+            { "code": "401", "name": "생활과학관", "aliases": [], "college": "생활과학대학" },
+            { "code": "402", "name": "제1음악관", "aliases": [], "college": "음악대학" },
+            { "code": "403", "name": "제2음악관", "aliases": [], "college": "음악대학" },
+            { "code": "405", "name": "백남음악관", "aliases": [], "college": "음악대학" },
+            { "code": "407", "name": "제1법학관", "aliases": [], "college": "법과대학" },
+            { "code": "408", "name": "제2법학관", "aliases": [], "college": "법과대학" },
+            { "code": "409", "name": "제3법학관", "aliases": [], "college": "법과대학" },
+            { "code": "410", "name": "경제금융관", "aliases": ["법학학술정보관"], "college": "경제금융대학·법학도서관" },
             { "code": "501", "name": "백남학술정보관", "aliases": ["중앙도서관", "학술정보관"], "college": "도서관" },
             { "code": "508", "name": "인문관", "aliases": [], "college": "인문대학" },
             { "code": "604", "name": "의학관", "aliases": [], "college": "의과대학" },
@@ -98,7 +112,7 @@
       "aliases": ["CAU", "Chung-Ang", "중대", "흑석"],
       "badge": "서울 (흑석)",
       "placeIdPrefix": "cau",
-      "notes": "정문(100)·중앙(200)·후문(300) 구역제 — 검증된 대표 건물만 등록",
+      "notes": "정문(100)·중앙(200)·후문(300) 구역제",
       "sources": [
         "https://www.cau.ac.kr/cms/FR_CON/index.do?MENU_ID=610",
         "https://namu.wiki/w/%EC%A4%91%EC%95%99%EB%8C%80%ED%95%99%EA%B5%90/%EC%84%9C%EC%9A%B8%EC%BA%A0%ED%8D%BC%EC%8A%A4"
@@ -109,6 +123,9 @@
           "name": "서울캠퍼스",
           "district": "서울 동작구 중앙대학교 서울캠퍼스",
           "buildings": [
+            { "code": "수림과학관", "name": "수림과학관", "aliases": ["자연과학관", "104관"], "college": "자연과학대학" },
+            { "code": "의학관", "name": "의학관", "aliases": [], "college": "의과대학" },
+            { "code": "약학관", "name": "약학관", "aliases": [], "college": "약학대학" },
             { "code": "301", "name": "중앙문화예술관", "aliases": ["문예관"], "college": "예술대학" },
             { "code": "302", "name": "대학원", "aliases": [], "college": "대학원" },
             { "code": "303", "name": "법학관", "aliases": [], "college": "법과대학" },
@@ -280,7 +297,7 @@
       "aliases": ["Hongik", "홍대", "상수"],
       "badge": "서울 (상수)",
       "placeIdPrefix": "hongik",
-      "notes": "건물 동번호가 A~V 알파벳 — 검증된 대표 건물만 등록",
+      "notes": "건물 동번호가 알파벳(A~) — 알파벳 + 명칭 병기",
       "sources": [
         "https://www.hongik.ac.kr/kr/introduction/campus-map.do",
         "https://namu.wiki/w/%ED%99%8D%EC%9D%B5%EB%8C%80%ED%95%99%EA%B5%90/%EC%84%9C%EC%9A%B8%EC%BA%A0%ED%8D%BC%EC%8A%A4"
@@ -296,8 +313,14 @@
             { "code": "C", "name": "공학관1관", "aliases": [], "college": "공과대학" },
             { "code": "D", "name": "공학관2관", "aliases": [], "college": "공과대학" },
             { "code": "I", "name": "과학관", "aliases": [], "college": "이과대학" },
+            { "code": "P", "name": "제2공학관", "aliases": ["P동"], "college": "공과대학" },
             { "code": "V", "name": "국제교육관", "aliases": [], "college": "국제처" },
-            { "code": "W", "name": "남문관", "aliases": [], "college": "공용시설" }
+            { "code": "W", "name": "남문관", "aliases": [], "college": "공용시설" },
+            { "code": "제1강의동", "name": "제1강의동", "aliases": [], "college": "공용강의동" },
+            { "code": "제2강의동", "name": "제2강의동", "aliases": [], "college": "공용강의동" },
+            { "code": "제3강의동", "name": "제3강의동", "aliases": [], "college": "공용강의동" },
+            { "code": "제4강의동", "name": "제4강의동", "aliases": [], "college": "공용강의동" },
+            { "code": "가람홀", "name": "가람홀", "aliases": [], "college": "공용시설" }
           ]
         }
       ]
@@ -337,7 +360,6 @@
       "aliases": ["SeoulTech", "과기대", "공릉"],
       "badge": "공릉",
       "placeIdPrefix": "seoultech",
-      "notes": "공식 캠퍼스맵에 동번호 + 명칭 — 추가 큐레이션 필요",
       "sources": [
         "https://www.seoultech.ac.kr/intro/map/",
         "https://namu.wiki/w/%EC%84%9C%EC%9A%B8%EA%B3%BC%ED%95%99%EA%B8%B0%EC%88%A0%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"
@@ -347,7 +369,10 @@
           "id": "main",
           "name": "공릉캠퍼스",
           "district": "서울 노원구 서울과학기술대학교",
-          "buildings": []
+          "buildings": [
+            { "code": "다산관", "name": "다산관", "aliases": ["본관", "등록문화유산 12호"], "college": "본부·역사관" },
+            { "code": "창학관", "name": "창학관", "aliases": ["등록문화유산 12호"], "college": "정보통신대학" }
+          ]
         }
       ]
     },
@@ -358,7 +383,6 @@
       "aliases": ["Kyung Hee", "KHU", "회기"],
       "badge": "서울 (회기)",
       "placeIdPrefix": "khu",
-      "notes": "검증된 대표 건물만 — 자세한 동번호는 공식맵 참조",
       "sources": [
         "https://www.khu.ac.kr/kor/user/contents/view.do?menuNo=200083",
         "https://namu.wiki/w/%EA%B2%BD%ED%9D%AC%EB%8C%80%ED%95%99%EA%B5%90/%EC%84%9C%EC%9A%B8%EC%BA%A0%ED%8D%BC%EC%8A%A4"
@@ -369,11 +393,16 @@
           "name": "서울캠퍼스",
           "district": "서울 동대문구 경희대학교 서울캠퍼스",
           "buildings": [
-            { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+            { "code": "본관", "name": "본관", "aliases": ["석조 본관 1956"], "college": "본부" },
+            { "code": "청운관", "name": "청운관", "aliases": [], "college": "공용시설" },
+            { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+            { "code": "노천극장", "name": "노천극장", "aliases": [], "college": "공용시설" },
+            { "code": "평화의전당", "name": "평화의전당", "aliases": ["대강당"], "college": "공용시설" },
             { "code": "푸른솔", "name": "푸른솔 문화관", "aliases": [], "college": "공용시설" },
             { "code": "의과대학", "name": "의과대학", "aliases": [], "college": "의과대학" },
             { "code": "치과대학", "name": "치과대학", "aliases": [], "college": "치과대학" },
             { "code": "약학대학", "name": "약학대학", "aliases": [], "college": "약학대학" },
+            { "code": "종합체육관", "name": "종합체육관", "aliases": [], "college": "체육" },
             { "code": "경희의료원", "name": "경희의료원", "aliases": [], "college": "의료원" }
           ]
         }
@@ -388,7 +417,7 @@
       "placeIdPrefix": "ewha",
       "sources": [
         "http://www.ewha.ac.kr/ewha/intro/campus-map.do",
-        "https://ged.ewha.ac.kr/gedewha/board/notice.do?mode=view&articleNo=685134"
+        "https://namu.wiki/w/%EC%9D%B4%ED%99%94%EC%97%AC%EC%9E%90%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"
       ],
       "campuses": [
         {
@@ -396,9 +425,16 @@
           "name": "이화캠퍼스",
           "district": "서울 서대문구 이화여자대학교",
           "buildings": [
-            { "code": "본관", "name": "본관", "aliases": [], "college": "본부·역사관" },
-            { "code": "학관", "name": "학관", "aliases": [], "college": "공용강의동" },
-            { "code": "ECC", "name": "ECC", "aliases": ["이화캠퍼스복합단지"], "college": "공용시설" }
+            { "code": "본관", "name": "파이퍼홀(본관)", "aliases": ["파이퍼홀"], "college": "본부·역사관" },
+            { "code": "학관", "name": "학관", "aliases": ["인문과학대학"], "college": "인문과학대학" },
+            { "code": "ECC", "name": "ECC", "aliases": ["이화캠퍼스복합단지"], "college": "공용시설" },
+            { "code": "약학관A", "name": "약학관 A동", "aliases": [], "college": "약학대학" },
+            { "code": "약학관B", "name": "약학관 B동", "aliases": [], "college": "약학대학" },
+            { "code": "종합과학관", "name": "종합과학관", "aliases": [], "college": "자연과학대학" },
+            { "code": "진선미관", "name": "진선미관", "aliases": [], "college": "공용시설" },
+            { "code": "헬렌관", "name": "헬렌관", "aliases": ["간호대학"], "college": "간호대학" },
+            { "code": "인문관", "name": "인문관", "aliases": [], "college": "인문과학대학" },
+            { "code": "이화포스코관", "name": "이화·포스코관", "aliases": [], "college": "공용시설" }
           ]
         }
       ]
@@ -442,10 +478,9 @@
       "id": "konkuk",
       "name": "건국대학교",
       "shortName": "건국대",
-      "aliases": ["Konkuk", "KU", "건대", "화양"],
+      "aliases": ["Konkuk", "건대", "화양"],
       "badge": "서울 (화양)",
       "placeIdPrefix": "konkuk",
-      "notes": "공식 캠퍼스맵에 더 많은 건물 — 추가 큐레이션 가능",
       "sources": [
         "https://www.konkuk.ac.kr/campusMap/konkuk/view.do",
         "https://namu.wiki/w/%EA%B1%B4%EA%B5%AD%EB%8C%80%ED%95%99%EA%B5%90/%EC%84%9C%EC%9A%B8%EC%BA%A0%ED%8D%BC%EC%8A%A4"
@@ -457,7 +492,12 @@
           "district": "서울 광진구 건국대학교 서울캠퍼스",
           "buildings": [
             { "code": "1", "name": "행정관", "aliases": ["본관"], "college": "본부" },
-            { "code": "2", "name": "경영관", "aliases": [], "college": "경영대학" }
+            { "code": "2", "name": "경영관", "aliases": [], "college": "경영대학" },
+            { "code": "16", "name": "새천년기념관", "aliases": [], "college": "공용시설" },
+            { "code": "20", "name": "학생회관", "aliases": [], "college": "학생복지" },
+            { "code": "21", "name": "공학관 A동", "aliases": [], "college": "공과대학" },
+            { "code": "21B", "name": "공학관 B동", "aliases": [], "college": "공과대학" },
+            { "code": "21C", "name": "공학관 C동", "aliases": [], "college": "공과대학" }
           ]
         }
       ]
@@ -469,7 +509,6 @@
       "aliases": ["Sogang", "서강"],
       "badge": "신촌",
       "placeIdPrefix": "sogang",
-      "notes": "공식 캠퍼스맵 PDF에 상세 건물 — 라스터 PDF라 자동 추출 어려움",
       "sources": [
         "https://www.sogang.ac.kr/intro/campus/c_campusmap.html",
         "https://namu.wiki/w/%EC%84%9C%EA%B0%95%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"
@@ -479,7 +518,13 @@
           "id": "main",
           "name": "신촌캠퍼스",
           "district": "서울 마포구 서강대학교",
-          "buildings": []
+          "buildings": [
+            { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+            { "code": "다산관", "name": "다산관", "aliases": ["1993 완공"], "college": "공용강의동" },
+            { "code": "J관", "name": "J관", "aliases": ["2011 완공"], "college": "공용강의동" },
+            { "code": "TE관", "name": "TE관", "aliases": ["2011 완공"], "college": "공용강의동" },
+            { "code": "게페르트남덕우", "name": "게페르트 남덕우 경제관", "aliases": ["2017 완공"], "college": "경제학부" }
+          ]
         }
       ]
     },
@@ -542,7 +587,7 @@
       "id": "kw",
       "name": "광운대학교",
       "shortName": "광운대",
-      "aliases": ["Kwangwoon", "KW", "광대", "월계"],
+      "aliases": ["Kwangwoon", "광대", "월계"],
       "badge": "월계",
       "placeIdPrefix": "kw",
       "sources": [
@@ -582,7 +627,17 @@
           "id": "humanities",
           "name": "인문캠퍼스",
           "district": "서울 서대문구 명지대학교 인문캠퍼스",
-          "buildings": []
+          "buildings": [
+            { "code": "종합관", "name": "종합관", "aliases": ["구 본관", "본관"], "college": "공용·메인 강의동" },
+            { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+            { "code": "국제관", "name": "국제관", "aliases": ["구 경상관"], "college": "공용시설" },
+            { "code": "방목학술정보관", "name": "방목학술정보관", "aliases": ["도서관"], "college": "도서관" },
+            { "code": "행정동", "name": "행정동", "aliases": [], "college": "본부" },
+            { "code": "생활관", "name": "생활관", "aliases": ["기숙사"], "college": "기숙사" },
+            { "code": "미래관", "name": "미래관", "aliases": [], "college": "공용시설" },
+            { "code": "베리타스홀", "name": "베리타스홀", "aliases": [], "college": "공용시설" },
+            { "code": "코이노니아홀", "name": "코이노니아홀", "aliases": [], "college": "공용시설" }
+          ]
         }
       ]
     },
@@ -647,14 +702,19 @@
       "placeIdPrefix": "duksung",
       "sources": [
         "https://www.duksung.ac.kr/contents/contents.do?ciIdx=334&menuId=960",
-        "https://namu.wiki/w/%EB%8D%95%EC%84%B1%EC%97%AC%EC%9E%90%EB%8C%80%ED%95%99%EA%B5%90"
+        "https://namu.wiki/w/%EB%8D%95%EC%84%B1%EC%97%AC%EC%9E%90%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"
       ],
       "campuses": [
         {
           "id": "main",
           "name": "쌍문캠퍼스",
           "district": "서울 도봉구 덕성여자대학교",
-          "buildings": []
+          "buildings": [
+            { "code": "3", "name": "인문사회관", "aliases": [], "college": "인문·사회과학대학" },
+            { "code": "5", "name": "차미리사기념관", "aliases": ["전산·어학·교양"], "college": "공용강의동" },
+            { "code": "6", "name": "도서관", "aliases": [], "college": "도서관" },
+            { "code": "16", "name": "약학관", "aliases": [], "college": "약학대학" }
+          ]
         }
       ]
     },
@@ -694,14 +754,21 @@
       "placeIdPrefix": "smu",
       "sources": [
         "https://www.smu.ac.kr/kor/intro/road.do",
-        "https://kcge.smu.ac.kr/ko/intro/map_all.do"
+        "https://namu.wiki/w/%EC%83%81%EB%AA%85%EB%8C%80%ED%95%99%EA%B5%90/%EC%84%9C%EC%9A%B8%EC%BA%A0%ED%8D%BC%EC%8A%A4/%EA%B5%90%EB%82%B4%EA%B1%B4%EB%AC%BC"
       ],
       "campuses": [
         {
           "id": "seoul",
           "name": "서울캠퍼스",
           "district": "서울 종로구 상명대학교 서울캠퍼스",
-          "buildings": []
+          "buildings": [
+            { "code": "J", "name": "본관", "aliases": ["대학본관"], "college": "본부" },
+            { "code": "H", "name": "학생회관", "aliases": [], "college": "학생복지" },
+            { "code": "미래백년관", "name": "미래백년관", "aliases": ["50주년 기념"], "college": "공용강의동" },
+            { "code": "밀레니엄관", "name": "밀레니엄관", "aliases": [], "college": "공용시설" },
+            { "code": "도서관", "name": "도서관", "aliases": [], "college": "도서관" },
+            { "code": "사범관", "name": "사범관", "aliases": [], "college": "사범대학" }
+          ]
         }
       ]
     },
@@ -768,14 +835,21 @@
       "badge": "서초",
       "placeIdPrefix": "snue",
       "sources": [
-        "https://www.snue.ac.kr/snue/ca/campusMap/CampusMap.do?mi=3508"
+        "https://www.snue.ac.kr/snue/ca/campusMap/CampusMap.do?mi=3508",
+        "https://namu.wiki/w/%EC%84%9C%EC%9A%B8%EA%B5%90%EC%9C%A1%EB%8C%80%ED%95%99%EA%B5%90"
       ],
       "campuses": [
         {
           "id": "main",
           "name": "서초캠퍼스",
           "district": "서울 서초구 서울교육대학교",
-          "buildings": []
+          "buildings": [
+            { "code": "본관", "name": "관리동(본관)", "aliases": ["관리동"], "college": "본부" },
+            { "code": "연구강의동", "name": "연구강의동", "aliases": [], "college": "공용강의동" },
+            { "code": "음악관", "name": "음악관", "aliases": [], "college": "음악교육" },
+            { "code": "에듀웰", "name": "에듀웰센터", "aliases": [], "college": "공용강의동" },
+            { "code": "부설초", "name": "부설초등학교 본관", "aliases": [], "college": "부설초" }
+          ]
         }
       ]
     },
@@ -784,17 +858,26 @@
       "name": "한성대학교",
       "shortName": "한성대",
       "aliases": ["Hansung", "한성대", "삼선"],
-      "badge": "삼선",
+      "badge": "삼선 (낙산)",
       "placeIdPrefix": "hansung",
       "sources": [
-        "https://www.hansung.ac.kr/hansung/1773/subview.do"
+        "https://www.hansung.ac.kr/hansung/1773/subview.do",
+        "https://namu.wiki/w/%ED%95%9C%EC%84%B1%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"
       ],
       "campuses": [
         {
           "id": "main",
           "name": "삼선캠퍼스",
           "district": "서울 성북구 한성대학교",
-          "buildings": []
+          "buildings": [
+            { "code": "진리관", "name": "진리관", "aliases": [], "college": "공용강의동" },
+            { "code": "우촌관", "name": "우촌관", "aliases": ["본부"], "college": "본부" },
+            { "code": "미래관", "name": "미래관", "aliases": ["학술정보관", "구 중앙도서관"], "college": "도서관" },
+            { "code": "인성관", "name": "인성관", "aliases": [], "college": "학생복지·동아리" },
+            { "code": "상상관", "name": "상상관", "aliases": [], "college": "공용시설" },
+            { "code": "연구관", "name": "연구관", "aliases": [], "college": "공용시설" },
+            { "code": "학민관", "name": "학민관", "aliases": [], "college": "공용시설" }
+          ]
         }
       ]
     },
@@ -802,10 +885,10 @@
       "id": "cuk",
       "name": "가톨릭대학교",
       "shortName": "가톨릭대",
-      "aliases": ["Catholic", "CUK", "혜화", "성신교정", "성의교정", "성심교정"],
+      "aliases": ["Catholic", "CUK", "혜화", "성신교정", "성의교정"],
       "badge": "성신교정 (혜화)",
       "placeIdPrefix": "cuk",
-      "notes": "성신(혜화 신학)·성의(반포 의학)·성심(부천 본교) 3 교정 — 서울 학부 캠퍼스는 성신만, 의예과는 성의",
+      "notes": "성신(혜화 신학)·성의(반포 의학)·성심(부천 본교) 3 교정",
       "sources": [
         "https://www.catholic.ac.kr/ko/about/campus-map.do",
         "https://namu.wiki/w/%EA%B0%80%ED%86%A8%EB%A6%AD%EB%8C%80%ED%95%99%EA%B5%90/%EC%84%B1%EC%8B%A0%EA%B5%90%EC%A0%95"
@@ -815,7 +898,10 @@
           "id": "songsin",
           "name": "성신교정 (혜화)",
           "district": "서울 종로구 가톨릭대학교 성신교정",
-          "buildings": []
+          "buildings": [
+            { "code": "도서관", "name": "성신교정도서관", "aliases": ["1995 신축"], "college": "도서관" },
+            { "code": "혜화동성당", "name": "혜화동성당", "aliases": [], "college": "예배·공용" }
+          ]
         },
         {
           "id": "songeui",
@@ -842,7 +928,11 @@
           "id": "seoul",
           "name": "서울캠퍼스 (홍릉)",
           "district": "서울 동대문구 KAIST 서울캠퍼스",
-          "buildings": []
+          "buildings": [
+            { "code": "1동", "name": "1동", "aliases": ["경영대학 학장실·대강당"], "college": "경영대학" },
+            { "code": "SUPEX", "name": "SUPEX경영관", "aliases": ["수펙스경영관", "최종현홀"], "college": "경영대학" },
+            { "code": "7동", "name": "7동", "aliases": [], "college": "공용시설" }
+          ]
         }
       ]
     },
@@ -905,14 +995,18 @@
       "placeIdPrefix": "skhu",
       "sources": [
         "https://www.skhu.ac.kr/skhu/865/subview.do",
-        "https://namu.wiki/w/%EC%84%B1%EA%B3%B5%ED%9A%8C%EB%8C%80%ED%95%99%EA%B5%90"
+        "https://namu.wiki/w/%EC%84%B1%EA%B3%B5%ED%9A%8C%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"
       ],
       "campuses": [
         {
           "id": "main",
           "name": "항동캠퍼스",
           "district": "서울 구로구 성공회대학교",
-          "buildings": []
+          "buildings": [
+            { "code": "새천년관", "name": "새천년관", "aliases": ["인문사회관"], "college": "인문사회" },
+            { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+            { "code": "미가엘관", "name": "미가엘관", "aliases": ["신학관"], "college": "신학" }
+          ]
         }
       ]
     },
@@ -1029,7 +1123,7 @@
       "aliases": ["K-ARTS", "한예종", "Korea National University of Arts"],
       "badge": "석관·서초·대학로",
       "placeIdPrefix": "karts",
-      "notes": "3 캠퍼스 분리: 석관(영상·미술·전통예술·연극), 서초(음악·무용), 대학로(연극원 일부)",
+      "notes": "3 캠퍼스 분리: 석관(영상·미술·전통예술·연극), 서초(음악·무용)",
       "sources": [
         "https://www.karts.ac.kr/main/index.do?menuId=010602000000",
         "https://namu.wiki/w/%ED%95%9C%EA%B5%AD%EC%98%88%EC%88%A0%EC%A2%85%ED%95%A9%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"
