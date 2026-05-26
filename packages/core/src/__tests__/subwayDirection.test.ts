@@ -1,43 +1,47 @@
 // 회귀 방지: prev→next 방향 판정. swopenAPI updnLine과 일치해야 함.
-// '1' = 외선/하행, '0' = 내선/상행
+// 2호선 (순환선) — swopenAPI 실제 매핑 (사용자 검증 2026-05-26):
+//   updnLine '0' = 외선순환 (시계방향)
+//   updnLine '1' = 내선순환 (반시계방향)
+// 단방향 노선 — doc 그대로: '0' = 상행, '1' = 하행 (sequence 정방향).
 
 import { describe, it, expect } from 'vitest';
 import { expectedUpdnLine } from '../subwayDirection';
 
 describe('expectedUpdnLine', () => {
-  describe('2호선 (순환선)', () => {
-    // 외선순환 (시계방향): 강남 → 교대 → 서초 → 방배 → 사당
-    it('강남 → 교대 = 외선 (1)', () => {
-      expect(expectedUpdnLine('2호선', '강남', '교대')).toBe('1');
+  describe('2호선 (순환선) — swopenAPI doc과 반대 매핑', () => {
+    // 외선순환 (시계방향): 강남 → 교대 → 서초 → 방배 → 사당. updn=0.
+    it('강남 → 교대 = 외선 (0)', () => {
+      expect(expectedUpdnLine('2호선', '강남', '교대')).toBe('0');
     });
-    it('교대 → 서초 = 외선 (1)', () => {
-      expect(expectedUpdnLine('2호선', '교대', '서초')).toBe('1');
+    it('교대 → 서초 = 외선 (0)', () => {
+      expect(expectedUpdnLine('2호선', '교대', '서초')).toBe('0');
     });
-    it('서초 → 방배 = 외선 (1)', () => {
-      expect(expectedUpdnLine('2호선', '서초', '방배')).toBe('1');
+    it('서초 → 방배 = 외선 (0)', () => {
+      expect(expectedUpdnLine('2호선', '서초', '방배')).toBe('0');
     });
-    // 내선순환 (반시계): 강남 → 역삼 → 선릉
-    it('강남 → 역삼 = 내선 (0)', () => {
-      expect(expectedUpdnLine('2호선', '강남', '역삼')).toBe('0');
+    // 내선순환 (반시계): 교대 → 강남 → 역삼. updn=1.
+    it('교대 → 강남 = 내선 (1)', () => {
+      expect(expectedUpdnLine('2호선', '교대', '강남')).toBe('1');
     });
-    it('서초 → 교대 = 내선 (0)', () => {
-      expect(expectedUpdnLine('2호선', '서초', '교대')).toBe('0');
+    it('강남 → 역삼 = 내선 (1)', () => {
+      expect(expectedUpdnLine('2호선', '강남', '역삼')).toBe('1');
     });
-    it('방배 → 서초 = 내선 (0)', () => {
-      expect(expectedUpdnLine('2호선', '방배', '서초')).toBe('0');
+    it('서초 → 교대 = 내선 (1)', () => {
+      expect(expectedUpdnLine('2호선', '서초', '교대')).toBe('1');
+    });
+    it('방배 → 서초 = 내선 (1)', () => {
+      expect(expectedUpdnLine('2호선', '방배', '서초')).toBe('1');
     });
     // wrap-around
-    it('충정로 → 시청 = 외선 (1) [wrap-around]', () => {
-      expect(expectedUpdnLine('2호선', '충정로', '시청')).toBe('1');
+    it('충정로 → 시청 = 외선 (0)', () => {
+      expect(expectedUpdnLine('2호선', '충정로', '시청')).toBe('0');
     });
-    it('시청 → 충정로 = 내선 (0) [wrap-around]', () => {
-      expect(expectedUpdnLine('2호선', '시청', '충정로')).toBe('0');
+    it('시청 → 충정로 = 내선 (1)', () => {
+      expect(expectedUpdnLine('2호선', '시청', '충정로')).toBe('1');
     });
-    // "역" suffix tolerant
     it('strips trailing 역', () => {
-      expect(expectedUpdnLine('2호선', '강남역', '교대역')).toBe('1');
+      expect(expectedUpdnLine('2호선', '강남역', '교대역')).toBe('0');
     });
-    // non-adjacent
     it('인접 아니면 null (강남↔잠실)', () => {
       expect(expectedUpdnLine('2호선', '강남', '잠실')).toBeNull();
     });

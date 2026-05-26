@@ -118,13 +118,15 @@ export function expectedUpdnLine(line: string, prev: string, next: string): '0' 
   const ni = seq.indexOf(n);
   if (pi === -1 || ni === -1) return null;
   if (line === '2호선') {
-    // 순환선 — 시퀀스가 외선순환 정방향. 단순 indexOf 차이로 방향 판정,
-    // wrap-around 케이스 (시청 ← 충정로) 도 처리.
+    // 순환선 — swopenAPI 실제 매핑은 doc과 반대 (사용자 검증, 2026-05-26):
+    //   updnLine '0' = 외선순환 (시계방향, 3000번대 trainNo 위주)
+    //   updnLine '1' = 내선순환 (반시계방향, 2000번대 trainNo 위주)
+    // wrap-around (시청 ← 충정로) 도 처리.
     const len = seq.length;
     const forward = (ni - pi + len) % len;
     const backward = (pi - ni + len) % len;
-    if (forward === 1) return '1'; // outer (정방향)
-    if (backward === 1) return '0'; // inner (역방향)
+    if (forward === 1) return '0';  // outer (정방향)
+    if (backward === 1) return '1'; // inner (역방향)
     return null;
   }
   if (ni === pi + 1) return '1';
