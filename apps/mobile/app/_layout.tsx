@@ -14,10 +14,14 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" options={{ title: '에어컨 민주주의' }} />
-        <Stack.Screen name="wizard" options={{ title: '지금 어디 계세요?' }} />
+        <Stack.Screen name="wizard/index" options={{ title: '지금 어디 계세요?' }} />
+        <Stack.Screen name="wizard/subway" options={{ title: '지하철' }} />
+        <Stack.Screen name="wizard/bus" options={{ title: '버스' }} />
+        <Stack.Screen name="wizard/cafe" options={{ title: '카페·음식점' }} />
+        <Stack.Screen name="wizard/classroom" options={{ title: '강의실' }} />
         <Stack.Screen name="p/[placeId]" options={{ title: '투표' }} />
         <Stack.Screen name="login" options={{ title: '로그인', presentation: 'modal' }} />
-        <Stack.Screen name="qr" options={{ title: 'QR 스캔' }} />
+        <Stack.Screen name="qr" options={{ title: 'QR 스캔', headerShown: false }} />
       </Stack>
     </>
   );
