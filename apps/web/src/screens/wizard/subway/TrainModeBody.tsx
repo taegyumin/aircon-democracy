@@ -7,13 +7,11 @@
 //   3. 칸 선택은 horizontal train silhouette + "칸 모름" 자연스러운 row option.
 //   4. CTA 카피는 상태별 ("역 이름을 입력해주세요" / "5번 칸으로 투표하기" 등).
 
-import { TOKEN, FONT, lineColor, type Station } from '@aircon/core';
+import { TOKEN, FONT, lineColor, carCountFor, type Station } from '@aircon/core';
 import type { SubwayMatchResult } from '../../../lib/apiClient';
 import { Label } from '../Label';
 import { primaryButtonStyle } from '../styles';
 import { StationAutocomplete } from './StationAutocomplete';
-
-const CAR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export interface TrainModeBodyProps {
   prevQuery: string; setPrevQuery: (v: string) => void;
@@ -542,16 +540,23 @@ function LineCard({
             </div>
           </div>
 
-          <RouteViz
-            prev={prev}
-            next={next}
-            color={color}
-            progress={trainMatch?.progress ?? null}
-            progressLabel={trainMatch?.progressLabel ?? null}
-          />
+          {/* realtime 매칭 실패면 RouteViz 자체 의미 없음 (열차 위치 모름).
+              prev/next 트랙이 보이면 "매칭된 척" 오인 — 단순 구간 라인으로 대체. */}
+          {realtimeFailed ? (
+            <SegmentLine prev={prev} next={next} />
+          ) : (
+            <RouteViz
+              prev={prev}
+              next={next}
+              color={color}
+              progress={trainMatch?.progress ?? null}
+              progressLabel={trainMatch?.progressLabel ?? null}
+            />
+          )}
 
-          {/* realtime 매칭 실패 시 — 입력 잘못일 수도 있어 recovery actions 노출.
-              "이 구간으로 그냥 투표"는 하단 CTA로 가능 (구간 단위 fallback). */}
+          {/* realtime 매칭 실패 시 — 입력 오류 가능성 안내 + recovery actions.
+              swopenAPI가 일부 노선(신림선/경전철 등)을 안 줄 수 있으나, 가드는 풀려 있어
+              사용자 입장에선 동일 케이스로 보임. */}
           {realtimeFailed && (
             <div style={{ marginTop: 14 }}>
               <div style={{ fontSize: 11, color: AMBER_TEXT, lineHeight: 1.5, marginBottom: 12 }}>
@@ -588,6 +593,27 @@ function LineCard({
   );
 }
 
+// ── SegmentLine — realtime 매칭 실패 시 단순 구간 표시 (열차 위치 hint 없음) ───
+
+function SegmentLine({ prev, next }: { prev: string; next: string }) {
+  return (
+    <div
+      style={{
+        background: TOKEN.bg, borderRadius: TOKEN.r.sm, padding: '14px 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+      }}
+    >
+      <span style={{ fontSize: 13, fontWeight: 700, color: TOKEN.text1 }}>{prev}</span>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: 0.6 }}>
+        <div style={{ flex: 1, height: 2, background: TOKEN.border, borderRadius: 1 }} aria-hidden />
+        <ArrowRight color={TOKEN.text3} size={14} />
+        <div style={{ flex: 1, height: 2, background: TOKEN.border, borderRadius: 1 }} aria-hidden />
+      </div>
+      <span style={{ fontSize: 13, fontWeight: 700, color: TOKEN.text1 }}>{next}</span>
+    </div>
+  );
+}
+
 // ── RouteViz — Claude Design 시안 A: mini-train slides along track ──────
 // swopenAPI 진행도 (statnNm + trainSttus → 0~1) 기반. progress 없으면 fallback.
 
@@ -614,31 +640,35 @@ function RouteViz({
   progress: number | null;
   progressLabel: SubwayMatchResult['progressLabel'] | null;
 }) {
-  // progress 없으면 (실시간 매칭 실패 등) 정적 트랙만 + "지금 여기" 중앙 표시.
+  // 실시간 progress 있을 때만 mini-train + state 텍스트 노출.
+  // 없으면 (매칭 실패, 비-1~9호선 등) viz는 정적 트랙 + 양 끝 dot만 — 사용자가
+  // '열차가 가운데 있다'고 오해하지 않게 (LLM 사용자 피드백 2026-05-27).
   const hasProgress = typeof progress === 'number';
-  const pos = hasProgress ? Math.max(0, Math.min(1, progress)) : 0.5;
+  const pos = hasProgress ? Math.max(0, Math.min(1, progress)) : 0;
   const atDest = pos >= 1;
   const MAR = 7;
   const DOT = 14;
-  // 열차 아이콘 left position. 32px wide → -16 offset to center on pos.
   const trainLeft = `calc(${MAR}px + ${pos} * (100% - ${MAR * 2}px) - 16px)`;
-  const fillWidth = `calc(${pos} * (100% - ${MAR * 2}px))`;
+  const fillWidth = hasProgress ? `calc(${pos} * (100% - ${MAR * 2}px))` : '0';
 
-  // progressLabel → 사람 친화 텍스트.
-  const stateText = progressLabel === 'at-prev' ? `${prev} 정차 중`
+  // progressLabel → 사람 친화 텍스트. hasProgress 없으면 텍스트 자체 미표시.
+  const stateText = !hasProgress ? null
+    : progressLabel === 'at-prev' ? `${prev} 정차 중`
     : progressLabel === 'just-left-prev' ? `${prev} 막 출발`
     : progressLabel === 'between' ? '이동 중'
     : progressLabel === 'approaching-next' ? `${next} 거의 도착`
     : progressLabel === 'at-next' ? `${next} 정차 중`
-    : hasProgress ? null : '대략 이쯤 (실시간 위치 알 수 없음)';
+    : null;
 
   return (
     <div style={{ background: TOKEN.bg, borderRadius: TOKEN.r.sm, padding: '12px 14px 10px' }}>
       <div style={{ position: 'relative', height: 32, marginBottom: 8 }}>
         {/* Full track */}
         <div style={{ position: 'absolute', top: 14, left: MAR, right: MAR, height: 3, background: TOKEN.border, borderRadius: 2 }} />
-        {/* Filled track */}
-        <div style={{ position: 'absolute', top: 14, left: MAR, width: fillWidth, height: 3, background: color, borderRadius: 2 }} />
+        {/* Filled track (progress 있을 때만 의미 있음) */}
+        {hasProgress && (
+          <div style={{ position: 'absolute', top: 14, left: MAR, width: fillWidth, height: 3, background: color, borderRadius: 2 }} />
+        )}
         {/* Left station dot (prev) */}
         <div style={{
           position: 'absolute', top: 7, left: 0,
@@ -650,20 +680,22 @@ function RouteViz({
         <div style={{
           position: 'absolute', top: 7, right: 0,
           width: DOT, height: DOT, borderRadius: '50%',
-          background: atDest ? color : TOKEN.border,
+          background: hasProgress && atDest ? color : TOKEN.border,
           border: '2px solid #fff',
-          boxShadow: atDest ? `0 2px 8px ${color}55` : 'none',
+          boxShadow: hasProgress && atDest ? `0 2px 8px ${color}55` : 'none',
           zIndex: 2,
         }} />
-        {/* Mini train icon — floats above track */}
-        <div style={{ position: 'absolute', top: -4, left: trainLeft, zIndex: 3 }}>
-          <MiniTrain color={color} />
-        </div>
+        {/* Mini train icon — progress 있을 때만 (위치 알 때만 표시) */}
+        {hasProgress && (
+          <div style={{ position: 'absolute', top: -4, left: trainLeft, zIndex: 3 }}>
+            <MiniTrain color={color} />
+          </div>
+        )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text1 }}>{prev}</span>
         {stateText && (
-          <span style={{ fontSize: 10, color: hasProgress ? color : TOKEN.text3, fontWeight: hasProgress ? 700 : 400 }}>
+          <span style={{ fontSize: 10, color, fontWeight: 700 }}>
             {stateText}
           </span>
         )}
@@ -686,6 +718,10 @@ function CarStrip({
 }) {
   const unknownSel = car === 'unknown';
   const lc = lineColor(line);
+  // 노선별 차량 수 (1편성). 신림선/경전철 = 2, 9호선 = 4, 1~4호선 = 10 등.
+  // 잘못된 선택 차단 + 사용자가 '10량까지 있는데 우리 노선엔 그렇게 안 됨' 혼동 방지.
+  const carCount = carCountFor(line);
+  const carOptions = Array.from({ length: carCount }, (_, i) => i + 1);
 
   return (
     <div>
@@ -698,12 +734,12 @@ function CarStrip({
         {trainConfirmed ? '몇 번째 칸에 타고 계세요?' : '몇 호차예요?'}
       </div>
 
-      {/* Train silhouette strip */}
+      {/* Train silhouette strip — 노선별 carCount 만큼 칸 표시. */}
       <div style={{ display: 'flex', gap: 3, justifyContent: 'center', overflowX: 'auto', paddingBottom: 4 }}>
-        {CAR_OPTIONS.map((n) => {
+        {carOptions.map((n) => {
           const sel = car === n;
           const first = n === 1;
-          const last = n === CAR_OPTIONS.length;
+          const last = n === carOptions.length;
           return (
             <button
               key={n}

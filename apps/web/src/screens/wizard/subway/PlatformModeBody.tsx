@@ -7,6 +7,12 @@ import { TOKEN, FONT, lineColor, neighborNames, type Station } from '@aircon/cor
 import { primaryButtonStyle } from '../styles';
 import { StationAutocomplete } from './StationAutocomplete';
 
+// STATIONS의 name이 이미 "...역"으로 끝나는 경우 많음 (서울대입구역 등).
+// UI에 "${name}역" 박으면 "서울대입구역역" 이중 표기. 끝 "역" 한 번만.
+function stationDisplay(name: string): string {
+  return name.endsWith('역') ? name : `${name}역`;
+}
+
 export interface PlatformModeBodyProps {
   query: string; setQuery: (v: string) => void;
   station: Station | null; setStation: (v: Station | null) => void;
@@ -73,7 +79,7 @@ export function PlatformModeBody(p: PlatformModeBodyProps) {
           {p.submitting
             ? '이동 중…'
             : p.station
-              ? `${p.station.name}역에서 투표하기`
+              ? `${stationDisplay(p.station.name)}에서 투표하기`
               : '역을 선택해주세요'}
           {p.canSubmit && !p.submitting && <ArrowRight color="#fff" />}
         </span>
@@ -142,7 +148,7 @@ function PlatformCard({ station }: { station: Station }) {
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}
               >
-                {station.name}역
+                {stationDisplay(station.name)}
               </div>
               <div style={{ fontSize: 12, color: TOKEN.text2, marginTop: 3 }}>{lineText}</div>
             </div>
