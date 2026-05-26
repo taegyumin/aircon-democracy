@@ -18,11 +18,17 @@ const adjacency = load('subway-adjacency.json');
 const warns = [];
 const fails = [];
 
-// ── WARNINGS (정보용, exit 0) ────────────────────────────────────
+// ── BUDGETS (known backlog는 잠금, 새로 증가하면 FAIL) ─────────────
+// 2026-05-26 baseline. ghost를 줄이면 여기 숫자도 줄여서 회귀 못 들어오게.
+// 늘어나면 PR이 fail. 일부러 늘려야 한다면 이 숫자를 같이 PR에 포함.
+const GHOST_BUDGET = 97;
+const DUPE_BUDGET = 2;
 
 const ghost = stations.filter((s) => typeof s.lat !== 'number' || typeof s.lng !== 'number');
-if (ghost.length > 0) {
-  warns.push(`Ghost stations (lat/lng 누락) ${ghost.length}개`);
+if (ghost.length > GHOST_BUDGET) {
+  fails.push(`Ghost stations ${ghost.length}개 — budget ${GHOST_BUDGET} 초과 (${ghost.length - GHOST_BUDGET}개 추가). lat/lng 채우거나 budget을 올리세요.`);
+} else if (ghost.length > 0) {
+  warns.push(`Ghost stations (lat/lng 누락) ${ghost.length}개 / budget ${GHOST_BUDGET}`);
 }
 
 const knownNames = new Set(stations.flatMap((s) => [s.name, s.name.replace(/역$/, '')]));
@@ -47,8 +53,10 @@ const dupes = [];
 for (const [k, list] of byNameLine.entries()) {
   if (list.length > 1) dupes.push(`${k} × ${list.length}`);
 }
-if (dupes.length > 0) {
-  warns.push(`Duplicate station × line ${dupes.length}개: ${dupes.slice(0, 3).join(', ')}`);
+if (dupes.length > DUPE_BUDGET) {
+  fails.push(`Duplicate station × line ${dupes.length}개 — budget ${DUPE_BUDGET} 초과. ${dupes.slice(0, 5).join(', ')}`);
+} else if (dupes.length > 0) {
+  warns.push(`Duplicate station × line ${dupes.length}개 / budget ${DUPE_BUDGET}: ${dupes.slice(0, 3).join(', ')}`);
 }
 
 // ── HARD FAILS (회귀 방지) ───────────────────────────────────────
