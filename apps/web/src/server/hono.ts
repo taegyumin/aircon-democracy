@@ -18,6 +18,7 @@ import {
   type AuditMeta,
 } from './_abuse';
 import { SubwayMatchBodySchema, BusMatchBodySchema } from '@aircon/core/validation';
+import { OAUTH_PROVIDERS, type OAuthProvider } from './oauth';
 
 type Bindings = {
   DB: D1Database;
@@ -192,131 +193,7 @@ app.post('/auth/logout', (c) => {
   return c.json({ ok: true });
 });
 
-// ── Auth: Kakao OAuth ───────────────────────────────────────────────
-
-app.get('/auth/kakao', (c) => {
-  if (!c.env.KAKAO_REST_API_KEY || c.env.KAKAO_REST_API_KEY.startsWith('TODO')) {
-    return c.json({ error: 'kakao_not_configured', hint: 'Set KAKAO_REST_API_KEY env var' }, 503);
-  }
-  const state = crypto.randomUUID();
-  setCookie(c, OAUTH_STATE_COOKIE, state, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    maxAge: 600,
-    path: '/',
-  });
-  const origin = new URL(c.req.url).origin;
-  const redirectUri = `${origin}/api/auth/kakao/callback`;
-  const params = new URLSearchParams({
-    client_id: c.env.KAKAO_REST_API_KEY,
-    redirect_uri: redirectUri,
-    response_type: 'code',
-    state,
-    // account_email은 카카오 콘솔에서 비즈니스 권한 또는 별도 활성화 필요.
-    // 활성화 안 된 상태에서 요청하면 scope_not_allowed 에러 나서 콜백 실패.
-    // 닉네임·프사 두 개는 default 활성 → 무료 앱이라도 안전.
-    scope: 'profile_nickname profile_image',
-  });
-  return c.redirect(`https://kauth.kakao.com/oauth/authorize?${params.toString()}`);
-});
-
-app.get('/auth/kakao/callback', async (c) => {
-  const { code, state, error } = c.req.query();
-  if (error) return c.redirect(`/login?error=${encodeURIComponent(error)}`);
-  if (!code || !state) return c.redirect('/login?error=missing_code');
-
-  const savedState = getCookie(c, OAUTH_STATE_COOKIE);
-  deleteCookie(c, OAUTH_STATE_COOKIE, { path: '/' });
-  if (!savedState || savedState !== state) {
-    return c.redirect('/login?error=state_mismatch');
-  }
-
-  const apiKey = c.env.KAKAO_REST_API_KEY;
-  const clientSecret = c.env.KAKAO_CLIENT_SECRET;
-  if (!apiKey || apiKey.startsWith('TODO')) return c.redirect('/login?error=not_configured');
-
-  const origin = new URL(c.req.url).origin;
-  const redirectUri = `${origin}/api/auth/kakao/callback`;
-
-  // Exchange code → token
-  const tokenForm = new URLSearchParams({
-    grant_type: 'authorization_code',
-    client_id: apiKey,
-    redirect_uri: redirectUri,
-    code,
-  });
-  if (clientSecret && !clientSecret.startsWith('TODO')) tokenForm.set('client_secret', clientSecret);
-
-  const tokenRes = await fetch('https://kauth.kakao.com/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: tokenForm.toString(),
-  });
-  const tokenBody = (await tokenRes.json()) as { access_token?: string; error?: string };
-  if (!tokenBody.access_token) {
-    return c.redirect(`/login?error=token_${encodeURIComponent(tokenBody.error ?? 'unknown')}`);
-  }
-
-  // Fetch user info
-  const userRes = await fetch('https://kapi.kakao.com/v2/user/me', {
-    headers: { Authorization: `Bearer ${tokenBody.access_token}` },
-  });
-  const ku = (await userRes.json()) as {
-    id?: number;
-    kakao_account?: {
-      email?: string;
-      profile?: { nickname?: string; profile_image_url?: string };
-    };
-  };
-  if (!ku.id) return c.redirect('/login?error=user_fetch_failed');
-
-  const providerUserId = String(ku.id);
-  const profile = ku.kakao_account?.profile ?? {};
-  const displayName = profile.nickname ?? '카카오 사용자';
-  const profileImageUrl = profile.profile_image_url ?? null;
-  const email = ku.kakao_account?.email ?? null;
-  const now = Date.now();
-
-  // Upsert user
-  const existing = await c.env.DB.prepare(
-    'SELECT id FROM users WHERE provider = ? AND provider_user_id = ?'
-  )
-    .bind('kakao', providerUserId)
-    .first<{ id: string }>();
-
-  let userId: string;
-  if (existing) {
-    userId = existing.id;
-    await c.env.DB.prepare(
-      'UPDATE users SET display_name = ?, profile_image_url = ?, email = ?, last_login_at = ? WHERE id = ?'
-    )
-      .bind(displayName, profileImageUrl, email, now, userId)
-      .run();
-  } else {
-    userId = crypto.randomUUID();
-    await c.env.DB.prepare(
-      'INSERT INTO users (id, provider, provider_user_id, display_name, profile_image_url, email, created_at, last_login_at) VALUES (?,?,?,?,?,?,?,?)'
-    )
-      .bind(userId, 'kakao', providerUserId, displayName, profileImageUrl, email, now, now)
-      .run();
-  }
-
-  // Issue session JWT
-  const expSeconds = Math.floor(now / 1000) + SESSION_DAYS * 24 * 60 * 60;
-  const sessionJwt = await jwtSign({ uid: userId, exp: expSeconds }, c.env.SESSION_SECRET, 'HS256');
-  setCookie(c, SESSION_COOKIE, sessionJwt, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    maxAge: SESSION_DAYS * 24 * 60 * 60,
-    path: '/',
-  });
-
-  return c.redirect('/');
-});
-
-// ── OAuth helpers (shared by naver/google) ──────────────────────────
+// ── OAuth helpers ───────────────────────────────────────────────────
 
 async function upsertUserAndIssueSession(
   c: Context<{ Bindings: Bindings; Variables: Vars }>,
@@ -377,139 +254,50 @@ function setOAuthState(c: Context<{ Bindings: Bindings; Variables: Vars }>): str
   return state;
 }
 
-// ── Auth: Naver OAuth ───────────────────────────────────────────────
+// ── Auth: OAuth (kakao/naver/google) — provider-driven ──────────────
+// 3개 provider의 authorize → token-exchange → userinfo 패턴이 동일.
+// 각 provider 구현은 oauth/{kakao,naver,google}.ts. 여기는 generic loop.
 
-app.get('/auth/naver', (c) => {
-  if (!c.env.NAVER_CLIENT_ID || c.env.NAVER_CLIENT_ID.startsWith('TODO')) {
-    return c.json({ error: 'naver_not_configured' }, 503);
-  }
-  const state = setOAuthState(c);
-  const origin = new URL(c.req.url).origin;
-  const redirectUri = `${origin}/api/auth/naver/callback`;
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: c.env.NAVER_CLIENT_ID,
-    redirect_uri: redirectUri,
-    state,
+function registerOAuthProvider(provider: OAuthProvider): void {
+  app.get(`/auth/${provider.id}`, (c) => {
+    const cfg = provider.isConfigured(c.env);
+    if (!cfg.ok) return c.json({ error: cfg.error }, 503);
+    const state = setOAuthState(c);
+    const origin = new URL(c.req.url).origin;
+    const redirectUri = `${origin}/api/auth/${provider.id}/callback`;
+    return c.redirect(provider.authorizeUrl({ state, redirectUri, env: c.env }));
   });
-  return c.redirect(`https://nid.naver.com/oauth2.0/authorize?${params.toString()}`);
-});
 
-app.get('/auth/naver/callback', async (c) => {
-  const { code, state, error } = c.req.query();
-  if (error) return c.redirect(`/login?error=${encodeURIComponent(error)}`);
-  if (!code || !state) return c.redirect('/login?error=missing_code');
-  if (!consumeOAuthState(c, state)) return c.redirect('/login?error=state_mismatch');
+  app.get(`/auth/${provider.id}/callback`, async (c) => {
+    const { code, state, error } = c.req.query();
+    if (error) return c.redirect(`/login?error=${encodeURIComponent(error)}`);
+    if (!code || !state) return c.redirect('/login?error=missing_code');
+    if (!consumeOAuthState(c, state)) return c.redirect('/login?error=state_mismatch');
 
-  const clientId = c.env.NAVER_CLIENT_ID;
-  const clientSecret = c.env.NAVER_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return c.redirect('/login?error=not_configured');
+    const cfg = provider.isConfigured(c.env);
+    if (!cfg.ok) return c.redirect('/login?error=not_configured');
 
-  const tokenParams = new URLSearchParams({
-    grant_type: 'authorization_code',
-    client_id: clientId,
-    client_secret: clientSecret,
-    code,
-    state,
+    const origin = new URL(c.req.url).origin;
+    const redirectUri = `${origin}/api/auth/${provider.id}/callback`;
+    const tok = await provider.exchangeCode({ code, state, redirectUri, env: c.env });
+    if (!tok.ok) return c.redirect(`/login?error=token_${encodeURIComponent(tok.error)}`);
+
+    const user = await provider.fetchUser(tok.accessToken);
+    if (!user) return c.redirect('/login?error=user_fetch_failed');
+
+    await upsertUserAndIssueSession(
+      c,
+      provider.id,
+      user.providerUserId,
+      user.displayName,
+      user.profileImageUrl,
+      user.email,
+    );
+    return c.redirect('/');
   });
-  const tokenRes = await fetch(`https://nid.naver.com/oauth2.0/token?${tokenParams.toString()}`);
-  const tokenBody = (await tokenRes.json()) as { access_token?: string; error?: string };
-  if (!tokenBody.access_token) {
-    return c.redirect(`/login?error=token_${encodeURIComponent(tokenBody.error ?? 'unknown')}`);
-  }
+}
 
-  const userRes = await fetch('https://openapi.naver.com/v1/nid/me', {
-    headers: { Authorization: `Bearer ${tokenBody.access_token}` },
-  });
-  const nu = (await userRes.json()) as {
-    resultcode?: string;
-    response?: { id?: string; nickname?: string; profile_image?: string; email?: string; name?: string };
-  };
-  if (nu.resultcode !== '00' || !nu.response?.id) return c.redirect('/login?error=user_fetch_failed');
-
-  await upsertUserAndIssueSession(
-    c,
-    'naver',
-    nu.response.id,
-    nu.response.nickname ?? nu.response.name ?? '네이버 사용자',
-    nu.response.profile_image ?? null,
-    nu.response.email ?? null,
-  );
-  return c.redirect('/');
-});
-
-// ── Auth: Google OAuth ──────────────────────────────────────────────
-
-app.get('/auth/google', (c) => {
-  if (!c.env.GOOGLE_CLIENT_ID || c.env.GOOGLE_CLIENT_ID.startsWith('TODO')) {
-    return c.json({ error: 'google_not_configured' }, 503);
-  }
-  const state = setOAuthState(c);
-  const origin = new URL(c.req.url).origin;
-  const redirectUri = `${origin}/api/auth/google/callback`;
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: c.env.GOOGLE_CLIENT_ID,
-    redirect_uri: redirectUri,
-    state,
-    scope: 'openid email profile',
-    access_type: 'online',
-    prompt: 'select_account',
-  });
-  return c.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
-});
-
-app.get('/auth/google/callback', async (c) => {
-  const { code, state, error } = c.req.query();
-  if (error) return c.redirect(`/login?error=${encodeURIComponent(error)}`);
-  if (!code || !state) return c.redirect('/login?error=missing_code');
-  if (!consumeOAuthState(c, state)) return c.redirect('/login?error=state_mismatch');
-
-  const clientId = c.env.GOOGLE_CLIENT_ID;
-  const clientSecret = c.env.GOOGLE_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return c.redirect('/login?error=not_configured');
-
-  const origin = new URL(c.req.url).origin;
-  const redirectUri = `${origin}/api/auth/google/callback`;
-
-  const tokenForm = new URLSearchParams({
-    grant_type: 'authorization_code',
-    client_id: clientId,
-    client_secret: clientSecret,
-    code,
-    redirect_uri: redirectUri,
-  });
-  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: tokenForm.toString(),
-  });
-  const tokenBody = (await tokenRes.json()) as { access_token?: string; error?: string; error_description?: string };
-  if (!tokenBody.access_token) {
-    return c.redirect(`/login?error=token_${encodeURIComponent(tokenBody.error ?? 'unknown')}`);
-  }
-
-  const userRes = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
-    headers: { Authorization: `Bearer ${tokenBody.access_token}` },
-  });
-  const gu = (await userRes.json()) as {
-    sub?: string;
-    name?: string;
-    picture?: string;
-    email?: string;
-  };
-  if (!gu.sub) return c.redirect('/login?error=user_fetch_failed');
-
-  await upsertUserAndIssueSession(
-    c,
-    'google',
-    gu.sub,
-    gu.name ?? '구글 사용자',
-    gu.picture ?? null,
-    gu.email ?? null,
-  );
-  return c.redirect('/');
-});
+for (const p of OAUTH_PROVIDERS) registerOAuthProvider(p);
 
 // GET /api/places — list places with live vote counts.
 // Cached at the edge for ~30s (per-place "my vote" is fetched separately
