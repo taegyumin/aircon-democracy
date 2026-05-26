@@ -17,6 +17,9 @@ interface Props {
   onQR: () => void;
   onRegister: () => void;
   onLogin?: () => void;
+  // Server-fetched 인기 장소 list. RSC가 D1에서 가져와서 첫 HTML에 박음 (SEO + LCP).
+  // 없으면 client에서 fetch (fallback — D1 binding 없는 환경 등).
+  initialPlaces?: PlaceWithCounts[];
 }
 
 function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: string }) {
@@ -39,8 +42,10 @@ function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: str
   );
 }
 
-export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR, onRegister, onLogin }: Props) {
-  const [places, setPlaces] = useState<PlaceWithCounts[] | null>(null);
+export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR, onRegister, onLogin, initialPlaces }: Props) {
+  // RSC-provided list가 있으면 첫 렌더부터 채워짐 (SEO + LCP). 그래도 mount 후
+  // re-fetch는 그대로 — 사용자가 머무는 동안 fresh count 갱신.
+  const [places, setPlaces] = useState<PlaceWithCounts[] | null>(initialPlaces ?? null);
   const [error, setError] = useState<string | null>(null);
   const { user, logout } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
