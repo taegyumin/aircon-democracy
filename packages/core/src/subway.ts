@@ -171,6 +171,12 @@ export function carCountFor(line: string): number {
   return LINE_CAR_COUNT[line] ?? 8;
 }
 
+// STATIONS의 name이 이미 '...역'으로 끝나는 경우 많음 (서울대입구역, 신림역, 봉천역 등).
+// UI에서 "${name}역"으로 박으면 "서울대입구역역" 이중 표기. 끝 '역' 한 번만.
+export function stationDisplay(name: string): string {
+  return name.endsWith('역') ? name : `${name}역`;
+}
+
 // ── Hangul chosung (초성) decomposition ─────────────────────────────
 const CHOSUNG = [
   'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ',

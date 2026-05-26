@@ -3,15 +3,11 @@
 // 지하철 wizard "열차 기다리는 중" mode — Claude Design 시안 적용.
 // 단일 역 선택 → 노선 색 카드 (인접역 미니 라우트) → "역명에서 투표하기" CTA.
 
-import { TOKEN, FONT, lineColor, neighborNames, type Station } from '@aircon/core';
+import {
+  TOKEN, FONT, lineColor, neighborNames, stationDisplay, type Station,
+} from '@aircon/core';
 import { primaryButtonStyle } from '../styles';
 import { StationAutocomplete } from './StationAutocomplete';
-
-// STATIONS의 name이 이미 "...역"으로 끝나는 경우 많음 (서울대입구역 등).
-// UI에 "${name}역" 박으면 "서울대입구역역" 이중 표기. 끝 "역" 한 번만.
-function stationDisplay(name: string): string {
-  return name.endsWith('역') ? name : `${name}역`;
-}
 
 export interface PlatformModeBodyProps {
   query: string; setQuery: (v: string) => void;

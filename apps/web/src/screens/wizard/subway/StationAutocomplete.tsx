@@ -3,7 +3,7 @@
 // 지하철 역 자동완성 — Station 객체 단위. 선택 후 chip 클릭으로 reset.
 // Claude Design v2 스타일: selected 모드는 2-line chip (typeLabel 작게 + val 크게 + check).
 
-import { TOKEN, FONT, type Station } from '@aircon/core';
+import { TOKEN, FONT, stationDisplay, type Station } from '@aircon/core';
 import { fieldStyle } from '../styles';
 
 interface Props {
@@ -42,7 +42,7 @@ export function StationAutocomplete({ label, query, setQuery, station, setStatio
           boxShadow: '0 1px 5px rgba(0,0,0,0.06)',
           fontFamily: FONT,
         }}
-        aria-label={`${station.name}역 — 클릭해서 변경`}
+        aria-label={`${stationDisplay(station.name)} — 클릭해서 변경`}
       >
         <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: TOKEN.text1 }} aria-hidden />
         <div style={{ flex: 1, minWidth: 0 }}>

@@ -5,7 +5,7 @@
 
 import { useMemo, useState } from 'react';
 import { Hourglass, TramFront } from 'lucide-react';
-import { TOKEN, FONT, searchStations, type Station, STATIONS, findSegments, neighborNames } from '@aircon/core';
+import { TOKEN, FONT, searchStations, type Station, findSegments } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { recordLine } from '../../../lib/recentPlaces';
 import { WizardHeader } from '../WizardHeader';
@@ -95,37 +95,18 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
   const trainCanSubmit = !!resolvedSegment && car !== null && !submitting;
   const platformCanSubmit = !!platStation && !submitting;
 
-  // When one side is selected, restrict the other side's suggestions to ACTUAL
-  // adjacent stations — turns autocomplete into a "pick one of N neighbors" UI.
-  // City-scope the neighbor lookup so 교대역(서울)'s 부산 neighbors don't leak in.
-  const restrictNamesFor = (anchor: Station | null): Set<string> | null => {
-    if (!anchor) return null;
-    return new Set(neighborNames(anchor.name, anchor.city));
-  };
+  // 검색창에 텍스트 있으면 전체 역에서 검색 (인접 필터 X — 사용자 직접 typing 이라 인접
+  // 강제는 답답함). 텍스트 비어 있으면 빈 list. 인접역 편의 chip은 별도 TrainModeBody에서
+  // CandidateChips로 노출 — 정보 중복 제거.
+  const prevSuggestions = useMemo(
+    () => prevQuery.trim() ? searchStations({ query: prevQuery, limit: 8 }) : [],
+    [prevQuery],
+  );
 
-  const prevSuggestions = useMemo(() => {
-    const restrict = restrictNamesFor(nextStationSel);
-    if (restrict) {
-      const all = STATIONS.filter(
-        (s) => restrict.has(s.name) && (!nextStationSel || s.city === nextStationSel.city),
-      );
-      const q = prevQuery.trim();
-      return (q ? all.filter((s) => s.name.includes(q)) : all).slice(0, 8);
-    }
-    return prevQuery.trim() ? searchStations({ query: prevQuery, limit: 5 }) : [];
-  }, [prevQuery, nextStationSel]);
-
-  const nextSuggestions = useMemo(() => {
-    const restrict = restrictNamesFor(prevStation);
-    if (restrict) {
-      const all = STATIONS.filter(
-        (s) => restrict.has(s.name) && (!prevStation || s.city === prevStation.city),
-      );
-      const q = nextQuery.trim();
-      return (q ? all.filter((s) => s.name.includes(q)) : all).slice(0, 8);
-    }
-    return nextQuery.trim() ? searchStations({ query: nextQuery, limit: 5 }) : [];
-  }, [nextQuery, prevStation]);
+  const nextSuggestions = useMemo(
+    () => nextQuery.trim() ? searchStations({ query: nextQuery, limit: 8 }) : [],
+    [nextQuery],
+  );
 
   const platSuggestions = useMemo(
     () => platQuery.trim() ? searchStations({ query: platQuery, limit: 8 }) : [],

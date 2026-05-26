@@ -7,7 +7,10 @@
 //   3. 칸 선택은 horizontal train silhouette + "칸 모름" 자연스러운 row option.
 //   4. CTA 카피는 상태별 ("역 이름을 입력해주세요" / "5번 칸으로 투표하기" 등).
 
-import { TOKEN, FONT, lineColor, carCountFor, type Station } from '@aircon/core';
+import {
+  TOKEN, FONT, lineColor, carCountFor, stationDisplay,
+  STATIONS, neighborNames, type Station,
+} from '@aircon/core';
 import type { SubwayMatchResult } from '../../../lib/apiClient';
 import { Label } from '../Label';
 import { primaryButtonStyle } from '../styles';
@@ -89,20 +92,13 @@ export function TrainModeBody(p: TrainModeBodyProps) {
         </div>
       </div>
 
-      {/* 다음 역 후보 — 한쪽만 선택됐을 때 인접역 chip으로 빠른 선택 (Claude Design v2). */}
-      {p.prevStation && !p.nextStation && p.nextSuggestions.length > 0 && (
-        <CandidateChips
-          label={`${p.prevStation.name}역 다음 후보`}
-          stations={p.nextSuggestions.slice(0, 5)}
-          onPick={(s) => p.setNextStation(s)}
-        />
+      {/* 인접역 chip — 한쪽만 선택됐을 때 빠른 선택 편의용. 검색 input의 autocomplete는
+          전체 역 list이고, 이건 별도로 anchor 기준 양 옆 역만. */}
+      {p.prevStation && !p.nextStation && (
+        <CandidateChips anchor={p.prevStation} direction="next" onPick={p.setNextStation} />
       )}
-      {!p.prevStation && p.nextStation && p.prevSuggestions.length > 0 && (
-        <CandidateChips
-          label={`${p.nextStation.name}역 직전 후보`}
-          stations={p.prevSuggestions.slice(0, 5)}
-          onPick={(s) => p.setPrevStation(s)}
-        />
+      {!p.prevStation && p.nextStation && (
+        <CandidateChips anchor={p.nextStation} direction="prev" onPick={p.setPrevStation} />
       )}
 
       {/* 매칭 결과 — 통합 카드 */}
@@ -406,25 +402,30 @@ function LinePickerCard({
 
 // ── CandidateChips — 한쪽 station 선택 후 인접역 chip 후보 ─────────
 // Claude Design v2: "강남역 다음 후보: 삼성역 · 역삼역 · 교대역"
-// nextSuggestions/prevSuggestions는 이미 SubwayWizard에서 neighborNames로
-// 인접역만 필터링되어 있음. 5개까지 노출.
+// anchor + direction 직접 받아 내부에서 neighborNames 호출 — autocomplete 검색 list와
+// 정보 중복 안 만들기 위해. 도시 scope으로 cross-city(서울 vs 부산) 누출 방지.
 
 function CandidateChips({
-  label,
-  stations,
-  onPick,
+  anchor, direction, onPick,
 }: {
-  label: string;
-  stations: Station[];
+  anchor: Station;
+  direction: 'prev' | 'next';  // anchor 기준 '직전 후보'냐 '다음 후보'냐
   onPick: (s: Station) => void;
 }) {
+  const neighbors = neighborNames(anchor.name, anchor.city);
+  if (neighbors.length === 0) return null;
+  const candidates = STATIONS.filter((s) => neighbors.includes(s.name) && s.city === anchor.city).slice(0, 6);
+  if (candidates.length === 0) return null;
+  const label = direction === 'next'
+    ? `${stationDisplay(anchor.name)} 다음 후보`
+    : `${stationDisplay(anchor.name)} 직전 후보`;
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: TOKEN.text3, letterSpacing: '0.5px', marginBottom: 10 }}>
         {label}
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {stations.map((s) => (
+        {candidates.map((s) => (
           <button
             key={s.id}
             onClick={() => onPick(s)}
@@ -434,7 +435,7 @@ function CandidateChips({
               color: TOKEN.text1, cursor: 'pointer', fontFamily: FONT,
             }}
           >
-            {s.name}역
+            {stationDisplay(s.name)}
           </button>
         ))}
       </div>
