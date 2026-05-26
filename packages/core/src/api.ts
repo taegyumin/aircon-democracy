@@ -136,6 +136,12 @@ export interface SubwayMatchResult {
   currentStation?: string;
   destination?: string;
   reason?: string;
+  // 0~1 사이 prev → next 진행도. swopenAPI의 statnNm + trainSttus 조합으로 추정.
+  // 정확한 위치(GPS)는 못 줘서 5단계 discrete: 정차/막 출발/이동/거의 도착/도착.
+  // UI에서 mini-train slider 표시용.
+  progress?: number;
+  // 'at-prev' | 'just-left-prev' | 'between' | 'approaching-next' | 'at-next'
+  progressLabel?: 'at-prev' | 'just-left-prev' | 'between' | 'approaching-next' | 'at-next';
 }
 
 export interface BusMatchResult {

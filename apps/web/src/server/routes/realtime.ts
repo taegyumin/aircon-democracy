@@ -3,6 +3,7 @@
 
 import { Hono } from 'hono';
 import { expectedUpdnLine, LINE_SEQUENCES, stripStation } from '@aircon/core/subwayDirection';
+import { estimateProgress } from '@aircon/core';
 import { SubwayMatchBodySchema, BusMatchBodySchema } from '@aircon/core/validation';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
@@ -108,12 +109,21 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
     }
 
     if (!picked) return c.json({ matched: false, reason: 'no_train_at_segment' });
+    // 진행도 추정 — UI의 mini-train slider 표시용 (시안 A).
+    const { progress, progressLabel } = estimateProgress({
+      prev: body.prev,
+      next: body.next,
+      statnNm: picked.statnNm,
+      trainSttus: picked.trainSttus,
+    });
     return c.json({
       matched: true,
       trainNo: picked.trainNo,
       direction: picked.updnLine === '0' ? 'up' : 'down',
       currentStation: picked.statnNm,
       destination: picked.statnTnm,
+      progress,
+      progressLabel,
     });
   } catch (e) {
     return c.json({ matched: false, reason: (e as Error).message });

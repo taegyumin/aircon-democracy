@@ -361,22 +361,99 @@ function LineCard({
             </div>
           </div>
 
-          <div style={{ background: TOKEN.bg, borderRadius: TOKEN.r.sm, padding: '10px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 5 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-              <div style={{ flex: 1, height: 2, background: color, opacity: 0.22 }} />
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text1 }}>{prev}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 5, height: 5, borderRadius: '50%', background: TOKEN.cold }} />
-                <span style={{ fontSize: 10, color: TOKEN.cold, fontWeight: 600 }}>지금 여기</span>
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text1 }}>{next}</span>
-            </div>
-          </div>
+          <RouteViz
+            prev={prev}
+            next={next}
+            color={color}
+            progress={trainMatch?.progress ?? null}
+            progressLabel={trainMatch?.progressLabel ?? null}
+          />
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── RouteViz — Claude Design 시안 A: mini-train slides along track ──────
+// swopenAPI 진행도 (statnNm + trainSttus → 0~1) 기반. progress 없으면 fallback.
+
+function MiniTrain({ color, w = 32, h = 14 }: { color: string; w?: number; h?: number }) {
+  return (
+    <svg width={w} height={h} viewBox="0 0 32 14" fill="none" aria-hidden>
+      <rect x="0.5" y="0.5" width="31" height="11" rx="3" fill={color} />
+      <rect x="2"  y="2" width="6" height="5" rx="1" fill="rgba(255,255,255,0.45)" />
+      <rect x="10" y="2" width="6" height="5" rx="1" fill="rgba(255,255,255,0.45)" />
+      <rect x="18" y="2" width="6" height="5" rx="1" fill="rgba(255,255,255,0.45)" />
+      <rect x="26" y="1" width="5" height="10" rx="2" fill="rgba(255,255,255,0.18)" />
+      <circle cx="7"  cy="13" r="1.5" fill={color} />
+      <circle cx="23" cy="13" r="1.5" fill={color} />
+    </svg>
+  );
+}
+
+function RouteViz({
+  prev, next, color, progress, progressLabel,
+}: {
+  prev: string;
+  next: string;
+  color: string;
+  progress: number | null;
+  progressLabel: SubwayMatchResult['progressLabel'] | null;
+}) {
+  // progress 없으면 (실시간 매칭 실패 등) 정적 트랙만 + "지금 여기" 중앙 표시.
+  const hasProgress = typeof progress === 'number';
+  const pos = hasProgress ? Math.max(0, Math.min(1, progress)) : 0.5;
+  const atDest = pos >= 1;
+  const MAR = 7;
+  const DOT = 14;
+  // 열차 아이콘 left position. 32px wide → -16 offset to center on pos.
+  const trainLeft = `calc(${MAR}px + ${pos} * (100% - ${MAR * 2}px) - 16px)`;
+  const fillWidth = `calc(${pos} * (100% - ${MAR * 2}px))`;
+
+  // progressLabel → 사람 친화 텍스트.
+  const stateText = progressLabel === 'at-prev' ? `${prev} 정차 중`
+    : progressLabel === 'just-left-prev' ? `${prev} 막 출발`
+    : progressLabel === 'between' ? '이동 중'
+    : progressLabel === 'approaching-next' ? `${next} 거의 도착`
+    : progressLabel === 'at-next' ? `${next} 정차 중`
+    : hasProgress ? null : '대략 이쯤 (실시간 위치 알 수 없음)';
+
+  return (
+    <div style={{ background: TOKEN.bg, borderRadius: TOKEN.r.sm, padding: '12px 14px 10px' }}>
+      <div style={{ position: 'relative', height: 32, marginBottom: 8 }}>
+        {/* Full track */}
+        <div style={{ position: 'absolute', top: 14, left: MAR, right: MAR, height: 3, background: TOKEN.border, borderRadius: 2 }} />
+        {/* Filled track */}
+        <div style={{ position: 'absolute', top: 14, left: MAR, width: fillWidth, height: 3, background: color, borderRadius: 2 }} />
+        {/* Left station dot (prev) */}
+        <div style={{
+          position: 'absolute', top: 7, left: 0,
+          width: DOT, height: DOT, borderRadius: '50%',
+          background: color, border: '2px solid #fff',
+          boxShadow: `0 2px 8px ${color}55`, zIndex: 2,
+        }} />
+        {/* Right station dot (next) */}
+        <div style={{
+          position: 'absolute', top: 7, right: 0,
+          width: DOT, height: DOT, borderRadius: '50%',
+          background: atDest ? color : TOKEN.border,
+          border: '2px solid #fff',
+          boxShadow: atDest ? `0 2px 8px ${color}55` : 'none',
+          zIndex: 2,
+        }} />
+        {/* Mini train icon — floats above track */}
+        <div style={{ position: 'absolute', top: -4, left: trainLeft, zIndex: 3 }}>
+          <MiniTrain color={color} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text1 }}>{prev}</span>
+        {stateText && (
+          <span style={{ fontSize: 10, color: hasProgress ? color : TOKEN.text3, fontWeight: hasProgress ? 700 : 400 }}>
+            {stateText}
+          </span>
+        )}
+        <span style={{ fontSize: 12, fontWeight: atDest ? 900 : 700, color: TOKEN.text1 }}>{next}</span>
       </div>
     </div>
   );
