@@ -17,3 +17,9 @@ dist-ssr
 playwright-report
 test-results
 .playwright
+
+# Next.js / Expo build artifacts
+apps/web/.next
+apps/web/out
+apps/mobile/.expo
+apps/mobile/dist
