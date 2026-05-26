@@ -9,12 +9,13 @@ import { lineColor, searchStations, type Station, STATIONS } from '@aircon/core'
 import { BackIcon } from '../components/Icons';
 import { recordLine } from '../lib/recentPlaces';
 import { findSegments, findTrainSegments, segmentPlaceId, platformPlaceId, neighborNames } from '@aircon/core';
-import type { SubwayMatchResult, BusMatchResult } from '../lib/apiClient';
+import type { SubwayMatchResult } from '../lib/apiClient';
 import { NaverMapPicker } from '../components/NaverMapPicker';
 import { searchTrainStations } from '@aircon/core';
 import { SNUClassroomWizard } from './SNUClassroomWizard';
 import { WizardLanding } from './wizard/WizardLanding';
-import { CATEGORIES, type Category } from './wizard/categories';
+import { type Category } from './wizard/categories';
+import { BusWizard } from './wizard/bus/BusWizard';
 
 interface Props {
   onBack: () => void;
@@ -30,13 +31,6 @@ const TRAIN_CAR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
 
 export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: Props) {
   const [category, setCategory] = useState<Category | null>(null);
-
-  // Bus state
-  const [busRoute, setBusRoute] = useState('');
-  const [busStop, setBusStop] = useState('');
-  const [busMatch, setBusMatch] = useState<BusMatchResult | null>(null);
-  const [busMatchLoading, setBusMatchLoading] = useState(false);
-  const [busMatchTriggered, setBusMatchTriggered] = useState(false);
 
   // Train state
   const [trainType, setTrainType] = useState<TrainType | null>(null);
@@ -94,59 +88,6 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
         id,
         name,
         type: 'train',
-        district: undefined,
-        detail,
-      });
-      onPicked(id);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const tryMatchBus = async () => {
-    const route = busRoute.trim();
-    const stop = busStop.trim();
-    if (!route || !stop) return;
-    setBusMatchLoading(true);
-    setBusMatchTriggered(true);
-    setBusMatch(null);
-    setError(null);
-    try {
-      const m = await api.matchBusVehicle({ routeName: route, stopName: stop });
-      setBusMatch(m);
-    } catch (e) {
-      setBusMatch({ matched: false, reason: (e as Error).message });
-    } finally {
-      setBusMatchLoading(false);
-    }
-  };
-
-  const submitBus = async () => {
-    const route = busRoute.trim();
-    if (!route) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const stop = busStop.trim();
-      let id: string;
-      let name: string;
-      let detail: string | undefined;
-      if (busMatch?.matched && busMatch.vehId) {
-        // 차량 단위 집계 — 같은 차량 탑승자끼리 모음
-        id = `bus:vehicle:${busMatch.vehId}`;
-        name = `${busMatch.routeName ?? route}번 [차량 ${busMatch.plainNo ?? busMatch.vehId}]`;
-        detail = busMatch.currentStop ? `${busMatch.currentStop} 지남` : undefined;
-      } else {
-        id = stop ? `bus:${route}:${stop}` : `bus:${route}`;
-        name = stop ? `${route}번 버스 (${stop})` : `${route}번 버스`;
-        detail = stop || undefined;
-      }
-      await api.upsertPlace({
-        id,
-        name,
-        type: 'bus',
         district: undefined,
         detail,
       });
@@ -409,113 +350,7 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
 
   // ── STEP 2: BUS ───────────────────────────────────────────────────
   if (category === 'bus') {
-    const canMatch = !!busRoute.trim() && !!busStop.trim() && !busMatchLoading;
-    return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-        {renderHeader('버스', () => {
-          setCategory(null);
-          setBusRoute(''); setBusStop(''); setBusMatch(null); setBusMatchTriggered(false);
-        })}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 20px 60px' }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: TOKEN.text1, marginBottom: 6, letterSpacing: '-0.4px' }}>
-            어떤 버스 타고 계세요?
-          </div>
-          <div style={{ fontSize: 13, color: TOKEN.text2, marginBottom: 22, lineHeight: 1.6 }}>
-            노선 번호 + 지금 지나는 정류장을 알려주시면 어떤 차량인지 찾아드릴게요.
-          </div>
-
-          <Label>노선 번호 *</Label>
-          <input
-            value={busRoute}
-            onChange={(e) => { setBusRoute(e.target.value); setBusMatch(null); setBusMatchTriggered(false); }}
-            placeholder="예: 272, 5511, M7106"
-            style={fieldStyle(!!busRoute)}
-            inputMode="text"
-            autoFocus
-          />
-
-          <div style={{ height: 14 }} />
-
-          <Label>지나는 정류장 *</Label>
-          <input
-            value={busStop}
-            onChange={(e) => { setBusStop(e.target.value); setBusMatch(null); setBusMatchTriggered(false); }}
-            placeholder="예: 신촌오거리, 강남역.강남대로"
-            style={fieldStyle(!!busStop)}
-          />
-
-          <div style={{ height: 18 }} />
-
-          {!busMatchTriggered && (
-            <button
-              onClick={tryMatchBus}
-              disabled={!canMatch}
-              style={{
-                width: '100%', padding: '13px',
-                background: canMatch ? TOKEN.surface : TOKEN.bg,
-                color: canMatch ? TOKEN.cold : TOKEN.text3,
-                border: `1.5px solid ${canMatch ? TOKEN.cold : TOKEN.border}`,
-                borderRadius: TOKEN.r.md, fontSize: 14, fontWeight: 700,
-                cursor: canMatch ? 'pointer' : 'default', fontFamily: FONT,
-              }}
-            >
-              너가 타고 있는 버스 찾기
-            </button>
-          )}
-
-          {busMatchLoading && (
-            <div style={{ padding: '14px', textAlign: 'center', fontSize: 13, color: TOKEN.text2 }}>
-              {busRoute}번 차량 위치 조회 중…
-            </div>
-          )}
-
-          {!busMatchLoading && busMatch && (
-            <div style={{
-              padding: '14px 16px',
-              background: busMatch.matched ? '#F0FDF4' : TOKEN.surface,
-              border: `1.5px solid ${busMatch.matched ? TOKEN.ok : TOKEN.border}`,
-              borderRadius: TOKEN.r.md,
-            }}>
-              {busMatch.matched ? (
-                <div>
-                  <div style={{ fontSize: 11, color: TOKEN.text2, marginBottom: 4 }}>이 버스 맞으시죠?</div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.3px' }}>
-                    {busMatch.routeName}번 · 차량번호 {busMatch.plainNo}
-                  </div>
-                  <div style={{ fontSize: 12, color: TOKEN.text2, marginTop: 4 }}>
-                    {busMatch.currentStop} 지나는 중{busMatch.nextStop ? ` · 다음 ${busMatch.nextStop}` : ''}
-                  </div>
-                </div>
-              ) : (
-                <div style={{ fontSize: 12, color: TOKEN.text3, lineHeight: 1.5 }}>
-                  {busMatch.reason === 'no_vehicle_at_stop'
-                    ? `${busRoute}번이 지금 ${busStop} 근처에 없어요. 정류장명 확인하거나 그냥 노선 단위로 투표할게요.`
-                    : busMatch.reason === 'route_or_stop_not_found'
-                    ? '노선 또는 정류장을 못 찾았어요. 정확한 이름을 입력해주세요.'
-                    : busMatch.reason === 'no_api_key'
-                    ? '아직 API 키 활성화 대기 중이에요. 잠시 후 다시 시도해주세요. (그래도 노선 단위로 투표는 가능)'
-                    : '차량을 못 찾았어요. 노선 단위로 투표할게요.'}
-                </div>
-              )}
-            </div>
-          )}
-
-          {error && (
-            <div style={{ marginTop: 14, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12 }}>{error}</div>
-          )}
-
-          <div style={{ height: 28 }} />
-
-          <button
-            onClick={submitBus}
-            disabled={!busRoute.trim() || submitting}
-            style={primaryButtonStyle(!!busRoute.trim() && !submitting)}
-          >
-            {submitting ? '이동 중…' : busMatch?.matched ? '이 차량으로 투표하기' : '투표하러 가기'}
-          </button>
-        </div>
-      </div>
-    );
+    return <BusWizard onBack={() => setCategory(null)} onPicked={onPicked} />;
   }
 
   return null;
