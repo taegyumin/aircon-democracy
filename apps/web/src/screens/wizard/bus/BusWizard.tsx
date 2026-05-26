@@ -9,7 +9,7 @@ import { api } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
 import { Label } from '../Label';
 import { fieldStyle, primaryButtonStyle } from '../styles';
-import { useBusMatch } from './useBusMatch';
+import { useBusMatch, freshenBusMatch } from './useBusMatch';
 import { buildBusPlace } from './buildBusPlace';
 
 interface Props {
@@ -22,7 +22,9 @@ export function BusWizard({ onBack, onPicked }: Props) {
   const [stopName, setStopName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { match, loading: matchLoading, triggered, tryMatch, reset } = useBusMatch();
+  const { match: rawMatch, loading: matchLoading, triggered, tryMatch, reset } = useBusMatch();
+  // 입력이 바뀌면 stale match는 자동으로 숨김. hook의 seq guard와 함께 이중 안전망.
+  const match = freshenBusMatch(rawMatch, routeName, stopName);
 
   const canMatch = !!routeName.trim() && !!stopName.trim() && !matchLoading;
 
@@ -31,6 +33,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
     setSubmitting(true);
     setError(null);
     try {
+      // match는 이미 freshenBusMatch로 stale 거름. buildBusPlace는 raw type만 쓰면 됨.
       const payload = buildBusPlace({ routeName, stopName, match });
       await api.upsertPlace(payload);
       onPicked(payload.id);
