@@ -108,7 +108,20 @@ export function TrainModeBody(p: TrainModeBodyProps) {
       )}
 
       {/* 매칭 결과 — 통합 카드 */}
-      {noMatch && <NoMatchCard />}
+      {noMatch && (
+        <NoMatchCard
+          onResetBoth={() => {
+            p.setPrevStation(null); p.setNextStation(null);
+            p.setPrevQuery(''); p.setNextQuery('');
+          }}
+          onSwap={() => {
+            const a = p.prevStation;
+            const b = p.nextStation;
+            p.setPrevStation(b);
+            p.setNextStation(a);
+          }}
+        />
+      )}
       {needsLinePick && (
         <LinePickerCard
           segments={p.segments}
@@ -237,19 +250,108 @@ function ProgressSteps({ activeStep }: { activeStep: number }) {
 }
 
 // ── No-match card ───────────────────────────────────────────────────
+// Claude Design 시안 3b: amber 톤 + icon + reasons + 2 actions
+// (다시 입력하기 / 순서 바꾸기). "역 이름 수정하기"는 우리는 선택지 기반이라 제외.
 
-function NoMatchCard() {
+const AMBER = '#D97706';
+const AMBER_BG = '#FFFBEB';
+const AMBER_BORDER = '#FDE68A';
+const AMBER_TEXT = '#92400E';
+
+function SearchFailIcon() {
   return (
-    <div
-      style={{
-        padding: '14px 16px',
-        background: TOKEN.hotBg, color: TOKEN.hot,
-        borderRadius: TOKEN.r.md, fontSize: 13, lineHeight: 1.6, marginBottom: 12,
-        borderLeft: `3px solid ${TOKEN.hot}`,
-      }}
-    >
-      <div style={{ fontWeight: 700, marginBottom: 4 }}>두 역이 같은 노선에 인접해 있지 않아요</div>
-      <div style={{ fontSize: 11, color: TOKEN.text2 }}>오타가 있거나 다음 역이 아닐 수 있어요. 다시 확인해주세요.</div>
+    <svg width={28} height={28} viewBox="0 0 28 28" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="8" stroke={AMBER} strokeWidth="2.2" />
+      <path d="M18 18l6 6" stroke={AMBER} strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M10 9.5c0-1.1.9-2 2-2s2 .9 2 2c0 1.3-2 1.5-2 3" stroke={AMBER} strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="15.5" r="0.9" fill={AMBER} />
+    </svg>
+  );
+}
+
+function NoMatchCard({ onResetBoth, onSwap }: { onResetBoth: () => void; onSwap: () => void }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {/* Label */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: AMBER }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: AMBER, letterSpacing: '0.3px' }}>
+          열차를 찾을 수 없어요
+        </span>
+      </div>
+
+      <div
+        style={{
+          background: TOKEN.surface, borderRadius: TOKEN.r.lg, overflow: 'hidden',
+          border: `1.5px solid ${AMBER_BORDER}`,
+          boxShadow: '0 3px 14px rgba(217,119,6,0.10)',
+        }}
+      >
+        {/* Amber accent bar */}
+        <div style={{ height: 4, background: `linear-gradient(90deg, ${AMBER}, #FBBF24)` }} aria-hidden />
+
+        <div style={{ padding: '22px 18px 20px' }}>
+          {/* Icon + headline */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 18 }}>
+            <div
+              style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: AMBER_BG, border: `1.5px solid ${AMBER_BORDER}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: 14,
+              }}
+            >
+              <SearchFailIcon />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.3px', lineHeight: 1.4, marginBottom: 6 }}>
+              이 두 역 사이 열차를<br />찾을 수 없어요
+            </div>
+            <div style={{ fontSize: 12, color: TOKEN.text2, lineHeight: 1.6 }}>
+              순서가 반대일 수도 있고, 인접하지 않은 역일 수도 있어요
+            </div>
+          </div>
+
+          {/* Reasons */}
+          <div style={{ background: AMBER_BG, borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+            {[
+              '안내방송에서 들은 순서대로 입력했는지 확인해주세요',
+              '두 역이 같은 노선이 아닐 수 있어요',
+              '인접하지 않은 역일 수 있어요',
+            ].map((r, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: i > 0 ? 8 : 0 }}>
+                <div style={{ width: 4, height: 4, borderRadius: '50%', background: AMBER, marginTop: 6, flexShrink: 0 }} aria-hidden />
+                <span style={{ fontSize: 12, color: AMBER_TEXT, lineHeight: 1.5 }}>{r}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Recovery actions — 우리는 선택지 기반이라 "역 이름 수정하기" 없음.
+              "다시 입력하기" (primary) + "순서 바꾸기" (secondary) 두 개. */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={onResetBoth}
+              style={{
+                flex: 3, padding: '13px 0', background: TOKEN.cold, color: '#fff',
+                border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700,
+                cursor: 'pointer', fontFamily: FONT,
+                boxShadow: `0 4px 14px ${TOKEN.cold}40`,
+              }}
+            >
+              다시 입력하기
+            </button>
+            <button
+              onClick={onSwap}
+              style={{
+                flex: 2, padding: '13px 0', background: TOKEN.bg, color: TOKEN.text2,
+                border: `1px solid ${TOKEN.border}`, borderRadius: 12, fontSize: 12,
+                cursor: 'pointer', fontFamily: FONT,
+              }}
+            >
+              순서 바꾸기
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
