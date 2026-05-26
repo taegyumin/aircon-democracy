@@ -203,8 +203,8 @@ export async function audit(
 
 // ── CSRF / Origin guard ─────────────────────────────────────────────
 
-// Production + www. Capacitor app loads https://aircondemocracy.com directly
-// (see capacitor.config.ts), so no native-only origins required.
+// Production + www + Cloudflare Pages preview domains (Tier 1 staging).
+// Capacitor 폐기 (Expo로 대체) — native origin은 mobile OAuth flow에서 별도.
 const ALLOWED_ORIGINS = new Set<string>([
   'https://aircondemocracy.com',
   'https://www.aircondemocracy.com',
@@ -212,13 +212,17 @@ const ALLOWED_ORIGINS = new Set<string>([
 
 // Routes that legitimately have no Origin (OAuth top-level redirects).
 function isCsrfExempt(pathname: string): boolean {
-  return pathname.startsWith('/api/auth/kakao'); // covers /auth/kakao and /auth/kakao/callback
+  // 모든 /api/auth/*/{kakao,naver,google}/callback (provider redirects) 전부 면제
+  return /^\/api\/auth\/(kakao|naver|google)/.test(pathname);
 }
 
-// Local dev (vite, wrangler pages dev) typically uses http://localhost:* —
-// allow any localhost origin only when CF-Ray header is missing (= not edge).
+// Cloudflare Pages preview/staging: *.aircon-democracy-next.pages.dev,
+// *.aircon-democracy.pages.dev. wildcard 허용.
 function isAllowedOrigin(origin: string, cfRay: string | null): boolean {
   if (ALLOWED_ORIGINS.has(origin)) return true;
+  // Pages preview/staging
+  if (/^https:\/\/[a-z0-9-]+\.aircon-democracy(-next)?\.pages\.dev$/.test(origin)) return true;
+  // Local dev (vite, wrangler pages dev, next dev)
   if (!cfRay && /^https?:\/\/localhost(:\d+)?$/.test(origin)) return true;
   return false;
 }
