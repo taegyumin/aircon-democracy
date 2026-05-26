@@ -73,7 +73,7 @@ export function TrainModeBody(p: TrainModeBodyProps) {
             setStation={p.setPrevStation}
             suggestions={p.prevSuggestions}
             placeholder="이전 역"
-          />
+          />{/* placeholder는 input hint — label과 같아도 한 번만 노출 */}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingTop: 32 }}>
           <ArrowRight color={bothFilled ? TOKEN.text1 : TOKEN.text3} />

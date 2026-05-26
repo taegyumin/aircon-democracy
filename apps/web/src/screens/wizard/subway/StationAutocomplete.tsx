@@ -68,7 +68,7 @@ export function StationAutocomplete({ label, query, setQuery, station, setStatio
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder={`${label} (${placeholder})`}
+        placeholder={placeholder || label}
         style={{
           ...fieldStyle(!!query),
           height: 64,
