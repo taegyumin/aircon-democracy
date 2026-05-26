@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import VoteRoute from './VoteRoute';
 
+// CF Pages는 모든 dynamic route를 edge runtime으로 실행해야 함
+export const runtime = 'edge';
+
 interface PageProps {
   params: Promise<{ placeId: string }>;
 }

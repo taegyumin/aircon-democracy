@@ -173,7 +173,7 @@ app.get('/me', async (c) => {
   const token = getCookie(c, SESSION_COOKIE);
   if (!token || !c.env.SESSION_SECRET) return c.json({ user: null });
   try {
-    const payload = (await jwtVerify(token, c.env.SESSION_SECRET)) as { uid?: string };
+    const payload = (await jwtVerify(token, c.env.SESSION_SECRET, 'HS256')) as { uid?: string };
     if (!payload?.uid) return c.json({ user: null });
     const user = await c.env.DB.prepare(
       'SELECT id, display_name, profile_image_url, provider FROM users WHERE id = ?'
@@ -303,7 +303,7 @@ app.get('/auth/kakao/callback', async (c) => {
 
   // Issue session JWT
   const expSeconds = Math.floor(now / 1000) + SESSION_DAYS * 24 * 60 * 60;
-  const sessionJwt = await jwtSign({ uid: userId, exp: expSeconds }, c.env.SESSION_SECRET);
+  const sessionJwt = await jwtSign({ uid: userId, exp: expSeconds }, c.env.SESSION_SECRET, 'HS256');
   setCookie(c, SESSION_COOKIE, sessionJwt, {
     httpOnly: true,
     secure: true,
@@ -348,7 +348,7 @@ async function upsertUserAndIssueSession(
       .run();
   }
   const expSeconds = Math.floor(now / 1000) + SESSION_DAYS * 24 * 60 * 60;
-  const sessionJwt = await jwtSign({ uid: userId, exp: expSeconds }, c.env.SESSION_SECRET);
+  const sessionJwt = await jwtSign({ uid: userId, exp: expSeconds }, c.env.SESSION_SECRET, 'HS256');
   setCookie(c, SESSION_COOKIE, sessionJwt, {
     httpOnly: true,
     secure: true,

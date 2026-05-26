@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import PrintRoute from './PrintRoute';
 
+export const runtime = 'edge';
+
 interface PageProps {
   params: Promise<{ placeId: string }>;
 }

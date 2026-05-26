@@ -28,8 +28,8 @@ let roomsPromise: Promise<SNURoom[]> | null = null;
 export async function loadRooms(): Promise<SNURoom[]> {
   if (!roomsPromise) {
     roomsPromise = fetch('/data/snu-rooms.json')
-      .then((r) => r.json())
-      .catch((e) => {
+      .then((r) => r.json() as Promise<SNURoom[]>)
+      .catch((e: unknown) => {
         roomsPromise = null;
         throw e;
       });
