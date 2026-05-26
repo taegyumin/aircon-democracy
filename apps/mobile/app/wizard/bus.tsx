@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TOKEN, type BusMatchResult } from '@aircon/core';
+import { TOKEN, buildBusPlace, type BusMatchResult } from '@aircon/core';
 import { API_BASE } from '../../src/lib/apiClient';
 
 export default function BusWizard() {
@@ -40,25 +40,21 @@ export default function BusWizard() {
     setSubmitting(true);
     setError(null);
     try {
-      let id: string;
-      let name: string;
-      let detail: string | undefined;
-      if (match?.matched && match.vehId) {
-        id = `bus:vehicle:${match.vehId}`;
-        name = `${match.routeName ?? route}번 [차량 ${match.plainNo ?? match.vehId}]`;
-        detail = match.currentStop ? `${match.currentStop} 지남` : undefined;
-      } else {
-        const s = stop.trim();
-        id = s ? `bus:${route.trim()}:${s}` : `bus:${route.trim()}`;
-        name = s ? `${route.trim()}번 버스 (${s})` : `${route.trim()}번 버스`;
-        detail = s || undefined;
-      }
-      await fetch(`${API_BASE}/api/places/upsert`, {
+      // builder를 @aircon/core에서 import — web과 같은 id schema 보장.
+      // 이전엔 mobile이 'bus:vehicle:<vehId>' (routeId 누락) 형식이라 노선 변경
+      // 시 bucket 충돌. LLM 리뷰 P2.
+      const payload = buildBusPlace({ routeName: route, stopName: stop, match });
+      const res = await fetch(`${API_BASE}/api/places/upsert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action', Origin: API_BASE },
-        body: JSON.stringify({ id, name, type: 'bus', detail }),
+        body: JSON.stringify(payload),
       });
-      router.push(`/p/${encodeURIComponent(id)}`);
+      // res.ok 체크 없으면 server 400/500이어도 그냥 navigate (잘못된 place 등장).
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
+      router.push(`/p/${encodeURIComponent(payload.id)}`);
     } catch (e) {
       setError((e as Error).message);
     } finally {

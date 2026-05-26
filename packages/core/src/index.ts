@@ -10,6 +10,7 @@ export * from './geo';
 export * from './brands';
 export * from './api';
 export * from './subwayDirection';
+export * from './buildBusPlace';
 
 export * as snu from './snu';
 export * as yonsei from './yonsei';
