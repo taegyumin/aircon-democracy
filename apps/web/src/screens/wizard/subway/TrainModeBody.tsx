@@ -91,6 +91,22 @@ export function TrainModeBody(p: TrainModeBodyProps) {
         </div>
       </div>
 
+      {/* 다음 역 후보 — 한쪽만 선택됐을 때 인접역 chip으로 빠른 선택 (Claude Design v2). */}
+      {p.prevStation && !p.nextStation && p.nextSuggestions.length > 0 && (
+        <CandidateChips
+          label={`${p.prevStation.name}역 다음 후보`}
+          stations={p.nextSuggestions.slice(0, 5)}
+          onPick={(s) => p.setNextStation(s)}
+        />
+      )}
+      {!p.prevStation && p.nextStation && p.prevSuggestions.length > 0 && (
+        <CandidateChips
+          label={`${p.nextStation.name}역 직전 후보`}
+          stations={p.prevSuggestions.slice(0, 5)}
+          onPick={(s) => p.setPrevStation(s)}
+        />
+      )}
+
       {/* 매칭 결과 — 통합 카드 */}
       {noMatch && <NoMatchCard />}
       {needsLinePick && (
@@ -273,6 +289,44 @@ function LinePickerCard({
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ── CandidateChips — 한쪽 station 선택 후 인접역 chip 후보 ─────────
+// Claude Design v2: "강남역 다음 후보: 삼성역 · 역삼역 · 교대역"
+// nextSuggestions/prevSuggestions는 이미 SubwayWizard에서 neighborNames로
+// 인접역만 필터링되어 있음. 5개까지 노출.
+
+function CandidateChips({
+  label,
+  stations,
+  onPick,
+}: {
+  label: string;
+  stations: Station[];
+  onPick: (s: Station) => void;
+}) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: TOKEN.text3, letterSpacing: '0.5px', marginBottom: 10 }}>
+        {label}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {stations.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => onPick(s)}
+            style={{
+              padding: '9px 18px', background: TOKEN.surface, borderRadius: 999,
+              border: `1.5px solid ${TOKEN.border}`, fontSize: 13, fontWeight: 600,
+              color: TOKEN.text1, cursor: 'pointer', fontFamily: FONT,
+            }}
+          >
+            {s.name}역
+          </button>
+        ))}
       </div>
     </div>
   );
