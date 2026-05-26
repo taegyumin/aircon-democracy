@@ -23,7 +23,9 @@ const STATIC: Brand[] = [
   { id: 'paik',      iconUrl: '/brands/paik.png',      matches: (n) => includesAny(n, '빽다방') || /paik('?s)?\s*(coffee|bread)?/i.test(n) },
   { id: 'ediya',     iconUrl: '/brands/ediya.png',     matches: (n) => includesAny(n, '이디야') || /ediya/i.test(n) },
   // ── Universities ──────────────────────────────────────────────────
-  { id: 'snu',       iconUrl: '/brands/snu.png',       matches: (n) => includesAny(n, '서울대학교', '서울대') || /seoul\s*national\s*university/i.test(n) },
+  // '서울대' 포함은 '서울대입구역'까지 잡아 false positive — '서울대학교' 또는
+  // '서울대 ' (공백 뒤 동·건물명) 또는 영문 표기로만 match. snuPlaceName은 '서울대 {b.name}'.
+  { id: 'snu',       iconUrl: '/brands/snu.png',       matches: (n) => /^서울대학교(\s|$)/.test(n) || /^서울대\s/.test(n) || /seoul\s*national\s*university/i.test(n) },
   { id: 'hanyang',   iconUrl: '/brands/hanyang.svg',   matches: (n) => includesAny(n, '한양대학교', '한양대') || /hanyang/i.test(n) },
   { id: 'kaist',     iconUrl: '/brands/kaist.svg',     matches: (n) => includesAny(n, '카이스트', 'KAIST') || /kaist/i.test(n) },
   { id: 'yonsei',    iconUrl: '/brands/yonsei.svg',    matches: (n) => includesAny(n, '연세대학교', '연세대') || /yonsei/i.test(n) },
