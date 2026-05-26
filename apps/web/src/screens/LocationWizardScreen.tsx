@@ -1137,17 +1137,13 @@ interface NearbyHit {
 }
 
 function WizardLanding({ onPickCategory, onPickPlaceId, renderHeader }: LandingProps) {
-  const [query, setQuery] = useState('');
+  // 검색창 제거 (2026-05-26): 지하철/버스/카페/강의실 UX 흐름이 다 달라
+  // 검색 하나로 통합 불가. 카테고리 선택 → 흐름별 wizard 가 더 명확.
   const [coords, setCoords] = useState<Coords | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [showGeoSheet, setShowGeoSheet] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
-
-  const searchResults = useMemo(() => {
-    if (!query.trim()) return [];
-    return searchStations({ query, limit: 8 });
-  }, [query]);
 
   const nearby: NearbyHit[] = useMemo(() => {
     if (!coords) return [];
@@ -1210,48 +1206,6 @@ function WizardLanding({ onPickCategory, onPickPlaceId, renderHeader }: LandingP
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
       {renderHeader('지금 어디 계세요?')}
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 60px' }}>
-        {/* Search input */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            background: TOKEN.surface,
-            border: `1.5px solid ${TOKEN.border}`,
-            borderRadius: TOKEN.r.lg,
-            padding: '12px 14px',
-            marginBottom: 16,
-          }}
-        >
-          <Search size={18} color={TOKEN.text3} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="역명 검색 (예: 강남, ㄱㄴ)"
-            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 14, fontFamily: FONT, color: TOKEN.text1, minWidth: 0 }}
-          />
-          {query && (
-            <button onClick={() => setQuery('')} aria-label="지우기" style={{ background: 'none', border: 'none', cursor: 'pointer', color: TOKEN.text3, fontSize: 18, padding: 0 }}>×</button>
-          )}
-        </div>
-
-        {/* Search results — replaces other content when active */}
-        {query.trim() ? (
-          <div>
-            {searchResults.length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', fontSize: 13, color: TOKEN.text3 }}>
-                "{query}" 역을 못 찾았어요
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {searchResults.map((s) => (
-                  <StationRow key={s.id} station={s} loading={submitting === `subway:${s.name}:${s.lines.join(',')}`} onTap={() => pickStation(s)} />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
             {/* Nearby section */}
             {!coords && !geoLoading && !geoError && (
               <button
@@ -1342,8 +1296,6 @@ function WizardLanding({ onPickCategory, onPickPlaceId, renderHeader }: LandingP
                 );
               })}
             </div>
-          </>
-        )}
       </div>
 
       {/* Soft ask sheet */}
