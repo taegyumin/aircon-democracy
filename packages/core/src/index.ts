@@ -11,6 +11,7 @@ export * from './brands';
 export * from './api';
 export * from './subwayDirection';
 export * from './buildBusPlace';
+export * from './busRegion';
 export * from './subwayProgress';
 
 export * as snu from './snu';

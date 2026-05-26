@@ -8,8 +8,7 @@
 //   4. CTA 카피는 상태별 ("역 이름을 입력해주세요" / "5번 칸으로 투표하기" 등).
 
 import {
-  TOKEN, FONT, lineColor, carCountFor, stationDisplay,
-  STATIONS, neighborNames, type Station,
+  TOKEN, FONT, lineColor, carCountFor, stationDisplay, type Station,
 } from '@aircon/core';
 import type { SubwayMatchResult } from '../../../lib/apiClient';
 import { Label } from '../Label';
@@ -92,14 +91,8 @@ export function TrainModeBody(p: TrainModeBodyProps) {
         </div>
       </div>
 
-      {/* 인접역 chip — 한쪽만 선택됐을 때 빠른 선택 편의용. 검색 input의 autocomplete는
-          전체 역 list이고, 이건 별도로 anchor 기준 양 옆 역만. */}
-      {p.prevStation && !p.nextStation && (
-        <CandidateChips anchor={p.prevStation} direction="next" onPick={p.setNextStation} />
-      )}
-      {!p.prevStation && p.nextStation && (
-        <CandidateChips anchor={p.nextStation} direction="prev" onPick={p.setPrevStation} />
-      )}
+      {/* 인접역 chip은 제거 — 한쪽 입력 시 SubwayWizard suggestions가 인접역으로 채워지고,
+          반대편 input의 list 자리에 그대로 표시됨 (검색창에 텍스트 입력 시 전체 검색으로 교체). */}
 
       {/* 매칭 결과 — 통합 카드 */}
       {noMatch && (
@@ -400,48 +393,7 @@ function LinePickerCard({
   );
 }
 
-// ── CandidateChips — 한쪽 station 선택 후 인접역 chip 후보 ─────────
-// Claude Design v2: "강남역 다음 후보: 삼성역 · 역삼역 · 교대역"
-// anchor + direction 직접 받아 내부에서 neighborNames 호출 — autocomplete 검색 list와
-// 정보 중복 안 만들기 위해. 도시 scope으로 cross-city(서울 vs 부산) 누출 방지.
-
-function CandidateChips({
-  anchor, direction, onPick,
-}: {
-  anchor: Station;
-  direction: 'prev' | 'next';  // anchor 기준 '직전 후보'냐 '다음 후보'냐
-  onPick: (s: Station) => void;
-}) {
-  const neighbors = neighborNames(anchor.name, anchor.city);
-  if (neighbors.length === 0) return null;
-  const candidates = STATIONS.filter((s) => neighbors.includes(s.name) && s.city === anchor.city).slice(0, 6);
-  if (candidates.length === 0) return null;
-  const label = direction === 'next'
-    ? `${stationDisplay(anchor.name)} 다음 후보`
-    : `${stationDisplay(anchor.name)} 직전 후보`;
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: TOKEN.text3, letterSpacing: '0.5px', marginBottom: 10 }}>
-        {label}
-      </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {candidates.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => onPick(s)}
-            style={{
-              padding: '9px 18px', background: TOKEN.surface, borderRadius: 999,
-              border: `1.5px solid ${TOKEN.border}`, fontSize: 13, fontWeight: 600,
-              color: TOKEN.text1, cursor: 'pointer', fontFamily: FONT,
-            }}
-          >
-            {stationDisplay(s.name)}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+// CandidateChips 제거 — suggestions list 자리에 통합 (2026-05-27).
 
 // ── LineCard — 매칭 결과 + 열차 카드 통합 ──────────────────────────
 
