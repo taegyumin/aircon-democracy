@@ -66,7 +66,7 @@ export function TrainModeBody(p: TrainModeBodyProps) {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <StationAutocomplete
-            label="🔵 방금 지나간 역"
+            label="이전 역"
             query={p.prevQuery}
             setQuery={p.setPrevQuery}
             station={p.prevStation}
@@ -80,7 +80,7 @@ export function TrainModeBody(p: TrainModeBodyProps) {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <StationAutocomplete
-            label="🔴 다음 도착 역"
+            label="다음 역"
             query={p.nextQuery}
             setQuery={p.setNextQuery}
             station={p.nextStation}

@@ -1,12 +1,13 @@
 'use client';
 
-// 지하철 역 자동완성 — Station 객체 단위. 선택 후 '변경' 버튼으로 reset.
+// 지하철 역 자동완성 — Station 객체 단위. 선택 후 chip 클릭으로 reset.
+// Claude Design v2 스타일: selected 모드는 2-line chip (typeLabel 작게 + val 크게 + check).
 
 import { TOKEN, FONT, type Station } from '@aircon/core';
-import { Label } from '../Label';
 import { fieldStyle } from '../styles';
 
 interface Props {
+  // chip 안쪽 typeLabel용. "이전 역" / "다음 역" 같은 간결한 형태.
   label: string;
   query: string;
   setQuery: (v: string) => void;
@@ -16,41 +17,64 @@ interface Props {
   placeholder: string;
 }
 
+function CheckIcon({ size = 14, color = TOKEN.ok }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4.5 12.5l5 5L19.5 7" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function StationAutocomplete({ label, query, setQuery, station, setStation, suggestions, placeholder }: Props) {
   if (station) {
+    // Filled chip — 디자인 v2 시안: 64px height, typeLabel small + val large + ✓.
+    // 전체 클릭으로 reset (변경 버튼 별도 노출 안 함 — 시안 minimalism).
     return (
-      <div>
-        <Label>{label}</Label>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '12px 14px',
-          background: TOKEN.coldBg, border: `2px solid ${TOKEN.cold}`,
-          borderRadius: TOKEN.r.md,
-        }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: TOKEN.text1 }}>{station.name}</div>
-            <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>
-              {station.lines.join(' · ')}{station.city ? ' · ' + station.city : ''}
-            </div>
-          </div>
-          <button
-            onClick={() => { setStation(null); setQuery(''); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: TOKEN.text2, fontSize: 13, fontFamily: FONT }}
+      <button
+        onClick={() => { setStation(null); setQuery(''); }}
+        style={{
+          width: '100%', height: 64,
+          background: TOKEN.surface,
+          border: `2px solid ${TOKEN.border}`,
+          borderRadius: 14,
+          display: 'flex', alignItems: 'center', padding: '0 13px', gap: 10,
+          cursor: 'pointer', textAlign: 'left',
+          boxShadow: '0 1px 5px rgba(0,0,0,0.06)',
+          fontFamily: FONT,
+        }}
+        aria-label={`${station.name}역 — 클릭해서 변경`}
+      >
+        <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: TOKEN.text1 }} aria-hidden />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 10, color: TOKEN.text3, fontWeight: 500, marginBottom: 2 }}>{label}</div>
+          <div
+            style={{
+              fontSize: 15, fontWeight: 700, color: TOKEN.text1, lineHeight: 1,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}
           >
-            변경
-          </button>
+            {station.name}
+          </div>
         </div>
-      </div>
+        <CheckIcon />
+      </button>
     );
   }
+
+  // Empty/typing state — input + suggestion list 아래.
+  // chip 시안과 시각적 align: 64px height, 같은 radius.
   return (
     <div>
-      <Label>{label}</Label>
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder={placeholder}
-        style={fieldStyle(!!query)}
+        placeholder={`${label} (${placeholder})`}
+        style={{
+          ...fieldStyle(!!query),
+          height: 64,
+          borderRadius: 14,
+        }}
+        aria-label={label}
       />
       {suggestions.length > 0 && (
         <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
