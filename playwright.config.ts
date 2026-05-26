@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 // E2E tests target either local dev (npm run dev) or prod by setting
 // BASE_URL=https://aircondemocracy.com. Local default keeps CI fast.
-const BASE_URL = process.env.BASE_URL ?? 'http://localhost:5173';
+const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -37,7 +37,7 @@ export default defineConfig({
     ? undefined
     : {
         command: 'npm run dev',
-        url: 'http://localhost:5173',
+        url: 'http://localhost:3000',
         timeout: 60_000,
         reuseExistingServer: !process.env.CI,
       },
