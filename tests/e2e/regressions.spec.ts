@@ -10,8 +10,8 @@ test.describe('회귀 방지', () => {
   test('동대문역사문화공원역 검색 — 정상 이름 하나만 노출', async ({ page }) => {
     await page.goto('/wizard');
     await page.getByText('지하철').first().click();
-    // 열차 안 모드가 기본
-    const prevInput = page.getByPlaceholder(/예: 강남/).first();
+    // 열차 안 모드가 기본. redesign 후 placeholder "이전 역" / "다음 역".
+    const prevInput = page.getByPlaceholder(/이전 역/).first();
     await prevInput.fill('동대문');
     // ghost entry는 어떤 노선이든 'lines'에 매핑돼 있어선 안 됨
     await expect(page.getByText('문화공원동대문역사역')).toHaveCount(0);
@@ -84,23 +84,25 @@ test.describe('핵심 흐름', () => {
   test('지하철 wizard — 한쪽 선택 후 다른 쪽 listbox는 인접역만 노출', async ({ page }) => {
     await page.goto('/wizard');
     await page.getByText('지하철').first().click();
-    await pickStation(page, /예: 강남/, '강남역');
+    await pickStation(page, /이전 역/, '강남역');
     // 강남 선택 후 두 번째 입력에 광화문 (비인접) 검색하면 광화문 listbox에 없어야 함
-    await page.getByPlaceholder(/예: 역삼/).first().fill('광화문');
+    await page.getByPlaceholder(/다음 역/).first().fill('광화문');
     // 광화문역이 강남의 인접역 목록에 없으니 표시되면 안 됨
     await expect(page.getByRole('button').filter({ hasText: /^광화문역/ })).toHaveCount(0);
     // 강남 인접인 역삼은 listbox에 있어야 함 (positive check)
-    await page.getByPlaceholder(/예: 역삼/).first().fill('역삼');
+    await page.getByPlaceholder(/다음 역/).first().fill('역삼');
     await expect(page.getByRole('button').filter({ hasText: /^역삼역/ }).first()).toBeVisible({ timeout: 5000 });
   });
 
   test('지하철 wizard — 인접한 두 역 입력 시 자동 매칭 표시', async ({ page }) => {
     await page.goto('/wizard');
     await page.getByText('지하철').first().click();
-    await pickStation(page, /예: 강남/, '강남역');
-    await pickStation(page, /예: 역삼/, '역삼역');
-    // segment resolve 되면 '몇 호차' 또는 '몇 번째 칸' 표시 + 실시간 매칭 시도 (loading 또는 결과 카드)
-    await expect(page.getByText(/몇 호차예요|몇 번째 칸|이 열차 맞으시죠|구간 단위로 투표/)).toBeVisible({ timeout: 10000 });
+    await pickStation(page, /이전 역/, '강남역');
+    await pickStation(page, /다음 역/, '역삼역');
+    // segment resolve 되면 헤드라인 + 칸 선택 안내 표시. redesign 후 카피:
+    //   "이 열차 맞으시죠?" / "몇 호차예요?" / "몇 번 칸에 타고 계세요?".
+    // strict mode 회피: 헤드라인 + carstrip 둘 다 매칭될 수 있어 first().
+    await expect(page.getByText(/이 열차 맞으시죠|몇 호차예요|몇 번 칸에 타고|몇 번째 칸/).first()).toBeVisible({ timeout: 10000 });
   });
 
   test('비로그인 시 헤더 아바타 클릭 → 로그인 화면', async ({ page }) => {
