@@ -12,8 +12,6 @@ import { TrainWizard } from './wizard/train/TrainWizard';
 import { CafeWizard } from './wizard/cafe/CafeWizard';
 import { ClassroomWizard } from './wizard/classroom/ClassroomWizard';
 import { SubwayWizard } from './wizard/subway/SubwayWizard';
-import { TOKEN } from '@aircon/core';
-import { BackIcon } from '../components/Icons';
 
 interface Props {
   onBack: () => void;
@@ -24,22 +22,6 @@ interface Props {
 export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: Props) {
   const [category, setCategory] = useState<Category | null>(null);
 
-  // WizardLanding still uses an injected header renderer.
-  const renderHeader = (title: string, onBackOverride?: () => void) => (
-    <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px 14px' }}>
-        <button
-          onClick={onBackOverride ?? onBack}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}
-          aria-label="뒤로"
-        >
-          <BackIcon />
-        </button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: TOKEN.text1 }}>{title}</span>
-      </div>
-    </div>
-  );
-
   if (!category) {
     return (
       <WizardLanding
@@ -48,7 +30,7 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
           else onRegisterFreeform(k as PlaceType);
         }}
         onPickPlaceId={onPicked}
-        renderHeader={renderHeader}
+        onBack={onBack}
       />
     );
   }

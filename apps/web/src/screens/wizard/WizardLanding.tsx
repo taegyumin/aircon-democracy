@@ -10,16 +10,17 @@ import { requestCoords } from '@/lib/geoClient';
 import { api } from '@/lib/apiClient';
 import { CATEGORIES, type Category } from './categories';
 import { StationRow } from './StationRow';
+import { WizardHeader } from './WizardHeader';
 
 interface Props {
   onPickCategory: (k: Category) => void;
   onPickPlaceId: (id: string) => void;
-  renderHeader: (title: string) => React.ReactNode;
+  onBack: () => void;
 }
 
 interface NearbyHit { station: Station; dist: number }
 
-export function WizardLanding({ onPickCategory, onPickPlaceId, renderHeader }: Props) {
+export function WizardLanding({ onPickCategory, onPickPlaceId, onBack }: Props) {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -82,7 +83,7 @@ export function WizardLanding({ onPickCategory, onPickPlaceId, renderHeader }: P
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-      {renderHeader('지금 어디 계세요?')}
+      <WizardHeader title="지금 어디 계세요?" onBack={onBack} />
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 60px' }}>
         {!coords && !geoLoading && !geoError && (
           <button

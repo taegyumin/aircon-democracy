@@ -19,11 +19,12 @@ import {
 } from '@aircon/core/snu';
 import { BUILDINGS as YONSEI_BUILDINGS } from '@aircon/core/yonsei';
 import { YonseiClassroomWizard } from './YonseiClassroomWizard';
+import { WizardHeader } from './wizard/WizardHeader';
 
 interface Props {
   onPicked: (placeId: string) => void;
   onFreeform: () => void;
-  renderHeader: (title: string) => React.ReactNode;
+  onBack: () => void;
 }
 
 type View =
@@ -67,7 +68,7 @@ const KNOWN_UNIVS: KnownUniv[] = [
   },
 ];
 
-export function SNUClassroomWizard({ onPicked, onFreeform, renderHeader }: Props) {
+export function SNUClassroomWizard({ onPicked, onFreeform, onBack }: Props) {
   // Step 1: which university? null = picker showing.
   const [univ, setUniv] = useState<KnownUniv['id'] | null>(null);
   // Step 2 state (SNU wizard) — only meaningful once univ is set.
@@ -117,7 +118,7 @@ export function SNUClassroomWizard({ onPicked, onFreeform, renderHeader }: Props
       <UniversityPicker
         onPick={(id) => setUniv(id)}
         onFreeform={onFreeform}
-        renderHeader={renderHeader}
+        onBack={onBack}
       />
     );
   }
@@ -566,11 +567,11 @@ function primaryButtonStyle(enabled: boolean): React.CSSProperties {
 function UniversityPicker({
   onPick,
   onFreeform,
-  renderHeader,
+  onBack,
 }: {
   onPick: (id: KnownUniv['id']) => void;
   onFreeform: () => void;
-  renderHeader: (title: string) => React.ReactNode;
+  onBack: () => void;
 }) {
   const [q, setQ] = useState('');
   const ql = q.trim().toLowerCase();
@@ -582,7 +583,7 @@ function UniversityPicker({
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-      {renderHeader('강의실')}
+      <WizardHeader title="강의실" onBack={onBack} />
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 60px' }}>
         <div style={{ fontSize: 20, fontWeight: 900, color: TOKEN.text1, marginBottom: 6, letterSpacing: '-0.4px' }}>
           어느 학교에 계세요?
