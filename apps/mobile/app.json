@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "에어컨 민주주의",
+    "slug": "aircon-democracy",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "aircondemocracy",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1B53E5"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.aircondemocracy.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "QR 코드를 스캔하기 위해 카메라를 사용합니다.",
+        "NSLocationWhenInUseUsageDescription": "근처 지하철역을 추천하기 위해 사용합니다. 위치는 서버에 저장되지 않습니다."
+      }
+    },
+    "android": {
+      "package": "com.aircondemocracy.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1B53E5"
+      },
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        { "cameraPermission": "QR 코드를 스캔하기 위해 카메라를 사용합니다." }
+      ],
+      [
+        "expo-location",
+        { "locationAlwaysAndWhenInUsePermission": "근처 지하철역을 추천하기 위해 사용합니다." }
+      ]
+    ],
+    "experiments": { "typedRoutes": true }
+  }
+}
