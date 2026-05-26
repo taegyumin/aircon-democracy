@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { IOSDevice } from './components/IOSDevice';
 import { HomeScreen } from './screens/HomeScreen';
 import { VoteScreen } from './screens/VoteScreen';
-import { SearchScreen } from './screens/SearchScreen';
 import { QRScreen } from './screens/QRScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { RegisterScreen } from './screens/RegisterScreen';
@@ -10,7 +9,7 @@ import { LocationWizardScreen } from './screens/LocationWizardScreen';
 import { PrintQRScreen } from './screens/PrintQRScreen';
 import type { PlaceType } from './lib/places';
 
-type Screen = 'home' | 'vote' | 'search' | 'qr' | 'login' | 'register' | 'wizard' | 'print';
+type Screen = 'home' | 'vote' | 'qr' | 'login' | 'register' | 'wizard' | 'print';
 
 interface RouteState {
   screen: Screen;
@@ -19,7 +18,6 @@ interface RouteState {
 
 function pathToRoute(pathname: string): RouteState {
   if (pathname === '/' || pathname === '') return { screen: 'home', placeId: null };
-  if (pathname === '/search') return { screen: 'search', placeId: null };
   if (pathname === '/register') return { screen: 'register', placeId: null };
   if (pathname === '/login') return { screen: 'login', placeId: null };
   if (pathname === '/wizard') return { screen: 'wizard', placeId: null };
@@ -34,7 +32,6 @@ function pathToRoute(pathname: string): RouteState {
 function routeToPath(r: RouteState): string {
   switch (r.screen) {
     case 'home': return '/';
-    case 'search': return '/search';
     case 'register': return '/register';
     case 'login': return '/login';
     case 'wizard': return '/wizard';
@@ -89,7 +86,7 @@ export default function App() {
           <HomeScreen
             onSelectPlace={(id) => go('vote', id)}
             onWizard={() => { setRegisterInitialType(undefined); go('wizard'); }}
-            onSearch={() => go('search')}
+            onSearch={() => go('wizard')}
             onQR={() => go('qr')}
             onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
             onLogin={() => go('login')}
@@ -103,14 +100,6 @@ export default function App() {
             onRegisterFreeform={(t) => { setRegisterInitialType(t); go('register'); }}
           />
         );
-      case 'search':
-        return (
-          <SearchScreen
-            onBack={() => go('home')}
-            onSelectPlace={(id) => go('vote', id)}
-            onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
-          />
-        );
       case 'qr':
         return <QRScreen onBack={() => go('home')} onSuccess={(id) => go('vote', id)} />;
       case 'vote':
@@ -119,7 +108,7 @@ export default function App() {
             <HomeScreen
               onSelectPlace={(id) => go('vote', id)}
               onWizard={() => { setRegisterInitialType(undefined); go('wizard'); }}
-              onSearch={() => go('search')}
+              onSearch={() => go('wizard')}
               onQR={() => go('qr')}
               onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
               onLogin={() => go('login')}
@@ -155,7 +144,7 @@ export default function App() {
           <HomeScreen
             onSelectPlace={(id) => go('vote', id)}
             onWizard={() => { setRegisterInitialType(undefined); go('wizard'); }}
-            onSearch={() => go('search')}
+            onSearch={() => go('wizard')}
             onQR={() => go('qr')}
             onRegister={() => { setRegisterInitialType(undefined); go('register'); }}
             onLogin={() => go('login')}
