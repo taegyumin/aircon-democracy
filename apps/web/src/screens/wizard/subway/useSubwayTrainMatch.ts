@@ -26,8 +26,12 @@ export function useSubwayTrainMatch(resolvedSegment: ResolvedSegment | null): Us
 
   useEffect(() => {
     setTrainMatch(null);
-    if (!resolvedSegment) return;
-    if (!/^[1-9]호선$/.test(resolvedSegment.line)) return;
+    // early-return 전에도 loading을 반드시 꺼야 한다.
+    // 그렇지 않으면 이전 effect의 in-flight 요청이 cleanup으로 cancelled=true 되면서
+    // finally의 setMatchLoading(false)가 스킵되고, 새 effect는 early return.
+    // → loading이 영원히 true. 사용자가 station 바꿀 때마다 재현.
+    if (!resolvedSegment) { setMatchLoading(false); return; }
+    if (!/^[1-9]호선$/.test(resolvedSegment.line)) { setMatchLoading(false); return; }
     let cancelled = false;
     setMatchLoading(true);
     api.matchSubwayTrain({
