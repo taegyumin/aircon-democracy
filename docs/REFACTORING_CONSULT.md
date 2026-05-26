@@ -53,9 +53,14 @@
 - UI는 RN primitives (View/Text/Pressable), 디자인 토큰만 공유
 
 **테스트**:
-- E2E (Playwright, prod 대상): **76 tests** (회귀 + 핵심 흐름 + API)
+- E2E (Playwright, prod 대상): **76 tests** (회귀 + 핵심 흐름 + API + 매칭 방향 + SSR/Hydration + sitemap)
 - Unit (Vitest, packages/core): **56 tests** (subwayDirection, subwayGraph, geo, search, train, universities)
 - CI: GitHub Actions (check + e2e, push/PR)
+
+**최근 마이그레이션 상태 (2026-05-26)**:
+- Tier 3 (PWA + Capacitor + Vite) → Tier 1 (Expo + Next.js + Hono) 완료
+- prod 도메인 cutover 완료, legacy root (`src/`, `vite.config.ts`, `functions/`, `public/`, `wrangler.toml`, `android/`, `ios/`) 다 폐기됨
+- Capacitor 전면 제거 (Expo로 대체), Vite 제거 (Next.js로 대체)
 
 **저장소**: https://github.com/taegyumin/aircon-democracy
 
@@ -101,6 +106,8 @@
 - `packages/core/src/subwayDirection.ts`에 1~9호선 sequence 정적 하드코딩 (각 노선 ~30~50역)
 - 향후 노선 변경/신설 시 코드 수정. JSON 데이터로 빼는 게 좋을 수도
 - 2호선만 외선/내선 wrap-around 특수 처리 (switch-case 늘어남)
+- **외부 API doc vs 실제 응답 불일치**: swopenAPI 공식 doc은 `updnLine '0' = 상행/내선, '1' = 하행/외선`이라 하지만 2호선 실제 응답은 반대. 사용자가 또타지하철과 비교로 발견. 단방향 노선(1/3/4/5/6/7/8/9호선)도 같은 quirk 가능. 외부 데이터 doc 신뢰도 검증 + 자동 cross-check 패턴 필요.
+- 거리 기반 fallback (±3 정거장 sequence 내 가장 가까운 차량) 추가됨 — 차량 헤드웨이 큰 시점 대비.
 
 ### H. 모바일 ↔ 웹 UI 중복
 - HomeScreen, SubwayWizard, VoteScreen, LoginScreen — 거의 동일한 시각 디자인을 web (React DOM) + mobile (RN) 두 번 작성
@@ -146,6 +153,8 @@
 - `packages/core/src/subwayDirection.ts` 데이터를 JSON으로 분리
 - 97 ghost stations cleanup (lat/lng 채우기)
 - E2E를 mobile에도 (Maestro)
+- **버스 wizard 자동완성** — data.go.kr "서울특별시_버스노선조회" + "버스정류장조회" 데이터셋 활성화 후 노선/정류장 dropdown (현재 freeform)
+- 단방향 노선 7개 updnLine 매핑 cross-check (2호선처럼 doc과 다를 가능성)
 
 ---
 
@@ -202,6 +211,7 @@
 - SEO: Naver bot (Yeti) 가 RSC + edge runtime 잘 인덱싱하나? 사전 렌더 vs SSG 전략?
 - 카카오 SDK quirks?
 - 한국 PG (결제) 도입 시 (앱 등록자 유료 기능 등) 어떤 라이브러리?
+- **한국 공공 API의 doc 신뢰도가 낮음** (swopenAPI updnLine, data.go.kr response shape 등). 자동 cross-check + 회귀 방지 패턴? 빌드 단계 데이터셋 sanity check 어떻게 박을지?
 
 ---
 
