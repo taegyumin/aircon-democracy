@@ -2,10 +2,13 @@
 // 카테고리 추가/변경 시 여기만 수정 — landing grid + LocationWizardScreen 라우터가
 // 모두 이 정의 사용.
 
-import { TramFront, TrainFront, Bus, GraduationCap, Building2, MapPin } from 'lucide-react';
+import { TramFront, TrainFront, Bus, GraduationCap, MapPin, PencilLine } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-export type Category = 'subway' | 'train' | 'bus' | 'classroom' | 'office' | 'other';
+// 2026-05-27: '사무실' 카테고리 제거 — 빌딩 구조를 우리가 모르니 wizard 만들기 어려움.
+// 대신 '직접 등록(custom)' — 로그인 사용자가 자기 공간(사무실, 회의실, 매장 등) 직접 등록.
+// 사적 공간이라 is_public=0 default + link/QR로만 접근 (검색 노출 X).
+export type Category = 'subway' | 'train' | 'bus' | 'classroom' | 'other' | 'custom';
 
 // Claude Design 'Place Select Redesign' 추천안: 카테고리를 2그룹으로 분리해 IA 명확.
 //   move = '이동 중' (지하철 / 버스 / 기차)
@@ -30,5 +33,6 @@ export const CATEGORIES: CategoryDef[] = [
   { key: 'train',     Icon: TrainFront,    tint: '#DC2626', label: '기차',       sub: 'KTX·SRT 등',             group: 'move', rank: 'muted' },
   { key: 'classroom', Icon: GraduationCap, tint: '#7C3AED', label: '강의실',     sub: '학교·대학교',             group: 'stay', rank: 'secondary' },
   { key: 'other',     Icon: MapPin,        tint: '#F97316', label: '카페·음식점', sub: '카페·식당',              group: 'stay', rank: 'secondary' },
-  { key: 'office',    Icon: Building2,     tint: '#475569', label: '사무실',     sub: '직장·회사',              group: 'stay', rank: 'secondary' },
+  // 직접 등록 — 빌딩/매장/회의실 등 내부 공간. 로그인 후 link/QR로만 공유.
+  { key: 'custom',    Icon: PencilLine,    tint: '#475569', label: '직접 등록',   sub: '사무실·매장·회의실 등',  group: 'stay', rank: 'secondary' },
 ];

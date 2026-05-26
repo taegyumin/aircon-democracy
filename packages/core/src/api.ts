@@ -145,6 +145,14 @@ export function createApiClient(options: ApiClientOptions = {}) {
         `/api/realtime/bus/region-by-coords?lat=${lat}&lng=${lng}`,
       ),
 
+    // 로그인 사용자가 사적 공간 직접 등록. 비로그인 → 401.
+    // placeId 받아 /p/<id> 공유 + QR + 인쇄 페이지로 연결.
+    createUserPlace: (input: { name: string; type: string; description?: string | null }) =>
+      request<{ id: string; name: string; type: string; description: string | null; created_at: number }>(
+        '/api/places/user',
+        { method: 'POST', body: JSON.stringify(input) },
+      ),
+
     // ── Auth ─────────────────────────────────────────────────────────
     me: () => request<{ user: User | null }>('/api/me'),
     logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),

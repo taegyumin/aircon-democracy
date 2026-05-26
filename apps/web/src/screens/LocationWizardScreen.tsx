@@ -12,6 +12,7 @@ import { TrainWizard } from './wizard/train/TrainWizard';
 import { CafeWizard } from './wizard/cafe/CafeWizard';
 import { ClassroomWizard } from './wizard/classroom/ClassroomWizard';
 import { SubwayWizard } from './wizard/subway/SubwayWizard';
+import { CustomPlaceWizard } from './wizard/custom/CustomPlaceWizard';
 
 interface Props {
   onBack: () => void;
@@ -26,7 +27,7 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
     return (
       <WizardLanding
         onPickCategory={(k) => {
-          if (k === 'subway' || k === 'bus' || k === 'train' || k === 'classroom' || k === 'other') setCategory(k);
+          if (k === 'subway' || k === 'bus' || k === 'train' || k === 'classroom' || k === 'other' || k === 'custom') setCategory(k);
           else onRegisterFreeform(k as PlaceType);
         }}
         onBack={onBack}
@@ -41,6 +42,7 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
     case 'classroom': return <ClassroomWizard onBack={back} onPicked={onPicked} onFreeform={() => onRegisterFreeform('classroom')} />;
     case 'train':     return <TrainWizard onBack={back} onPicked={onPicked} />;
     case 'bus':       return <BusWizard onBack={back} onPicked={onPicked} />;
+    case 'custom':    return <CustomPlaceWizard onBack={back} onPicked={onPicked} />;
     default:          return null;
   }
 }

@@ -3,6 +3,9 @@
 // Write 경로는 abuseFor → kill switch → block → rate limit → validate → DB.
 
 import { Hono } from 'hono';
+import { getCookie } from 'hono/cookie';
+import { verify as jwtVerify } from 'hono/jwt';
+import { UserPlaceCreateBodySchema } from '@aircon/core';
 import {
   isBlocked,
   isKillSwitchOn,
@@ -11,7 +14,14 @@ import {
   validateUpsertPlaceInput,
 } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
-import { COOLDOWN_MS, type Env } from '../types';
+import { COOLDOWN_MS, SESSION_COOKIE, type Env } from '../types';
+
+// 짧은 hex id (link 노출이라 길이 적당히 + 추측 어렵게).
+function shortHexId(byteLen = 6): string {
+  const buf = new Uint8Array(byteLen);
+  crypto.getRandomValues(buf);
+  return Array.from(buf).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 interface PlaceRow {
   id: string;
@@ -43,6 +53,7 @@ export const placesRoutes = new Hono<Env>();
 // 매 vote마다 바뀌어서 의도적으로 미적용.
 placesRoutes.get('/places', async (c) => {
   const now = Date.now();
+  // is_public=0인 사용자 직접 등록 공간은 search/list에 노출 안 함. link로만 접근.
   const { results } = await c.env.DB.prepare(
     `SELECT
        p.id, p.name, p.type, p.district, p.detail, p.created_at,
@@ -51,6 +62,7 @@ placesRoutes.get('/places', async (c) => {
        COALESCE(SUM(CASE WHEN v.vote='hot'  AND v.expires_at > ?1 THEN 1 ELSE 0 END), 0) AS hot
      FROM places p
      LEFT JOIN votes v ON v.place_id = p.id
+     WHERE COALESCE(p.is_public, 1) = 1
      GROUP BY p.id
      ORDER BY (cold + ok + hot) DESC, p.created_at DESC
      LIMIT 100`,
@@ -186,4 +198,56 @@ placesRoutes.post('/places/upsert', async (c) => {
 
   await log('place_upsert', 200, { placeId: v.id, meta: { type: v.type } });
   return c.json({ id: v.id });
+});
+
+// POST /api/places/user — 로그인 사용자가 직접 공간 등록.
+//   - 인증 필수 (session cookie). 비로그인 → 401.
+//   - placeId = user:<12-hex>. 추측 어렵게 random.
+//   - is_public=0 default (검색에 안 나오고 link/QR로만 접근).
+//   - rate limit: voter 분당 5, 일 50.
+placesRoutes.post('/places/user', async (c) => {
+  const token = getCookie(c, SESSION_COOKIE);
+  if (!token || !c.env.SESSION_SECRET) return c.json({ error: 'unauthorized' }, 401);
+  let userId: string;
+  try {
+    const payload = (await jwtVerify(token, c.env.SESSION_SECRET, 'HS256')) as { uid?: string };
+    if (!payload?.uid) return c.json({ error: 'unauthorized' }, 401);
+    userId = payload.uid;
+  } catch { return c.json({ error: 'unauthorized' }, 401); }
+
+  let raw: unknown;
+  try { raw = await c.req.json(); } catch { return c.json({ error: 'invalid_json' }, 400); }
+  const parsed = UserPlaceCreateBodySchema.safeParse(raw);
+  if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'invalid_body' }, 400);
+  const body = parsed.data;
+
+  const { keys, log } = await abuseFor(c);
+  if (await isKillSwitchOn(c.env.DB, 'place_creation_closed')) {
+    await log('kill_switch', 503, { reason: 'place_creation_closed' });
+    return c.json({ error: 'temporarily_closed' }, 503);
+  }
+  // 사용자 직접 등록은 로그인 기반 — voter hash 대신 userId rate limit.
+  const limits = await checkLimits(c.env.DB, [
+    { key: `user_place:user:${userId}`, windowSeconds: 60, limit: 5 },
+    { key: `user_place:user:${userId}:day`, windowSeconds: 86400, limit: 50 },
+    { key: `user_place:ip:${keys.ipPrefixHash}`, windowSeconds: 86400, limit: 200 },
+  ]);
+  if (!limits.ok) {
+    await log('rate_limited', 429, { reason: limits.failedKey });
+    return c.json({ error: 'too_many_requests' }, 429);
+  }
+
+  const id = `user:${shortHexId(6)}`;
+  const now = Date.now();
+  // detail에 description 박음 (별도 컬럼 안 만들고 기존 detail 재사용).
+  // is_public=0 default (검색 비노출).
+  await c.env.DB.prepare(
+    `INSERT INTO places (id, name, type, district, detail, created_at, created_by, is_public, normalized_name)
+     VALUES (?, ?, ?, NULL, ?, ?, ?, 0, ?)`,
+  )
+    .bind(id, body.name, body.type, body.description ?? null, now, userId, body.name.toLowerCase())
+    .run();
+
+  await log('user_place_create', 201, { placeId: id, meta: { type: body.type } });
+  return c.json({ id, name: body.name, type: body.type, description: body.description ?? null, created_at: now }, 201);
 });

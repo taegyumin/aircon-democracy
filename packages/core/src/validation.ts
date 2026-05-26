@@ -44,7 +44,18 @@ export const ID_PREFIX_TYPE: Record<string, PlaceType> = {
   library: 'library',
   office: 'office',
   other: 'other',
+  // 사용자가 직접 등록한 사적 공간. type은 user가 선택 (office/classroom/cafe/other 중).
+  // owner_user_id로 묶이고 default is_public=0이라 검색에는 안 나옴.
+  // 그래서 user: prefix는 multiple type을 가질 수 있어 ID_PREFIX_TYPE에는 'other' fallback.
+  // upsert validation에서 user: 는 별도 처리 (refine bypass).
+  user: 'other',
 };
+
+// user: prefix는 type 자유라 refine bypass.
+const PLACE_ID_TYPE_FREE_PREFIXES = new Set(['user']);
+export function isFreeTypePrefix(prefix: string): boolean {
+  return PLACE_ID_TYPE_FREE_PREFIXES.has(prefix);
+}
 
 // Place inputs.
 // 길이 제한은 prod DB의 실제 제약과 일치. 이전에는 Zod가 name 120/detail 240으로
@@ -64,12 +75,22 @@ export const UpsertPlaceBodySchema = PlaceCoreSchema.extend({
 }).refine(
   (v) => {
     const prefix = v.id.split(':', 1)[0];
+    if (isFreeTypePrefix(prefix)) return true; // user: 는 type 자유.
     const expected = ID_PREFIX_TYPE[prefix];
     return expected === v.type;
   },
   { message: 'invalid_id' },
 );
 export type UpsertPlaceBody = z.infer<typeof UpsertPlaceBodySchema>;
+
+// 사용자 직접 등록 공간 — login 필수 endpoint POST /api/places/user.
+// type은 자유 (사무실/강의실/카페/기타). description은 짧은 설명.
+export const UserPlaceCreateBodySchema = z.object({
+  name: z.string().trim().min(2, 'invalid_name_length').max(60, 'invalid_name_length'),
+  type: PlaceTypeSchema,
+  description: z.string().trim().max(200, 'invalid_description').optional().nullable(),
+});
+export type UserPlaceCreateBody = z.infer<typeof UserPlaceCreateBodySchema>;
 
 // Vote
 export const PostVoteBodySchema = z.object({
