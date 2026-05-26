@@ -4,9 +4,37 @@
 import { Hono } from 'hono';
 import { expectedUpdnLine, LINE_SEQUENCES, stripStation } from '@aircon/core/subwayDirection';
 import { SubwayMatchBodySchema, BusMatchBodySchema } from '@aircon/core/validation';
+import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
+import { abuseFor } from '../abuse-adapter';
 import type { Env } from '../types';
+import type { Context } from 'hono';
 
 export const realtimeRoutes = new Hono<Env>();
+
+// 외부 API quota + 봇 방어. CSRF header는 봇 막지 못함 (LLM 리뷰 P2).
+// 한 voter/IP가 분당 너무 많이 치면 swopenAPI/data.go.kr quota 소진 위험.
+// kill switch `realtime_closed`로 외부 API 장애 시 즉시 차단 가능.
+async function realtimeGuard(c: Context<Env>): Promise<{ ok: true } | { ok: false; res: Response }> {
+  const { keys, log } = await abuseFor(c);
+  if (await isKillSwitchOn(c.env.DB, 'realtime_closed')) {
+    await log('kill_switch', 503, { reason: 'realtime_closed' });
+    return { ok: false, res: c.json({ matched: false, reason: 'temporarily_closed' }, 503) };
+  }
+  if ((await isBlocked(c.env.DB, keys.voterHash)) || (await isBlocked(c.env.DB, keys.ipPrefixHash))) {
+    await log('rejected', 403, { reason: 'blocked_subject' });
+    return { ok: false, res: c.json({ matched: false, reason: 'forbidden' }, 403) };
+  }
+  // realtime은 vote보다 자주 칠 가능성 적음 — 분당 voter 20, IP 100.
+  const limits = await checkLimits(c.env.DB, [
+    { key: `realtime:voter:${keys.voterHash}`, windowSeconds: 60, limit: 20 },
+    { key: `realtime:ip:${keys.ipPrefixHash}`, windowSeconds: 60, limit: 100 },
+  ]);
+  if (!limits.ok) {
+    await log('rate_limited', 429, { reason: limits.failedKey });
+    return { ok: false, res: c.json({ matched: false, reason: 'too_many_requests' }, 429) };
+  }
+  return { ok: true };
+}
 
 // 외부 공공 API timeout. worker CPU 시간 (30s) 소진 방지.
 // swopenAPI/data.go.kr이 가끔 응답이 매우 늦거나 HTML 에러 페이지를 줌.
@@ -28,6 +56,9 @@ function normStation(s: string): string {
 }
 
 realtimeRoutes.post('/realtime/subway/match', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+
   let raw: unknown;
   try { raw = await c.req.json(); } catch { return c.json({ error: 'invalid_json' }, 400); }
   const parsed = SubwayMatchBodySchema.safeParse(raw);
@@ -113,6 +144,9 @@ async function fetchBusJson<T>(url: string): Promise<T[]> {
 }
 
 realtimeRoutes.post('/realtime/bus/match', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+
   let raw: unknown;
   try { raw = await c.req.json(); } catch { return c.json({ error: 'invalid_json' }, 400); }
   const parsed = BusMatchBodySchema.safeParse(raw);
