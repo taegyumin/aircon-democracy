@@ -18,7 +18,9 @@ import {
   type SNURoom,
 } from '@aircon/core/snu';
 import { BUILDINGS as YONSEI_BUILDINGS } from '@aircon/core/yonsei';
+import { UNIVERSITIES, type University } from '@aircon/core/universities';
 import { YonseiClassroomWizard } from '../yonsei/YonseiClassroomWizard';
+import { GenericUniversityWizard } from '../generic/GenericUniversityWizard';
 import { WizardHeader } from '../../WizardHeader';
 
 interface Props {
@@ -36,22 +38,24 @@ type View =
 // the user explicitly toggles "전체" — voting on a private office is meaningless.
 const PUBLIC_KINDS: SNURoom['kind'][] = ['classroom', 'lab', 'lounge', 'other'];
 
-// Universities with building/room data. Each entry drives a card in the picker
-// and routes to the school-specific wizard. Adding 고려대/카이스트 등 = one
-// more entry + one more wizard component.
+// Pickable schools. SNU and Yonsei have bespoke wizards; the rest funnel
+// through GenericUniversityWizard driven by the @aircon/core/universities
+// dataset. Order: SNU first (richest data) → Yonsei → others by display name.
 interface KnownUniv {
-  id: 'snu' | 'yonsei';
+  id: string;
   name: string;
   aliases: string[];
-  badge: string;          // small chip text shown on the card
+  badge: string;
   buildingCount: number;
-  roomCount?: number;     // omitted when we only have building-level data
-  note?: string;          // extra hint shown under the badge (e.g. "호실 직접 입력")
+  roomCount?: number;
+  note?: string;
+  kind: 'snu' | 'yonsei' | 'generic';
+  university?: University;  // for generic
 }
 
-const KNOWN_UNIVS: KnownUniv[] = [
+const BESPOKE: KnownUniv[] = [
   {
-    id: 'snu',
+    id: 'snu', kind: 'snu',
     name: '서울대학교',
     aliases: ['서울대', 'SNU', '관악', '관악캠퍼스', '연건', '서울대학'],
     badge: '관악·연건',
@@ -59,7 +63,7 @@ const KNOWN_UNIVS: KnownUniv[] = [
     roomCount: 1976,
   },
   {
-    id: 'yonsei',
+    id: 'yonsei', kind: 'yonsei',
     name: '연세대학교',
     aliases: ['연세대', '연대', 'Yonsei', '신촌', '신촌캠퍼스', '연세대학'],
     badge: '신촌',
@@ -67,6 +71,19 @@ const KNOWN_UNIVS: KnownUniv[] = [
     note: '호실은 직접 입력',
   },
 ];
+
+const GENERIC: KnownUniv[] = UNIVERSITIES.map((u): KnownUniv => ({
+  id: u.id,
+  kind: 'generic',
+  university: u,
+  name: u.name,
+  aliases: u.aliases,
+  badge: u.badge,
+  buildingCount: u.campuses.reduce((sum, c) => sum + c.buildings.length, 0),
+  note: u.notes ?? '호실은 직접 입력',
+}));
+
+const KNOWN_UNIVS: KnownUniv[] = [...BESPOKE, ...GENERIC];
 
 export function SNUClassroomWizard({ onPicked, onFreeform, onBack }: Props) {
   // Step 1: which university? null = picker showing.
@@ -149,6 +166,21 @@ export function SNUClassroomWizard({ onPicked, onFreeform, onBack }: Props) {
         onExit={() => setUniv(null)}
       />
     );
+  }
+
+  // ─── Step 2b: Generic schools (40 Seoul-area universities) ────────
+  if (univ !== 'snu') {
+    const knownEntry = KNOWN_UNIVS.find((u) => u.id === univ && u.kind === 'generic');
+    if (knownEntry && knownEntry.university) {
+      return (
+        <GenericUniversityWizard
+          university={knownEntry.university}
+          onPicked={onPicked}
+          onFreeform={onFreeform}
+          onExit={() => setUniv(null)}
+        />
+      );
+    }
   }
 
   const pickPlace = async (b: SNUBuilding, room?: SNURoom) => {

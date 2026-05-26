@@ -15,6 +15,7 @@
     "./geo": "./src/geo.ts",
     "./snu": "./src/snu.ts",
     "./yonsei": "./src/yonsei.ts",
+    "./universities": "./src/universities/index.ts",
     "./tokens": "./src/tokens.ts",
     "./brands": "./src/brands.ts",
     "./subwayDirection": "./src/subwayDirection.ts",
