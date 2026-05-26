@@ -5,7 +5,7 @@
 import { Hono } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { verify as jwtVerify } from 'hono/jwt';
-import { UserPlaceCreateBodySchema } from '@aircon/core';
+import { UserPlaceCreateBodySchema } from '@aircon/core/validation';
 import {
   isBlocked,
   isKillSwitchOn,
