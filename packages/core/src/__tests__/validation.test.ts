@@ -82,6 +82,51 @@ describe('UpsertPlaceBodySchema', () => {
     });
     expect(r.success).toBe(true);
   });
+  // 회귀: 길이 제한은 prod DB 제약과 같아야 함 (name 2~40, detail 80, district 60).
+  // 이전에는 name 120 / detail 240으로 느슨해서 server _abuse.ts가 다시 좁히는 drift.
+  it('name 40자 초과 거부 (prod 제한)', () => {
+    const r = UpsertPlaceBodySchema.safeParse({
+      id: 'subway:test',
+      name: 'a'.repeat(41),
+      type: 'subway',
+    });
+    expect(r.success).toBe(false);
+  });
+  it('name 2자 미만 거부 (prod 제한)', () => {
+    const r = UpsertPlaceBodySchema.safeParse({
+      id: 'subway:test',
+      name: 'x',
+      type: 'subway',
+    });
+    expect(r.success).toBe(false);
+  });
+  it('detail 80자 초과 거부', () => {
+    const r = UpsertPlaceBodySchema.safeParse({
+      id: 'subway:test',
+      name: 'OK',
+      type: 'subway',
+      detail: 'a'.repeat(81),
+    });
+    expect(r.success).toBe(false);
+  });
+  it('district 60자 초과 거부', () => {
+    const r = UpsertPlaceBodySchema.safeParse({
+      id: 'subway:test',
+      name: 'OK',
+      type: 'subway',
+      district: 'a'.repeat(61),
+    });
+    expect(r.success).toBe(false);
+  });
+  it('detail 80자 통과', () => {
+    const r = UpsertPlaceBodySchema.safeParse({
+      id: 'subway:test',
+      name: 'OK',
+      type: 'subway',
+      detail: 'a'.repeat(80),
+    });
+    expect(r.success).toBe(true);
+  });
 });
 
 describe('PostVoteBodySchema', () => {

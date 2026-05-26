@@ -19,12 +19,14 @@ export type VoteType = z.infer<typeof VoteTypeSchema>;
 const PLACE_ID_RE = /^[a-z]+:[\p{L}\p{N}\s,()/:·.\-]{1,180}$/u;
 export const PlaceIdSchema = z.string().regex(PLACE_ID_RE, 'invalid_place_id');
 
-// Place inputs
+// Place inputs.
+// 길이 제한은 prod DB의 실제 제약과 일치. 이전에는 Zod가 name 120/detail 240으로
+// 느슨해서 서버가 _abuse.ts에서 40/80으로 다시 거르는 drift가 있었음. Zod가 SOT.
 const PlaceCoreSchema = z.object({
-  name: z.string().trim().min(1).max(120),
+  name: z.string().trim().min(2, 'invalid_name_length').max(40, 'invalid_name_length'),
   type: PlaceTypeSchema,
-  district: z.string().trim().max(120).optional().nullable(),
-  detail: z.string().trim().max(240).optional().nullable(),
+  district: z.string().trim().max(60, 'invalid_district').optional().nullable(),
+  detail: z.string().trim().max(80, 'invalid_detail').optional().nullable(),
 });
 
 export const CreatePlaceBodySchema = PlaceCoreSchema;
@@ -33,7 +35,7 @@ export type CreatePlaceBody = z.infer<typeof CreatePlaceBodySchema>;
 export const UpsertPlaceBodySchema = PlaceCoreSchema.extend({
   id: PlaceIdSchema,
 }).refine((v) => v.id.startsWith(`${v.type}:`), {
-  message: 'id_prefix_must_match_type',
+  message: 'invalid_id',
 });
 export type UpsertPlaceBody = z.infer<typeof UpsertPlaceBodySchema>;
 

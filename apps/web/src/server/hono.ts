@@ -12,11 +12,12 @@ import {
   isBlocked,
   isKillSwitchOn,
   validatePlaceInput,
-  VALID_PLACE_TYPES,
+  validateUpsertPlaceInput,
   type AbuseKeys,
   type AuditContext,
   type AuditMeta,
 } from './_abuse';
+import { SubwayMatchBodySchema, BusMatchBodySchema } from '@aircon/core/validation';
 
 type Bindings = {
   DB: D1Database;
@@ -622,13 +623,10 @@ app.post('/places', async (c) => {
 });
 
 // POST /api/places/upsert — idempotent create (used for lazy subway station materialization)
-// Caller passes a deterministic id like "subway:강남:2호선,신분당선"; we require
-// the id to be prefixed with the declared type so a `type: 'cafe'` body can't
-// claim a `subway:…` id.
-const UPSERT_ID_RE = /^[a-z]+:[\p{L}\p{N}\s,()/:·.\-]{1,180}$/u;
-
+// Caller passes a deterministic id like "subway:강남:2호선,신분당선"; id-prefix와
+// 길이/enum 검증은 Zod의 UpsertPlaceBodySchema가 담당 (validation.ts SOT).
 app.post('/places/upsert', async (c) => {
-  let body: { id?: unknown; name?: unknown; type?: unknown; district?: unknown; detail?: unknown };
+  let body: unknown;
   try {
     body = await c.req.json();
   } catch {
@@ -647,8 +645,7 @@ app.post('/places/upsert', async (c) => {
   }
 
   // Upsert is normal user behaviour (loading several subway stations), so
-  // the cap is per-minute rather than per-day. The hard guard is the
-  // id-prefix check below.
+  // the cap is per-minute rather than per-day.
   const limits = await checkLimits(c.env.DB, [
     { key: `upsert:voter:${keys.voterHash}`, windowSeconds: 60, limit: 60 },
     { key: `upsert:ip:${keys.ipPrefixHash}`, windowSeconds: 60, limit: 300 },
@@ -658,25 +655,9 @@ app.post('/places/upsert', async (c) => {
     return c.json({ error: 'too_many_requests' }, 429);
   }
 
-  const id = typeof body.id === 'string' ? body.id.trim() : '';
-  const type = typeof body.type === 'string' ? body.type : '';
-
-  if (!id || id.length > 200) {
-    await log('rejected', 400, { reason: 'invalid_id' });
-    return c.json({ error: 'invalid_id' }, 400);
-  }
-  if (!VALID_PLACE_TYPES.has(type)) {
-    await log('rejected', 400, { reason: 'invalid_type' });
-    return c.json({ error: 'invalid_type' }, 400);
-  }
-  if (!UPSERT_ID_RE.test(id) || !id.startsWith(`${type}:`)) {
-    await log('rejected', 400, { reason: 'invalid_id_prefix', placeId: id });
-    return c.json({ error: 'invalid_id' }, 400);
-  }
-
-  const v = validatePlaceInput(body);
+  const v = validateUpsertPlaceInput(body);
   if (!v.ok) {
-    await log('rejected', 400, { reason: v.error, placeId: id });
+    await log('rejected', 400, { reason: v.error });
     return c.json({ error: v.error }, 400);
   }
 
@@ -685,11 +666,11 @@ app.post('/places/upsert', async (c) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO NOTHING`
   )
-    .bind(id, v.name, v.type, v.district, v.detail, Date.now(), c.get('voterId'), v.normalized)
+    .bind(v.id, v.name, v.type, v.district, v.detail, Date.now(), c.get('voterId'), v.normalized)
     .run();
 
-  await log('place_upsert', 200, { placeId: id, meta: { type: v.type } });
-  return c.json({ id });
+  await log('place_upsert', 200, { placeId: v.id, meta: { type: v.type } });
+  return c.json({ id: v.id });
 });
 
 // POST /api/places/:id/vote — cast or change vote
@@ -803,9 +784,11 @@ function normStation(s: string): string {
 }
 
 app.post('/realtime/subway/match', async (c) => {
-  type Body = { line: string; prev: string; next: string };
-  let body: Body;
-  try { body = (await c.req.json()) as Body; } catch { return c.json({ error: 'invalid_json' }, 400); }
+  let raw: unknown;
+  try { raw = await c.req.json(); } catch { return c.json({ error: 'invalid_json' }, 400); }
+  const parsed = SubwayMatchBodySchema.safeParse(raw);
+  if (!parsed.success) return c.json({ error: 'invalid_body' }, 400);
+  const body = parsed.data;
   const subwayId = LINE_TO_SUBWAY_ID[body.line];
   if (!subwayId) return c.json({ matched: false, reason: 'line_not_supported' });
   const key = (c.env as unknown as { SEOUL_REALTIME_KEY?: string }).SEOUL_REALTIME_KEY;
@@ -886,12 +869,11 @@ async function fetchBusJson<T>(url: string): Promise<T[]> {
 }
 
 app.post('/realtime/bus/match', async (c) => {
-  type Body = { routeName: string; stopName: string };
-  let body: Body;
-  try { body = (await c.req.json()) as Body; } catch { return c.json({ error: 'invalid_json' }, 400); }
-  const routeName = body.routeName?.trim();
-  const stopName = body.stopName?.trim();
-  if (!routeName || !stopName) return c.json({ error: 'missing_route_or_stop' }, 400);
+  let raw: unknown;
+  try { raw = await c.req.json(); } catch { return c.json({ error: 'invalid_json' }, 400); }
+  const parsed = BusMatchBodySchema.safeParse(raw);
+  if (!parsed.success) return c.json({ error: 'invalid_body' }, 400);
+  const { routeName, stopName } = parsed.data;
   const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
   if (!key) return c.json({ matched: false, reason: 'no_api_key' });
   const HOST = 'http://ws.bus.go.kr/api/rest';

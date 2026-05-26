@@ -247,19 +247,26 @@ export function csrfGuard(): MiddlewareHandler<any> {
 }
 
 // ── Place input validation ──────────────────────────────────────────
+//
+// Shape + length + enum 검증은 `@aircon/core/validation.ts`의 Zod schema가
+// SOT (single source of truth). 이 파일은 그 위에 abuse-only 검증만 얹는다:
+//   - BAD_NAME 패턴 (URL/전화번호/스팸 키워드)
+//   - 반복 문자 (aaaaaaa)
+//   - normalized name (중복 검출용)
+// 길이/enum 변경은 validation.ts에서만, 이 파일은 손대지 말 것.
 
-export const VALID_PLACE_TYPES = new Set<string>([
-  'classroom',
-  'subway',
-  'train',
-  'cafe',
-  'bus',
-  'library',
-  'office',
-  'other',
-]);
+import {
+  CreatePlaceBodySchema,
+  UpsertPlaceBodySchema,
+  PLACE_TYPES,
+  type CreatePlaceBody,
+  type UpsertPlaceBody,
+} from '@aircon/core/validation';
 
-// URLs, KR phone numbers, common spam/contact keywords.
+// Kept for hono.ts call-site compatibility (e.g. extra `VALID_PLACE_TYPES.has(...)`
+// guards before validatePlaceInput). Mirrors Zod enum.
+export const VALID_PLACE_TYPES: ReadonlySet<string> = new Set(PLACE_TYPES);
+
 const BAD_NAME =
   /(https?:\/\/|www\.|010[-\s]?\d{3,4}[-\s]?\d{4}|\d{2,3}-\d{3,4}-\d{4}|카톡|오픈채팅|텔레그램|무료\s*상담|상담\s*문의)/i;
 
@@ -275,10 +282,15 @@ export function normalizePlaceName(name: string): string {
 export interface PlaceInputResult {
   ok: true;
   name: string;
-  type: string;
+  type: CreatePlaceBody['type'];
   district: string | null;
   detail: string | null;
   normalized: string;
+}
+
+// hono의 places.upsert는 id까지 같이 받음 — id-prefix 검증을 Zod에 위임.
+export interface UpsertPlaceResult extends PlaceInputResult {
+  id: string;
 }
 
 export type PlaceValidationError =
@@ -287,27 +299,73 @@ export type PlaceValidationError =
   | 'invalid_type'
   | 'invalid_district'
   | 'invalid_detail'
+  | 'invalid_id'
   | 'blocked_name_pattern'
   | 'repeated_chars'
   | 'empty_normalized_name';
 
-export function validatePlaceInput(
-  body: { name?: unknown; type?: unknown; district?: unknown; detail?: unknown }
-): PlaceInputResult | { ok: false; error: PlaceValidationError } {
-  const name = typeof body.name === 'string' ? body.name.trim() : '';
-  const type = typeof body.type === 'string' ? body.type : '';
-  const district = typeof body.district === 'string' ? body.district.trim() || null : null;
-  const detail = typeof body.detail === 'string' ? body.detail.trim() || null : null;
-
-  if (!VALID_PLACE_TYPES.has(type)) return { ok: false, error: 'invalid_type' };
-  if (name.length < 2 || name.length > 40) return { ok: false, error: 'invalid_name_length' };
+// Security-only checks run after Zod-validated shape.
+function runAbuseChecks(name: string): { ok: true; normalized: string } | { ok: false; error: PlaceValidationError } {
   if (BAD_NAME.test(name)) return { ok: false, error: 'blocked_name_pattern' };
   if (/(.)\1{6,}/u.test(name)) return { ok: false, error: 'repeated_chars' };
-  if (district && district.length > 60) return { ok: false, error: 'invalid_district' };
-  if (detail && detail.length > 80) return { ok: false, error: 'invalid_detail' };
-
   const normalized = normalizePlaceName(name);
   if (!normalized) return { ok: false, error: 'empty_normalized_name' };
+  return { ok: true, normalized };
+}
 
-  return { ok: true, name, type, district, detail, normalized };
+function zodErrorToPlaceError(message: string): PlaceValidationError {
+  // Zod schema의 error message가 이미 우리 코드 상수를 사용 (invalid_name_length 등).
+  switch (message) {
+    case 'invalid_name_length':
+    case 'invalid_type':
+    case 'invalid_district':
+    case 'invalid_detail':
+    case 'invalid_id':
+      return message;
+    default:
+      // path 별로 더 좋게 추론할 수도 있으나, 현재 schema는 명시적 메시지를 박아둠.
+      return 'invalid_name_length';
+  }
+}
+
+export function validatePlaceInput(
+  body: unknown,
+): PlaceInputResult | { ok: false; error: PlaceValidationError } {
+  const r = CreatePlaceBodySchema.safeParse(body);
+  if (!r.success) {
+    const msg = r.error.issues[0]?.message ?? 'invalid_name_length';
+    return { ok: false, error: zodErrorToPlaceError(msg) };
+  }
+  const sec = runAbuseChecks(r.data.name);
+  if (!sec.ok) return sec;
+  return {
+    ok: true,
+    name: r.data.name,
+    type: r.data.type,
+    district: r.data.district ?? null,
+    detail: r.data.detail ?? null,
+    normalized: sec.normalized,
+  };
+}
+
+export function validateUpsertPlaceInput(
+  body: unknown,
+): UpsertPlaceResult | { ok: false; error: PlaceValidationError } {
+  const r = UpsertPlaceBodySchema.safeParse(body);
+  if (!r.success) {
+    const msg = r.error.issues[0]?.message ?? 'invalid_id';
+    return { ok: false, error: zodErrorToPlaceError(msg) };
+  }
+  const data = r.data as UpsertPlaceBody;
+  const sec = runAbuseChecks(data.name);
+  if (!sec.ok) return sec;
+  return {
+    ok: true,
+    id: data.id,
+    name: data.name,
+    type: data.type,
+    district: data.district ?? null,
+    detail: data.detail ?? null,
+    normalized: sec.normalized,
+  };
 }
