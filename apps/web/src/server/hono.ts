@@ -1,6 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
+import { expectedUpdnLine } from '@aircon/core/subwayDirection';
 import { sign as jwtSign, verify as jwtVerify } from 'hono/jwt';
 import type { Context } from 'hono';
 import {
@@ -809,12 +810,17 @@ app.post('/realtime/subway/match', async (c) => {
   if (!subwayId) return c.json({ matched: false, reason: 'line_not_supported' });
   const key = (c.env as unknown as { SEOUL_REALTIME_KEY?: string }).SEOUL_REALTIME_KEY;
   if (!key) return c.json({ matched: false, reason: 'no_api_key' });
+  // prev→next가 어느 updnLine 방향인지 결정 (반대 방향 차량 거름).
+  const expectedDir = expectedUpdnLine(body.line, body.prev, body.next);
   try {
     const url = `http://swopenAPI.seoul.go.kr/api/subway/${encodeURIComponent(key)}/json/realtimePosition/0/200/${encodeURIComponent(body.line)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`upstream_${res.status}`);
     const data = (await res.json()) as { realtimePositionList?: Array<{ subwayId: string; statnNm: string; trainSttus: string; updnLine: string; trainNo: string; statnTnm?: string }> };
-    const rows = data.realtimePositionList ?? [];
+    let rows = data.realtimePositionList ?? [];
+    if (expectedDir !== null) {
+      rows = rows.filter((r) => r.updnLine === expectedDir);
+    }
     const p = normStation(body.prev);
     const n = normStation(body.next);
     const atNext = rows.filter((r) => normStation(r.statnNm) === n && (r.trainSttus === '0' || r.trainSttus === '1'));

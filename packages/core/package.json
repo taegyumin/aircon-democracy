@@ -16,7 +16,8 @@
     "./snu": "./src/snu.ts",
     "./yonsei": "./src/yonsei.ts",
     "./tokens": "./src/tokens.ts",
-    "./brands": "./src/brands.ts"
+    "./brands": "./src/brands.ts",
+    "./subwayDirection": "./src/subwayDirection.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

@@ -9,6 +9,7 @@ export * from './tokens';
 export * from './geo';
 export * from './brands';
 export * from './api';
+export * from './subwayDirection';
 
 export * as snu from './snu';
 export * as yonsei from './yonsei';
