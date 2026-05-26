@@ -9,8 +9,12 @@
 
 import type { University } from './types';
 import seoulRaw from './data/seoul.json';
+import koreaRaw from './data/korea.json';
 
-export const UNIVERSITIES: University[] = (seoulRaw as { schools: University[] }).schools;
+const SEOUL: University[] = (seoulRaw as { schools: University[] }).schools;
+const KOREA: University[] = (koreaRaw as { schools: University[] }).schools;
+
+export const UNIVERSITIES: University[] = [...SEOUL, ...KOREA];
 
 export * from './types';
 export * from './search';

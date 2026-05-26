@@ -1,0 +1,878 @@
+{
+  "_meta": {
+    "description": "서울 외 전국 4년제 대학교. 지역별로 그룹화 (인천·경기 / 강원 / 대전·세종·충청 / 대구·경북 / 부산·울산·경남 / 광주·전라 / 제주). 각 학교는 검증된 공개 소스 기반.",
+    "lastResearched": "2026-05-27"
+  },
+  "schools": [
+    {
+      "id": "inha", "name": "인하대학교", "shortName": "인하대",
+      "aliases": ["Inha", "인하", "인천"], "badge": "인천", "placeIdPrefix": "inha",
+      "sources": ["https://www.inha.ac.kr", "https://namu.wiki/w/%EC%9D%B8%ED%95%98%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4%20%EB%B0%8F%20%EC%8B%9C%EC%84%A4"],
+      "campuses": [{
+        "id": "main", "name": "인천캠퍼스", "district": "인천 미추홀구 인하대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "5호관", "name": "5호관", "aliases": ["자연과학대학"], "college": "자연과학대학" },
+          { "code": "6호관", "name": "6호관", "aliases": [], "college": "공과대학·연구" },
+          { "code": "7호관", "name": "7호관", "aliases": [], "college": "공과대학" },
+          { "code": "정석학술정보관", "name": "정석학술정보관", "aliases": ["도서관"], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "inu", "name": "인천대학교", "shortName": "인천대",
+      "aliases": ["INU", "Incheon Nat'l Univ", "송도"], "badge": "송도", "placeIdPrefix": "inu",
+      "sources": ["https://www.inu.ac.kr/inu/739/subview.do", "https://namu.wiki/w/%EC%9D%B8%EC%B2%9C%EB%8C%80%ED%95%99%EA%B5%90/%EC%86%A1%EB%8F%84%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "songdo", "name": "송도캠퍼스", "district": "인천 연수구 인천대학교 송도캠퍼스",
+        "buildings": [
+          { "code": "본관", "name": "대학본부 (본관)", "aliases": [], "college": "본부" },
+          { "code": "학산도서관", "name": "학산도서관", "aliases": ["도서관"], "college": "도서관" },
+          { "code": "17호관", "name": "학생회관 (17호관)", "aliases": [], "college": "학생복지" }
+        ]
+      }]
+    },
+    {
+      "id": "hanyang-erica", "name": "한양대학교 ERICA", "shortName": "한양대 ERICA",
+      "aliases": ["Hanyang ERICA", "ERICA", "한대에리카", "안산"], "badge": "안산 (ERICA)", "placeIdPrefix": "hyu-erica",
+      "notes": "6 zone (100~500 + 클러스터) 구역제",
+      "sources": ["https://www.hanyang.ac.kr/erica", "https://namu.wiki/w/%ED%95%9C%EC%96%91%EB%8C%80%ED%95%99%EA%B5%90/ERICA/%EC%8B%9C%EC%84%A4"],
+      "campuses": [{
+        "id": "erica", "name": "ERICA캠퍼스", "district": "경기 안산 한양대학교 ERICA캠퍼스",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": ["100 zone"], "college": "본부" },
+          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "기초교육관A", "name": "기초교육관 A동", "aliases": ["제1과학기술관"], "college": "기초교육" },
+          { "code": "기초교육관C", "name": "기초교육관 C동", "aliases": ["맞춤의약연구원"], "college": "공용·연구" }
+        ]
+      }]
+    },
+    {
+      "id": "skku-suwon", "name": "성균관대학교 자연과학캠퍼스", "shortName": "성균관 자과",
+      "aliases": ["SKKU 자과", "수원캠퍼스", "율전캠퍼스", "성대"], "badge": "수원 (율전)", "placeIdPrefix": "skku-suwon",
+      "sources": ["https://www.skku.edu/skku/about/campusInfo/location02.do", "https://namu.wiki/w/%EC%84%B1%EA%B7%A0%EA%B4%80%EB%8C%80%ED%95%99%EA%B5%90/%EC%9E%90%EC%97%B0%EA%B3%BC%ED%95%99%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "suwon", "name": "자연과학캠퍼스 (율전)", "district": "경기 수원 성균관대학교 자연과학캠퍼스",
+        "buildings": [
+          { "code": "기초학문관", "name": "기초학문관", "aliases": [], "college": "학부대학" },
+          { "code": "21", "name": "제1공학관", "aliases": [], "college": "공과대학" },
+          { "code": "32", "name": "제2과학관", "aliases": [], "college": "자연과학대학" }
+        ]
+      }]
+    },
+    {
+      "id": "gachon", "name": "가천대학교", "shortName": "가천대",
+      "aliases": ["Gachon", "가천", "성남"], "badge": "글로벌 (성남)", "placeIdPrefix": "gachon",
+      "sources": ["https://www.gachon.ac.kr/land/5877/subview.do", "https://namu.wiki/w/%EA%B0%80%EC%B2%9C%EB%8C%80%ED%95%99%EA%B5%90/%EA%B8%80%EB%A1%9C%EB%B2%8C%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "global", "name": "글로벌캠퍼스", "district": "경기 성남 가천대학교 글로벌캠퍼스",
+        "buildings": [
+          { "code": "비전타워A", "name": "비전타워 A동", "aliases": ["2010 준공"], "college": "공용시설" },
+          { "code": "비전타워B", "name": "비전타워 B동", "aliases": [], "college": "공용시설" },
+          { "code": "가천관", "name": "가천관", "aliases": ["2014 준공"], "college": "공용시설" },
+          { "code": "AI관", "name": "AI관·IT융합대학", "aliases": [], "college": "IT융합대학" },
+          { "code": "반도체대학", "name": "반도체대학", "aliases": [], "college": "반도체대학" }
+        ]
+      }]
+    },
+    {
+      "id": "ajou", "name": "아주대학교", "shortName": "아주대",
+      "aliases": ["Ajou", "수원"], "badge": "수원", "placeIdPrefix": "ajou",
+      "sources": ["https://www.ajou.ac.kr/kr/intro/way01.do", "https://namu.wiki/w/%EC%95%84%EC%A3%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%8B%9C%EC%84%A4"],
+      "campuses": [{
+        "id": "main", "name": "수원캠퍼스", "district": "경기 수원 아주대학교",
+        "buildings": [
+          { "code": "율곡관", "name": "율곡관(본관)", "aliases": ["본관"], "college": "본부" },
+          { "code": "다산관", "name": "다산관", "aliases": [], "college": "공용강의동" },
+          { "code": "팔달관", "name": "팔달관", "aliases": [], "college": "공용강의동" },
+          { "code": "성호관", "name": "성호관", "aliases": [], "college": "공용강의동" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "kyonggi", "name": "경기대학교", "shortName": "경기대",
+      "aliases": ["Kyonggi", "수원"], "badge": "수원", "placeIdPrefix": "kyonggi",
+      "sources": ["https://www.kyonggi.ac.kr/www/contents.do?key=5149", "https://namu.wiki/w/%EA%B2%BD%EA%B8%B0%EB%8C%80%ED%95%99%EA%B5%90/%EC%88%98%EC%9B%90%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "suwon", "name": "수원캠퍼스", "district": "경기 수원 경기대학교 수원캠퍼스",
+        "buildings": [
+          { "code": "진리관", "name": "진리관 (본관)", "aliases": ["본관"], "college": "본부" },
+          { "code": "종합강의동", "name": "종합강의동", "aliases": [], "college": "공용강의동" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "dankook-jukjeon", "name": "단국대학교", "shortName": "단국대",
+      "aliases": ["Dankook", "단대", "죽전", "용인"], "badge": "죽전 (용인)", "placeIdPrefix": "dankook-jukjeon",
+      "sources": ["https://dankook.ac.kr/en/-525", "https://namu.wiki/w/%EB%8B%A8%EA%B5%AD%EB%8C%80%ED%95%99%EA%B5%90/%EC%A3%BD%EC%A0%84%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "jukjeon", "name": "죽전캠퍼스", "district": "경기 용인 단국대학교 죽전캠퍼스",
+        "buildings": [
+          { "code": "인문관", "name": "인문관", "aliases": ["인상사"], "college": "인문대학" },
+          { "code": "상경관", "name": "상경관", "aliases": ["인상사"], "college": "상경대학" },
+          { "code": "사범관", "name": "사범관", "aliases": ["인상사"], "college": "사범대학" },
+          { "code": "사회과학관", "name": "사회과학관", "aliases": [], "college": "사회과학대학" },
+          { "code": "제1공학관", "name": "제1공학관", "aliases": [], "college": "공과대학" },
+          { "code": "제2공학관", "name": "제2공학관", "aliases": [], "college": "공과대학" },
+          { "code": "제3공학관", "name": "제3공학관", "aliases": [], "college": "공과대학" }
+        ]
+      }]
+    },
+    {
+      "id": "dankook-cheonan", "name": "단국대학교 천안캠퍼스", "shortName": "단국대 천안",
+      "aliases": ["Dankook Cheonan", "단국 천안"], "badge": "천안", "placeIdPrefix": "dankook-cheonan",
+      "sources": ["https://www.dankook.ac.kr/en/-67", "https://namu.wiki/w/%EB%8B%A8%EA%B5%AD%EB%8C%80%ED%95%99%EA%B5%90/%EC%B2%9C%EC%95%88%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "cheonan", "name": "천안캠퍼스", "district": "충남 천안 단국대학교 천안캠퍼스",
+        "buildings": [
+          { "code": "인문과학관", "name": "인문과학관(외국어대학관)", "aliases": ["본관"], "college": "외국어대학·본부" },
+          { "code": "약학관", "name": "약학관", "aliases": ["2016 준공"], "college": "약학대학" },
+          { "code": "보건과학관", "name": "보건과학관", "aliases": ["구 3과학관", "보건간호학관"], "college": "보건과학대학" },
+          { "code": "제2자연과학관", "name": "제2자연과학관", "aliases": ["2016 완공"], "college": "자연과학대학" }
+        ]
+      }]
+    },
+    {
+      "id": "kangwon", "name": "강원대학교", "shortName": "강원대",
+      "aliases": ["Kangwon", "춘천"], "badge": "춘천", "placeIdPrefix": "kangwon",
+      "sources": ["https://wwwk.kangwon.ac.kr/site/campusmap/chuncheon.html", "https://namu.wiki/w/%EA%B0%95%EC%9B%90%EB%8C%80%ED%95%99%EA%B5%90/%EC%B6%98%EC%B2%9C%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "chuncheon", "name": "춘천캠퍼스", "district": "강원 춘천 강원대학교 춘천캠퍼스",
+        "buildings": [
+          { "code": "100", "name": "60주년기념관", "aliases": [], "college": "공용시설" },
+          { "code": "203", "name": "자연과학대학 1호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "204", "name": "자연과학대학 2호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "205", "name": "자연과학대학 3호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "206", "name": "자연과학대학 4호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "207", "name": "자연과학대학 5호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "509", "name": "인문대학 3호관", "aliases": [], "college": "인문대학" },
+          { "code": "510", "name": "인문대학 2호관", "aliases": [], "college": "인문대학" },
+          { "code": "511", "name": "인문대학 1호관", "aliases": [], "college": "인문대학" }
+        ]
+      }]
+    },
+    {
+      "id": "hallym", "name": "한림대학교", "shortName": "한림대",
+      "aliases": ["Hallym", "춘천"], "badge": "춘천", "placeIdPrefix": "hallym",
+      "sources": ["https://www.hallym.ac.kr/hallym_univ/sub04/cP6/sCP1", "https://namu.wiki/w/%ED%95%9C%EB%A6%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "춘천캠퍼스", "district": "강원 춘천 한림대학교",
+        "buildings": [
+          { "code": "중앙관", "name": "중앙관(본관·연암관)", "aliases": ["본관"], "college": "본부·인문대학" },
+          { "code": "일송도서관", "name": "일송기념도서관", "aliases": ["도서관"], "college": "도서관" },
+          { "code": "의학관", "name": "의학관", "aliases": [], "college": "의과대학" },
+          { "code": "인문2관", "name": "인문2관", "aliases": ["구 의학도서관"], "college": "인문대학" }
+        ]
+      }]
+    },
+    {
+      "id": "yonsei-mirae", "name": "연세대학교 미래캠퍼스", "shortName": "연세 미래",
+      "aliases": ["Yonsei Mirae", "원주캠퍼스", "원주", "연세 원주"], "badge": "원주", "placeIdPrefix": "yonsei-mirae",
+      "sources": ["https://mirae.yonsei.ac.kr", "https://namu.wiki/w/%EC%97%B0%EC%84%B8%EB%8C%80%ED%95%99%EA%B5%90/%EB%AF%B8%EB%9E%98%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "wonju", "name": "원주캠퍼스 (미래)", "district": "강원 원주 연세대학교 미래캠퍼스",
+        "buildings": [
+          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "도서관", "name": "도서관", "aliases": [], "college": "도서관" },
+          { "code": "미래관", "name": "미래관", "aliases": [], "college": "공용시설" },
+          { "code": "청송관", "name": "청송관", "aliases": [], "college": "공용시설" },
+          { "code": "정의관", "name": "정의관", "aliases": [], "college": "공용시설" },
+          { "code": "창조관", "name": "창조관", "aliases": [], "college": "공용시설" },
+          { "code": "백운관", "name": "백운관", "aliases": [], "college": "공용시설" },
+          { "code": "테크노타워", "name": "첨단의료기기 테크노타워", "aliases": [], "college": "연구" }
+        ]
+      }]
+    },
+    {
+      "id": "kaist", "name": "한국과학기술원", "shortName": "KAIST",
+      "aliases": ["KAIST", "카이스트", "대전", "한국과학기술원"], "badge": "대전 본원", "placeIdPrefix": "kaist-daejeon",
+      "notes": "동/서/북 방위 + 번호 (E14 본관 등)",
+      "sources": ["https://www.kaist.ac.kr/kr/html/kaist/01140301.html", "https://namu.wiki/w/%ED%95%9C%EA%B5%AD%EA%B3%BC%ED%95%99%EA%B8%B0%EC%88%A0%EC%9B%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "daejeon", "name": "대전 본원", "district": "대전 유성구 KAIST",
+        "buildings": [
+          { "code": "E14", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "N1", "name": "IT융합 빌딩", "aliases": [], "college": "전산학·IT" },
+          { "code": "W1", "name": "응용공학동", "aliases": ["신소재·건설환경·생명화학공학"], "college": "공과대학" },
+          { "code": "학술문화관", "name": "학술문화관(도서관)", "aliases": ["2018 개관"], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "cnu", "name": "충남대학교", "shortName": "충남대",
+      "aliases": ["CNU", "대전", "대덕"], "badge": "대전 (대덕)", "placeIdPrefix": "cnu",
+      "sources": ["https://plus.cnu.ac.kr/html/kr/sub01/sub01_010804.html", "https://namu.wiki/w/%EC%B6%A9%EB%82%A8%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "daedeok", "name": "대덕캠퍼스", "district": "대전 유성구 충남대학교",
+        "buildings": [
+          { "code": "W2", "name": "공과대학 5호관", "aliases": [], "college": "공과대학" },
+          { "code": "W3", "name": "공과대학 1호관", "aliases": [], "college": "공과대학" },
+          { "code": "W4", "name": "자연과학대학 2호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "W5", "name": "자연과학대학 1호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "W7", "name": "인문대학", "aliases": [], "college": "인문대학" },
+          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" }
+        ]
+      }]
+    },
+    {
+      "id": "hanbat", "name": "국립한밭대학교", "shortName": "한밭대",
+      "aliases": ["Hanbat", "한밭"], "badge": "대전 (덕명)", "placeIdPrefix": "hanbat",
+      "notes": "S/N 남북 zone + 번호, D 기숙사",
+      "sources": ["https://www.hanbat.ac.kr", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%ED%95%9C%EB%B0%AD%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "deokmyung", "name": "덕명캠퍼스", "district": "대전 유성구 한밭대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "S2", "name": "복지후생관", "aliases": [], "college": "학생복지" },
+          { "code": "S4", "name": "인문사회과학관", "aliases": [], "college": "인문사회대학" },
+          { "code": "N4", "name": "산업정보관", "aliases": [], "college": "공과대학" }
+        ]
+      }]
+    },
+    {
+      "id": "hannam", "name": "한남대학교", "shortName": "한남대",
+      "aliases": ["Hannam", "오정"], "badge": "대전 (오정)", "placeIdPrefix": "hannam",
+      "sources": ["https://www.hannam.ac.kr/kor/about/about_01_1.html", "https://namu.wiki/w/%ED%95%9C%EB%82%A8%EB%8C%80%ED%95%99%EA%B5%90/%EC%98%A4%EC%A0%95%EB%8F%99%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "ojeong", "name": "오정동캠퍼스", "district": "대전 대덕구 한남대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관(린튼기념관)", "aliases": ["린튼기념관"], "college": "본부" },
+          { "code": "인돈학술원", "name": "인돈학술원", "aliases": ["선교사촌"], "college": "학술·역사" },
+          { "code": "56동", "name": "56주년기념관", "aliases": ["성지관", "사회과학대학"], "college": "사회과학대학" }
+        ]
+      }]
+    },
+    {
+      "id": "wsu", "name": "우송대학교", "shortName": "우송대",
+      "aliases": ["Woosong", "대전"], "badge": "대전", "placeIdPrefix": "wsu",
+      "sources": ["https://www.wsu.ac.kr/", "https://namu.wiki/w/%EC%9A%B0%EC%86%A1%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "서캠퍼스 (본원)", "district": "대전 동구 우송대학교 서캠퍼스",
+        "buildings": [
+          { "code": "Endicott", "name": "Endicott 건물", "aliases": [], "college": "국제교육·공용" },
+          { "code": "도서관", "name": "도서관", "aliases": [], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "pcu", "name": "배재대학교", "shortName": "배재대",
+      "aliases": ["Pai Chai", "PCU", "대전"], "badge": "대전 (도마)", "placeIdPrefix": "pcu",
+      "sources": ["https://www.pcu.ac.kr/kor/37/campusGuide", "https://namu.wiki/w/%EB%B0%B0%EC%9E%AC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "대전캠퍼스 (도마동)", "district": "대전 서구 배재대학교",
+        "buildings": [
+          { "code": "SMART", "name": "SMART배재관", "aliases": [], "college": "공용시설" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "korea-sejong", "name": "고려대학교 세종캠퍼스", "shortName": "고려대 세종",
+      "aliases": ["Korea Sejong", "고려 세종"], "badge": "세종", "placeIdPrefix": "korea-sejong",
+      "sources": ["https://sejong.korea.ac.kr/", "https://namu.wiki/w/%EA%B3%A0%EB%A0%A4%EB%8C%80%ED%95%99%EA%B5%90/%EC%84%B8%EC%A2%85%EC%BA%A0%ED%8D%BC%EC%8A%A4/%EC%8B%9C%EC%84%A4"],
+      "campuses": [{
+        "id": "sejong", "name": "세종캠퍼스", "district": "세종 고려대학교 세종캠퍼스",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": ["1981 준공"], "college": "본부" },
+          { "code": "공공정책관", "name": "공공정책관(구 인문관)", "aliases": ["구 인문관"], "college": "공공정책대학" },
+          { "code": "학술정보원", "name": "세종학술정보원", "aliases": ["도서관"], "college": "도서관" },
+          { "code": "산학협력관", "name": "산학협력관", "aliases": ["2019 완공"], "college": "산학협력" },
+          { "code": "과학기술관", "name": "과학기술관 북관", "aliases": [], "college": "이공계열" }
+        ]
+      }]
+    },
+    {
+      "id": "hongik-sejong", "name": "홍익대학교 세종캠퍼스", "shortName": "홍익대 세종",
+      "aliases": ["Hongik Sejong", "홍익 세종", "조치원"], "badge": "세종", "placeIdPrefix": "hongik-sejong",
+      "sources": ["https://sejong.hongik.ac.kr/", "https://namu.wiki/w/%ED%99%8D%EC%9D%B5%EB%8C%80%ED%95%99%EA%B5%90/%EC%84%B8%EC%A2%85%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "sejong", "name": "세종캠퍼스", "district": "세종 홍익대학교 세종캠퍼스",
+        "buildings": [
+          { "code": "F동", "name": "문정도서관 (F동)", "aliases": ["도서관"], "college": "도서관" },
+          { "code": "C동", "name": "C동", "aliases": [], "college": "공용강의동" }
+        ]
+      }]
+    },
+    {
+      "id": "cbnu", "name": "충북대학교", "shortName": "충북대",
+      "aliases": ["CBNU", "충북", "청주"], "badge": "청주", "placeIdPrefix": "cbnu",
+      "sources": ["https://cbnuwww.chungbuk.ac.kr/resource/site/www/campus_map.jsp", "https://namu.wiki/w/%EC%B6%A9%EB%B6%81%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "개신캠퍼스", "district": "충북 청주 충북대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "S1-1", "name": "자연과학대학 본관", "aliases": [], "college": "자연과학대학" },
+          { "code": "N16-1", "name": "인문대학 본관", "aliases": [], "college": "인문대학" }
+        ]
+      }]
+    },
+    {
+      "id": "cju", "name": "청주대학교", "shortName": "청주대",
+      "aliases": ["Cheongju Univ", "청주"], "badge": "청주", "placeIdPrefix": "cju",
+      "sources": ["https://cju.ac.kr/site/campusmap/sub.jsp", "https://namu.wiki/w/%EC%B2%AD%EC%A3%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4%20%EB%82%B4%20%EA%B1%B4%EB%AC%BC%20%EB%B0%8F%20%EC%8B%9C%EC%84%A4"],
+      "campuses": [{
+        "id": "main", "name": "청주캠퍼스", "district": "충북 청주 청주대학교",
+        "buildings": [
+          { "code": "청석관", "name": "청석관(본관·대학본부)", "aliases": ["본관"], "college": "본부" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": ["1984 신축, 2017 리모델링"], "college": "도서관" },
+          { "code": "박물관", "name": "박물관", "aliases": ["설립자기념관"], "college": "박물관" }
+        ]
+      }]
+    },
+    {
+      "id": "knue", "name": "한국교원대학교", "shortName": "한국교원대",
+      "aliases": ["KNUE", "교원대"], "badge": "청주", "placeIdPrefix": "knue",
+      "sources": ["https://www.knue.ac.kr/campusmap/campusmap.html", "https://namu.wiki/w/%ED%95%9C%EA%B5%AD%EA%B5%90%EC%9B%90%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "청주캠퍼스", "district": "충북 청주 한국교원대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": ["1984 완공"], "college": "본부" },
+          { "code": "미래관", "name": "미래관 (신축 도서관)", "aliases": ["2018 개관"], "college": "도서관" },
+          { "code": "호연관", "name": "호연관 (열람실)", "aliases": [], "college": "도서관" },
+          { "code": "종합관", "name": "종합관", "aliases": [], "college": "공용시설" },
+          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "교원문화관", "name": "교원문화관", "aliases": [], "college": "공용시설" },
+          { "code": "교육박물관", "name": "교육박물관", "aliases": [], "college": "박물관" }
+        ]
+      }]
+    },
+    {
+      "id": "ut", "name": "국립한국교통대학교", "shortName": "한국교통대",
+      "aliases": ["UT", "KNUT", "교통대", "충주"], "badge": "충주", "placeIdPrefix": "ut",
+      "notes": "E/W 동서 zone + 번호 (E1~E17, W1~W22)",
+      "sources": ["https://www.ut.ac.kr/prog/campusMap/kor/sub01_07_02/list.do", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%ED%95%9C%EA%B5%AD%EA%B5%90%ED%86%B5%EB%8C%80%ED%95%99%EA%B5%90/%EC%B6%A9%EC%A3%BC%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "chungju", "name": "충주캠퍼스", "district": "충북 충주 한국교통대학교",
+        "buildings": [
+          { "code": "E8", "name": "대학본부", "aliases": ["본관"], "college": "본부" }
+        ]
+      }]
+    },
+    {
+      "id": "hoseo", "name": "호서대학교", "shortName": "호서대",
+      "aliases": ["Hoseo", "천안"], "badge": "천안", "placeIdPrefix": "hoseo",
+      "sources": ["https://www.hoseo.ac.kr/Home/Contents.mbz?action=MAPP_1708220055", "https://namu.wiki/w/%ED%98%B8%EC%84%9C%EB%8C%80%ED%95%99%EA%B5%90/%EC%8B%9C%EC%84%A4"],
+      "campuses": [{
+        "id": "cheonan", "name": "천안캠퍼스", "district": "충남 천안 호서대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "강석규관", "name": "강석규관", "aliases": ["구 중앙도서관"], "college": "공용시설" },
+          { "code": "대강당", "name": "대강당", "aliases": [], "college": "공용시설" },
+          { "code": "체육관", "name": "체육관", "aliases": [], "college": "체육" },
+          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "벤처교육관", "name": "벤처교육관", "aliases": [], "college": "공용시설" },
+          { "code": "음악관", "name": "음악관", "aliases": [], "college": "음악·예술" },
+          { "code": "복지교육관", "name": "복지교육관", "aliases": [], "college": "공용시설" }
+        ]
+      }]
+    },
+    {
+      "id": "baekseok", "name": "백석대학교", "shortName": "백석대",
+      "aliases": ["Baekseok", "BU", "천안"], "badge": "천안", "placeIdPrefix": "baekseok",
+      "sources": ["https://www.bu.ac.kr/web/3621/subview.do", "https://namu.wiki/w/%EB%B0%B1%EC%84%9D%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "cheonan", "name": "천안캠퍼스", "district": "충남 천안 백석대학교",
+        "buildings": [
+          { "code": "본부동", "name": "본부동", "aliases": [], "college": "본부" },
+          { "code": "진리관", "name": "진리관", "aliases": ["사회복지학부"], "college": "사회복지" },
+          { "code": "자유관", "name": "자유관", "aliases": [], "college": "공용시설" },
+          { "code": "은혜관", "name": "은혜관", "aliases": [], "college": "공용시설" },
+          { "code": "지혜관", "name": "지혜관", "aliases": [], "college": "공용시설" },
+          { "code": "목양관", "name": "목양관", "aliases": [], "college": "신학" },
+          { "code": "백석홀", "name": "백석홀", "aliases": [], "college": "공용시설" },
+          { "code": "학술정보관", "name": "백석학술정보관", "aliases": ["도서관"], "college": "도서관" },
+          { "code": "창조관", "name": "창조관(기독교박물관)", "aliases": [], "college": "박물관" },
+          { "code": "체육관", "name": "체육관", "aliases": [], "college": "체육" },
+          { "code": "조형관", "name": "조형관", "aliases": [], "college": "조형·예술" }
+        ]
+      }]
+    },
+    {
+      "id": "sch", "name": "순천향대학교", "shortName": "순천향대",
+      "aliases": ["Soonchunhyang", "SCH", "아산"], "badge": "아산", "placeIdPrefix": "sch",
+      "sources": ["https://namu.wiki/w/%EC%88%9C%EC%B2%9C%ED%96%A5%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4", "https://www.sch.ac.kr"],
+      "campuses": [{
+        "id": "asan", "name": "아산캠퍼스", "district": "충남 아산 순천향대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관 (2008 리모델링)", "aliases": [], "college": "본부" },
+          { "code": "의료과학대학", "name": "의료과학대학", "aliases": [], "college": "의료과학대학" },
+          { "code": "산학협력관", "name": "산학협력관", "aliases": [], "college": "산학협력" }
+        ]
+      }]
+    },
+    {
+      "id": "koreatech", "name": "한국기술교육대학교", "shortName": "코리아텍",
+      "aliases": ["KoreaTech", "기능대", "한기대"], "badge": "천안", "placeIdPrefix": "koreatech",
+      "notes": "약 35동, 텔레토비 동산 중심 'ㅅ' 자 배치",
+      "sources": ["https://www.koreatech.ac.kr/menu.es?mid=a10108010000", "https://namu.wiki/w/%ED%95%9C%EA%B5%AD%EA%B8%B0%EC%88%A0%EA%B5%90%EC%9C%A1%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "main", "name": "제1캠퍼스", "district": "충남 천안 한국기술교육대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관 (교양학부·산업경영학부)", "aliases": [], "college": "교양·경영" },
+          { "code": "대학본부동", "name": "대학본부동", "aliases": ["2000 완공"], "college": "본부" }
+        ]
+      }]
+    },
+    {
+      "id": "kongju", "name": "국립공주대학교", "shortName": "공주대",
+      "aliases": ["Kongju", "공주"], "badge": "공주 (신관)", "placeIdPrefix": "kongju",
+      "sources": ["https://www.kongju.ac.kr/KNU/16708/subview.do", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%EA%B3%B5%EC%A3%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%8B%A0%EA%B4%80%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "공주신관캠퍼스", "district": "충남 공주 공주대학교 신관캠퍼스",
+        "buildings": [
+          { "code": "본관", "name": "대학본부", "aliases": [], "college": "본부" },
+          { "code": "사범대학", "name": "사범대학", "aliases": [], "college": "사범대학" },
+          { "code": "인문사회과학대학", "name": "인문사회과학대학", "aliases": [], "college": "인문사회과학대학" }
+        ]
+      }]
+    },
+    {
+      "id": "pusan", "name": "부산대학교", "shortName": "부산대",
+      "aliases": ["PNU", "Pusan Nat'l", "부산"], "badge": "부산 (장전)", "placeIdPrefix": "pnu",
+      "sources": ["https://www.pusan.ac.kr/kor/CMS/Contents/Contents.do?mCode=MN212", "https://namu.wiki/w/%EB%B6%80%EC%82%B0%EB%8C%80%ED%95%99%EA%B5%90/%EB%B6%80%EC%82%B0%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "busan", "name": "부산캠퍼스 (장전)", "district": "부산 금정구 부산대학교",
+        "buildings": [
+          { "code": "205", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "306", "name": "인문관", "aliases": ["김중업 설계", "1959"], "college": "인문대학" },
+          { "code": "313", "name": "자연대 연구동", "aliases": [], "college": "자연과학대학" },
+          { "code": "물리관", "name": "물리관", "aliases": [], "college": "자연과학대학" },
+          { "code": "생물관", "name": "생물관", "aliases": [], "college": "자연과학대학" },
+          { "code": "제1공학관", "name": "제1공학관", "aliases": [], "college": "공과대학" }
+        ]
+      }]
+    },
+    {
+      "id": "pknu", "name": "국립부경대학교", "shortName": "부경대",
+      "aliases": ["PKNU", "부경", "Pukyong"], "badge": "부산 (대연)", "placeIdPrefix": "pknu",
+      "sources": ["https://www.pknu.ac.kr/main/136", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%EB%B6%80%EA%B2%BD%EB%8C%80%ED%95%99%EA%B5%90/%EB%8C%80%EC%97%B0%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [
+        {
+          "id": "daeyeon", "name": "대연캠퍼스", "district": "부산 남구 부경대학교 대연캠퍼스",
+          "buildings": [
+            { "code": "A11", "name": "대학본부", "aliases": ["본관"], "college": "본부" }
+          ]
+        },
+        {
+          "id": "yongdang", "name": "용당캠퍼스 (드래곤밸리)", "district": "부산 남구 부경대학교 용당캠퍼스",
+          "buildings": []
+        }
+      ]
+    },
+    {
+      "id": "donga", "name": "동아대학교", "shortName": "동아대",
+      "aliases": ["DongA", "동아", "부산"], "badge": "부산 (승학·부민)", "placeIdPrefix": "donga",
+      "sources": ["https://www.donga.ac.kr/kor/CMS/CampusMgr/list.do?mCode=MN032", "https://namu.wiki/w/%EB%8F%99%EC%95%84%EB%8C%80%ED%95%99%EA%B5%90/%EC%8A%B9%ED%95%99%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [
+        {
+          "id": "seunghak", "name": "승학캠퍼스", "district": "부산 사하구 동아대학교 승학캠퍼스",
+          "buildings": [
+            { "code": "본부", "name": "대학본부", "aliases": [], "college": "본부" },
+            { "code": "인문과학대학", "name": "인문과학대학", "aliases": [], "college": "인문과학대학" },
+            { "code": "공과대학", "name": "공과대학", "aliases": [], "college": "공과대학" },
+            { "code": "자연과학대학", "name": "자연과학대학", "aliases": [], "college": "자연과학대학" },
+            { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+            { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" }
+          ]
+        },
+        {
+          "id": "bumin", "name": "부민캠퍼스", "district": "부산 서구 동아대학교 부민캠퍼스",
+          "buildings": [
+            { "code": "인문과학대학", "name": "인문과학대학", "aliases": [], "college": "인문과학대학" },
+            { "code": "공과대학", "name": "공과대학", "aliases": [], "college": "공과대학" },
+            { "code": "건강과학대학", "name": "건강과학대학", "aliases": [], "college": "건강과학대학" },
+            { "code": "디자인환경대학", "name": "디자인환경대학", "aliases": [], "college": "디자인환경대학" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deu", "name": "동의대학교", "shortName": "동의대",
+      "aliases": ["Dong-Eui", "DEU", "가야"], "badge": "부산 (가야)", "placeIdPrefix": "deu",
+      "sources": ["https://www.deu.ac.kr/www/deu-campus-map.do", "https://namu.wiki/w/%EB%8F%99%EC%9D%98%EB%8C%80%ED%95%99%EA%B5%90/%EA%B0%80%EC%95%BC%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "gaya", "name": "가야캠퍼스", "district": "부산 부산진구 동의대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "법정관", "name": "법정관", "aliases": ["인문사회과학대학"], "college": "인문사회과학대학" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": ["1984"], "college": "도서관" },
+          { "code": "수덕전", "name": "수덕전(학생회관)", "aliases": [], "college": "학생복지" }
+        ]
+      }]
+    },
+    {
+      "id": "kmou", "name": "국립한국해양대학교", "shortName": "한국해양대",
+      "aliases": ["KMOU", "해양대", "영도"], "badge": "부산 (영도)", "placeIdPrefix": "kmou",
+      "sources": ["https://www.kmou.ac.kr/UserFiles/web/kmou/Campus%20Map/Campus%20Map.html", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%ED%95%9C%EA%B5%AD%ED%95%B4%EC%96%91%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "yeongdo", "name": "영도캠퍼스", "district": "부산 영도구 한국해양대학교",
+        "buildings": [
+          { "code": "도서관", "name": "도서관", "aliases": [], "college": "도서관" },
+          { "code": "공학II", "name": "공학II관", "aliases": [], "college": "해양공과대학" },
+          { "code": "해사인문", "name": "해사대학 인문사회과학관", "aliases": [], "college": "해사인문사회과학대학" }
+        ]
+      }]
+    },
+    {
+      "id": "bnue", "name": "부산교육대학교", "shortName": "부산교대",
+      "aliases": ["BNUE", "부산교대", "연제"], "badge": "부산 (연제)", "placeIdPrefix": "bnue",
+      "sources": ["https://www.bnue.ac.kr", "https://namu.wiki/w/%EB%B6%80%EC%82%B0%EA%B5%90%EC%9C%A1%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "main", "name": "연제캠퍼스", "district": "부산 연제구 부산교육대학교",
+        "buildings": [
+          { "code": "01", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "04", "name": "학생회관 1 (참빛관)", "aliases": ["참빛관"], "college": "학생복지" },
+          { "code": "05", "name": "학생회관 2 (동아리관)", "aliases": ["동아리관"], "college": "학생복지" }
+        ]
+      }]
+    },
+    {
+      "id": "unist", "name": "울산과학기술원", "shortName": "UNIST",
+      "aliases": ["UNIST", "유니스트", "울산"], "badge": "울산", "placeIdPrefix": "unist",
+      "notes": "100번대 강의·실험, 200번대 편의, 300번대 학생기숙사, 400번대 교수",
+      "sources": ["https://unist-kor.unist.ac.kr/", "https://namu.wiki/w/%EC%9A%B8%EC%82%B0%EA%B3%BC%ED%95%99%EA%B8%B0%EC%88%A0%EC%9B%90/%EA%B1%B4%EB%AC%BC%20%EB%B0%8F%20%EC%8B%9C%EC%84%A4%EB%AC%BC"],
+      "campuses": [{
+        "id": "main", "name": "UNIST", "district": "울산 울주군 UNIST",
+        "buildings": [
+          { "code": "110", "name": "제4공학관 (EB4)", "aliases": [], "college": "공학" },
+          { "code": "201", "name": "대학본부 (MAB)", "aliases": ["본관"], "college": "본부" },
+          { "code": "202", "name": "학술정보관 (AIB)", "aliases": ["도서관"], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "ulsan", "name": "울산대학교", "shortName": "울산대",
+      "aliases": ["Ulsan Univ", "무거"], "badge": "울산 (무거)", "placeIdPrefix": "ulsan",
+      "notes": "무거캠퍼스 30+ 호관 체계",
+      "sources": ["https://www.ulsan.ac.kr/kor/CMS/CampusMgr/list.do?mCode=MN057", "https://namu.wiki/w/%EC%9A%B8%EC%82%B0%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "mugeo", "name": "무거캠퍼스", "district": "울산 남구 울산대학교",
+        "buildings": [
+          { "code": "8호관", "name": "자연과학관 (8호관)", "aliases": [], "college": "자연과학대학" },
+          { "code": "11호관", "name": "교수연구동 (11호관)", "aliases": [], "college": "공용시설" },
+          { "code": "22호관", "name": "학생회관 (22호관)", "aliases": [], "college": "학생복지" },
+          { "code": "25호관", "name": "청운학사 무거관 (25호관)", "aliases": ["기숙사"], "college": "기숙사" },
+          { "code": "26호관", "name": "행정본관 (26호관)", "aliases": ["본관"], "college": "본부" }
+        ]
+      }]
+    },
+    {
+      "id": "gnu", "name": "경상국립대학교", "shortName": "경상국립대",
+      "aliases": ["GNU", "경상대", "진주"], "badge": "진주 (가좌)", "placeIdPrefix": "gnu",
+      "sources": ["https://www.gnu.ac.kr/main/cm/campusmap/selectCampusmap.do?mi=12800", "https://namu.wiki/w/%EA%B2%BD%EC%83%81%EA%B5%AD%EB%A6%BD%EB%8C%80%ED%95%99%EA%B5%90/%EA%B0%80%EC%A2%8C%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [
+        {
+          "id": "gajwa", "name": "가좌캠퍼스 (본부)", "district": "경남 진주 경상국립대학교 가좌캠퍼스",
+          "buildings": [
+            { "code": "301", "name": "교육1호관 (사범대학)", "aliases": [], "college": "사범대학" },
+            { "code": "302", "name": "교육2호관", "aliases": [], "college": "사범대학" },
+            { "code": "303", "name": "교육문화센터", "aliases": [], "college": "공용시설" }
+          ]
+        },
+        {
+          "id": "chilam", "name": "칠암캠퍼스 (의·약학)", "district": "경남 진주 경상국립대학교 칠암캠퍼스",
+          "buildings": []
+        }
+      ]
+    },
+    {
+      "id": "kyungnam", "name": "경남대학교", "shortName": "경남대",
+      "aliases": ["Kyungnam", "월영", "마산"], "badge": "창원 (월영)", "placeIdPrefix": "kyungnam",
+      "sources": ["https://www.kyungnam.ac.kr/ko/6332/subview.do", "https://namu.wiki/w/%EA%B2%BD%EB%82%A8%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "main", "name": "월영캠퍼스", "district": "경남 창원 경남대학교 월영캠퍼스",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "한마관", "name": "한마관", "aliases": [], "college": "학생회·연구" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": ["1980"], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "changwon", "name": "국립창원대학교", "shortName": "창원대",
+      "aliases": ["Changwon", "사림", "창원"], "badge": "창원 (사림)", "placeIdPrefix": "changwon",
+      "sources": ["https://app.changwon.ac.kr/campus/campus_005.do", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%EC%B0%BD%EC%9B%90%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "사림캠퍼스", "district": "경남 창원 창원대학교",
+        "buildings": [
+          { "code": "1", "name": "대학본부", "aliases": ["본관"], "college": "본부" },
+          { "code": "2", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+          { "code": "3", "name": "동백관", "aliases": [], "college": "공용시설" },
+          { "code": "5", "name": "제1학생회관 (봉림관)", "aliases": ["봉림관"], "college": "학생복지" },
+          { "code": "6", "name": "제2학생회관 (사림관)", "aliases": ["사림관"], "college": "학생복지" },
+          { "code": "11", "name": "인문대학", "aliases": [], "college": "인문대학" },
+          { "code": "31", "name": "자연대 1호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "32", "name": "자연대 2호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "33", "name": "자연대 3호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "34", "name": "자연대 4호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "35", "name": "자연대 5호관", "aliases": [], "college": "자연과학대학" }
+        ]
+      }]
+    },
+    {
+      "id": "inje", "name": "인제대학교", "shortName": "인제대",
+      "aliases": ["Inje", "김해"], "badge": "김해", "placeIdPrefix": "inje",
+      "sources": ["https://www.inje.ac.kr/kor/about-inje/campus-map.asp", "https://namu.wiki/w/%EC%9D%B8%EC%A0%9C%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "김해캠퍼스", "district": "경남 김해 인제대학교",
+        "buildings": [
+          { "code": "인당관", "name": "인당관 (본관)", "aliases": ["본관"], "college": "본부" },
+          { "code": "백인제도서관", "name": "백인제기념도서관", "aliases": ["도서관"], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "knu", "name": "경북대학교", "shortName": "경북대",
+      "aliases": ["KNU", "경북", "대구"], "badge": "대구 (산격)", "placeIdPrefix": "knu",
+      "sources": ["https://www.knu.ac.kr/wbbs/wbbs/contents/index.action?menu_url=campus/service02_03&menu_idx=147", "https://namu.wiki/w/%EA%B2%BD%EB%B6%81%EB%8C%80%ED%95%99%EA%B5%90/%EB%8C%80%EA%B5%AC%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "daegu", "name": "대구캠퍼스 (산격)", "district": "대구 북구 경북대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": ["사적 442호", "구 대구의학전문학교"], "college": "본부·역사" },
+          { "code": "구관", "name": "구관", "aliases": [], "college": "공용시설" },
+          { "code": "신관", "name": "신관", "aliases": [], "college": "공용시설" },
+          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "인성관", "name": "인성관", "aliases": [], "college": "공용시설" }
+        ]
+      }]
+    },
+    {
+      "id": "yu", "name": "영남대학교", "shortName": "영남대",
+      "aliases": ["Yeungnam", "YU", "경산"], "badge": "경산", "placeIdPrefix": "yu",
+      "sources": ["https://www.yu.ac.kr/main/intro/campus-map.do", "https://namu.wiki/w/%EC%98%81%EB%82%A8%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "경산캠퍼스", "district": "경북 경산 영남대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": ["1974 준공", "77m"], "college": "도서관" },
+          { "code": "천마관", "name": "천마관", "aliases": [], "college": "공용시설" },
+          { "code": "인문대학", "name": "인문대학", "aliases": [], "college": "인문대학" },
+          { "code": "이종우과학도서관", "name": "이종우과학도서관", "aliases": [], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "kmu", "name": "계명대학교", "shortName": "계명대",
+      "aliases": ["Keimyung", "KMU", "성서"], "badge": "대구 (성서)", "placeIdPrefix": "kmu",
+      "sources": ["https://www.kmu.ac.kr/page.jsp?mnu_uid=3319", "https://namu.wiki/w/%EA%B3%84%EB%AA%85%EB%8C%80%ED%95%99%EA%B5%90/%EC%84%B1%EC%84%9C%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "seongseo", "name": "성서캠퍼스", "district": "대구 달서구 계명대학교 성서캠퍼스",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "동산의료원", "name": "동산의료원", "aliases": [], "college": "의과대학·의료원" }
+        ]
+      }]
+    },
+    {
+      "id": "daegu-u", "name": "대구대학교", "shortName": "대구대",
+      "aliases": ["Daegu Univ", "경산"], "badge": "경산", "placeIdPrefix": "daegu-u",
+      "sources": ["https://www.daegu.ac.kr/page/55", "https://namu.wiki/w/%EB%8C%80%EA%B5%AC%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "main", "name": "경산캠퍼스", "district": "경북 경산 대구대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관 (중앙박물관)", "aliases": [], "college": "본부·박물관" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+          { "code": "성산홀", "name": "성산홀", "aliases": [], "college": "공용시설" },
+          { "code": "점자도서관", "name": "점자도서관", "aliases": [], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "cu", "name": "대구가톨릭대학교", "shortName": "대구가톨릭대",
+      "aliases": ["Catholic Univ of Daegu", "CU", "효성"], "badge": "경산 (효성)", "placeIdPrefix": "cu",
+      "sources": ["https://www.cu.ac.kr/introduction/campus/hyoseong", "https://namu.wiki/w/%EB%8C%80%EA%B5%AC%EA%B0%80%ED%86%A8%EB%A6%AD%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "hyoseong", "name": "효성캠퍼스", "district": "경북 경산 대구가톨릭대학교 효성캠퍼스",
+        "buildings": [
+          { "code": "A1", "name": "본관 (A1)", "aliases": [], "college": "본부" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "andong", "name": "국립경국대학교 안동", "shortName": "안동대",
+      "aliases": ["Andong", "ANU", "안동"], "badge": "안동 (송천)", "placeIdPrefix": "andong",
+      "notes": "2024년 경북도립 + 안동대 통합으로 국립경국대학교 안동캠퍼스",
+      "sources": ["https://www.anu.ac.kr/", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%EA%B2%BD%EA%B5%AD%EB%8C%80%ED%95%99%EA%B5%90/%EC%95%88%EB%8F%99%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "송천캠퍼스", "district": "경북 안동 경국대 안동캠퍼스",
+        "buildings": [
+          { "code": "본관", "name": "대학본부", "aliases": [], "college": "본부" },
+          { "code": "인문예술대학", "name": "인문예술대학", "aliases": [], "college": "인문예술대학" }
+        ]
+      }]
+    },
+    {
+      "id": "postech", "name": "포항공과대학교", "shortName": "POSTECH",
+      "aliases": ["POSTECH", "포스텍", "포항공대"], "badge": "포항", "placeIdPrefix": "postech",
+      "sources": ["https://www.postech.ac.kr/kor/university-introduction/campus_map.do", "https://namu.wiki/w/%ED%8F%AC%ED%95%AD%EA%B3%B5%EA%B3%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "포항캠퍼스", "district": "경북 포항 POSTECH",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "78계단", "name": "78계단", "aliases": ["랜드마크"], "college": "공용·명소" }
+        ]
+      }]
+    },
+    {
+      "id": "handong", "name": "한동대학교", "shortName": "한동대",
+      "aliases": ["Handong", "HGU", "포항"], "badge": "포항", "placeIdPrefix": "handong",
+      "sources": ["https://www.handong.edu/kor/about/campus/map/", "https://namu.wiki/w/%ED%95%9C%EB%8F%99%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "main", "name": "포항캠퍼스", "district": "경북 포항 한동대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관", "aliases": ["1995"], "college": "본부" },
+          { "code": "뉴턴홀", "name": "뉴턴홀(제2공학관)", "aliases": ["2000 준공"], "college": "공학" },
+          { "code": "갈대상자관", "name": "갈대상자관", "aliases": ["기숙사"], "college": "기숙사" }
+        ]
+      }]
+    },
+    {
+      "id": "dongguk-wise", "name": "동국대학교 WISE캠퍼스", "shortName": "동국 WISE",
+      "aliases": ["Dongguk WISE", "동국 경주", "경주"], "badge": "경주 (WISE)", "placeIdPrefix": "dongguk-wise",
+      "sources": ["https://wise.dongguk.ac.kr/main", "https://namu.wiki/w/%EB%8F%99%EA%B5%AD%EB%8C%80%ED%95%99%EA%B5%90/WISE%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "경주캠퍼스 (WISE)", "district": "경북 경주 동국대학교 WISE캠퍼스",
+        "buildings": [
+          { "code": "본관", "name": "WISE 본관", "aliases": ["100주년 기념"], "college": "본부" }
+        ]
+      }]
+    },
+    {
+      "id": "jnu", "name": "전남대학교", "shortName": "전남대",
+      "aliases": ["JNU", "전남", "용봉"], "badge": "광주 (용봉)", "placeIdPrefix": "jnu",
+      "sources": ["https://www.jnumap.com/", "https://namu.wiki/w/%EC%A0%84%EB%82%A8%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4%20%EB%B0%8F%20%EC%8B%9C%EC%84%A4"],
+      "campuses": [{
+        "id": "gwangju", "name": "광주캠퍼스 (용봉)", "district": "광주 북구 전남대학교",
+        "buildings": [
+          { "code": "용봉관", "name": "용봉관 (구 본관)", "aliases": ["본관"], "college": "본부" },
+          { "code": "인문대1호관", "name": "인문대학 1호관", "aliases": ["등록문화재 96호"], "college": "인문대학" }
+        ]
+      }]
+    },
+    {
+      "id": "chosun", "name": "조선대학교", "shortName": "조선대",
+      "aliases": ["Chosun", "CSU", "광주"], "badge": "광주", "placeIdPrefix": "chosun",
+      "sources": ["https://www3.chosun.ac.kr/campusMap/chosun/view.do", "https://namu.wiki/w/%EC%A1%B0%EC%84%A0%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4%20%EB%B0%8F%20%EC%8B%9C%EC%84%A4"],
+      "campuses": [{
+        "id": "main", "name": "광주캠퍼스", "district": "광주 동구 조선대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관 (백악관)", "aliases": ["1954 완공", "375m"], "college": "본부·역사" },
+          { "code": "자연과학대학", "name": "자연과학대학", "aliases": [], "college": "자연과학대학" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": ["2003 통합"], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "gnue", "name": "광주교육대학교", "shortName": "광주교대",
+      "aliases": ["GNUE", "광주교대"], "badge": "광주", "placeIdPrefix": "gnue",
+      "sources": ["https://www.gnue.ac.kr/", "https://namu.wiki/w/%EA%B4%91%EC%A3%BC%EA%B5%90%EC%9C%A1%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "main", "name": "풍향캠퍼스", "district": "광주 북구 광주교육대학교",
+        "buildings": [
+          { "code": "도서관", "name": "도서관 (아리랑동산)", "aliases": ["1977 신축, 2003 증축"], "college": "도서관" },
+          { "code": "교수학습지원관", "name": "교수학습지원관", "aliases": [], "college": "공용시설" },
+          { "code": "창의융합관", "name": "창의융합관", "aliases": [], "college": "공용시설" },
+          { "code": "풍향문화관", "name": "풍향문화관", "aliases": [], "college": "공용시설" }
+        ]
+      }]
+    },
+    {
+      "id": "honam", "name": "호남대학교", "shortName": "호남대",
+      "aliases": ["Honam", "광주"], "badge": "광주 (광산)", "placeIdPrefix": "honam",
+      "sources": ["https://www.honam.ac.kr/CampusMap", "http://lib.honam.ac.kr"],
+      "campuses": [{
+        "id": "main", "name": "광주캠퍼스", "district": "광주 광산구 호남대학교",
+        "buildings": [
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "mokpo", "name": "국립목포대학교", "shortName": "목포대",
+      "aliases": ["Mokpo", "MNU", "무안"], "badge": "무안", "placeIdPrefix": "mokpo",
+      "sources": ["https://www.mokpo.ac.kr/", "https://namu.wiki/w/%EB%AA%A9%ED%8F%AC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "muan", "name": "무안 본캠퍼스", "district": "전남 무안 목포대학교",
+        "buildings": [
+          { "code": "B15", "name": "인문대학 (B15)", "aliases": [], "college": "인문대학" },
+          { "code": "도서관", "name": "도서관", "aliases": [], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "mmu", "name": "국립목포해양대학교", "shortName": "목포해양대",
+      "aliases": ["MMU", "목포해대"], "badge": "목포", "placeIdPrefix": "mmu",
+      "sources": ["https://lib.mmu.ac.kr/", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%EB%AA%A9%ED%8F%AC%ED%95%B4%EC%96%91%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "main", "name": "목포캠퍼스", "district": "전남 목포 목포해양대학교",
+        "buildings": [
+          { "code": "도서관", "name": "도서관", "aliases": ["2015 신축"], "college": "도서관" },
+          { "code": "해사대학", "name": "해사대학", "aliases": [], "college": "해사대학" },
+          { "code": "해양공과대학", "name": "해양공과대학", "aliases": [], "college": "해양공과대학" }
+        ]
+      }]
+    },
+    {
+      "id": "scnu", "name": "국립순천대학교", "shortName": "순천대",
+      "aliases": ["Suncheon", "SCNU", "순천"], "badge": "순천", "placeIdPrefix": "scnu",
+      "sources": ["https://www.scnu.ac.kr/", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%EC%88%9C%EC%B2%9C%EB%8C%80%ED%95%99%EA%B5%90"],
+      "campuses": [{
+        "id": "main", "name": "순천캠퍼스", "district": "전남 순천 순천대학교",
+        "buildings": [
+          { "code": "공대3호관", "name": "공과대학 3호관", "aliases": [], "college": "공과대학" },
+          { "code": "공대2호관", "name": "공과대학 2호관", "aliases": [], "college": "공과대학" },
+          { "code": "인문예술대학", "name": "인문예술대학", "aliases": [], "college": "인문예술대학" },
+          { "code": "도서관", "name": "도서관", "aliases": [], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "jbnu", "name": "전북대학교", "shortName": "전북대",
+      "aliases": ["JBNU", "전북", "전주"], "badge": "전주", "placeIdPrefix": "jbnu",
+      "sources": ["https://www.jbnu.ac.kr/", "https://namu.wiki/w/%EC%A0%84%EB%B6%81%EB%8C%80%ED%95%99%EA%B5%90/%EC%A0%84%EC%A3%BC%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "jeonju", "name": "전주캠퍼스", "district": "전북 전주 전북대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관 (구 문리대)", "aliases": ["등록문화재 766호", "예술대학"], "college": "본부·역사·예술대학" },
+          { "code": "인문대1호관", "name": "인문대학 1호관", "aliases": ["국문·영문·철학"], "college": "인문대학" },
+          { "code": "인문대2호관", "name": "인문대학 2호관", "aliases": ["기타 어문·사학·문헌"], "college": "인문대학" },
+          { "code": "인문사회관", "name": "인문사회관", "aliases": ["2017 완공"], "college": "인문대학" },
+          { "code": "15-0", "name": "자연대 본관", "aliases": [], "college": "자연과학대학" },
+          { "code": "공대본관", "name": "공과대학 본관", "aliases": [], "college": "공과대학" }
+        ]
+      }]
+    },
+    {
+      "id": "wku", "name": "원광대학교", "shortName": "원광대",
+      "aliases": ["Wonkwang", "WKU", "익산"], "badge": "익산", "placeIdPrefix": "wku",
+      "sources": ["https://www.wku.ac.kr/about/campus-info/campus-map.html", "https://namu.wiki/w/%EC%9B%90%EA%B4%91%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "campuses": [{
+        "id": "main", "name": "익산캠퍼스", "district": "전북 익산 원광대학교",
+        "buildings": [
+          { "code": "본관", "name": "대학본관", "aliases": [], "college": "본부" },
+          { "code": "의과대학", "name": "의과대학", "aliases": [], "college": "의과대학" },
+          { "code": "한의과대학", "name": "한의과대학", "aliases": [], "college": "한의과대학" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": ["2012 신축"], "college": "도서관" }
+        ]
+      }]
+    },
+    {
+      "id": "jejunu", "name": "제주대학교", "shortName": "제주대",
+      "aliases": ["JejuNU", "JNU", "제주", "아라"], "badge": "제주 (아라)", "placeIdPrefix": "jejunu",
+      "sources": ["https://www.jejunu.ac.kr/index.htm", "https://namu.wiki/w/%EC%A0%9C%EC%A3%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4%20%EB%B0%8F%20%EC%8B%9C%EC%84%A4"],
+      "campuses": [{
+        "id": "ara", "name": "아라캠퍼스", "district": "제주 제주시 제주대학교 아라캠퍼스",
+        "buildings": [
+          { "code": "401", "name": "대학본관", "aliases": ["우체국·NH농협"], "college": "본부" },
+          { "code": "404", "name": "사범대학 1호관", "aliases": [], "college": "사범대학" },
+          { "code": "106", "name": "자연과학대학 1호관", "aliases": [], "college": "자연과학대학" },
+          { "code": "201", "name": "자연과학대학 2호관", "aliases": [], "college": "자연과학대학" }
+        ]
+      }]
+    }
+  ]
+}
