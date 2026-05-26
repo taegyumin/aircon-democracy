@@ -54,6 +54,7 @@ export const voterCookieMiddleware: MiddlewareHandler<Env> = async (c, next) => 
     voterId = await verifyCookie(getCookie(c, COOKIE_NAME), c.env.COOKIE_SECRET);
   }
   // 3. 신규 발급.
+  let issuingNewToken = false;
   if (!voterId) {
     voterId = crypto.randomUUID();
     const sig = await hmacSign(voterId, c.env.COOKIE_SECRET);
@@ -68,7 +69,15 @@ export const voterCookieMiddleware: MiddlewareHandler<Env> = async (c, next) => 
     // mobile이 캡처해 SecureStore에 저장 후 Authorization으로 재사용.
     // 이름이 X-Aircon-* 인 이유: CORS expose-headers 명시 필요 (별도 작업 시).
     c.header('X-Aircon-Voter-Token', token);
+    issuingNewToken = true;
   }
   c.set('voterId', voterId);
   await next();
+
+  // 신규 voter token이 응답에 박혔다면 절대 edge cache 안 됨 (identity 누설 방지).
+  // route가 public Cache-Control 박았더라도 (예: GET /places의 s-maxage=30) 새 token
+  // 발급된 응답은 그 사용자만 받아야 함. LLM 리뷰 P2.
+  if (issuingNewToken) {
+    c.header('Cache-Control', 'private, no-store');
+  }
 };
