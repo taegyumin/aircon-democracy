@@ -46,11 +46,12 @@ function timedFetch(url: string, init?: RequestInit): Promise<Response> {
 }
 
 // ── Subway (swopenAPI) ─────────────────────────────────────────────
-
-const LINE_TO_SUBWAY_ID: Record<string, string> = {
-  '1호선': '1001', '2호선': '1002', '3호선': '1003', '4호선': '1004',
-  '5호선': '1005', '6호선': '1006', '7호선': '1007', '8호선': '1008', '9호선': '1009',
-};
+//
+// swopenAPI URL은 path에 한글 노선명(body.line)을 그대로 받음.
+// 과거에는 LINE_TO_SUBWAY_ID(1001~1009) 화이트리스트로 1~9호선만 허용했지만
+// (1) 그 ID들이 URL에 사용되지도 않았고 (2) swopenAPI sample 예시에 서해선 등도 등장 —
+// 신림선/신분당선/우이신설선 같은 비-1~9호선이 임의로 막혀 있을 이유가 없음.
+// 노선이 swopenAPI에 데이터가 없으면 자연스럽게 'no_train_at_segment'로 떨어짐.
 
 function normStation(s: string): string {
   return s.endsWith('역') ? s.slice(0, -1) : s;
@@ -65,8 +66,6 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
   const parsed = SubwayMatchBodySchema.safeParse(raw);
   if (!parsed.success) return c.json({ error: 'invalid_body' }, 400);
   const body = parsed.data;
-  const subwayId = LINE_TO_SUBWAY_ID[body.line];
-  if (!subwayId) return c.json({ matched: false, reason: 'line_not_supported' });
   const key = (c.env as unknown as { SEOUL_REALTIME_KEY?: string }).SEOUL_REALTIME_KEY;
   if (!key) return c.json({ matched: false, reason: 'no_api_key' });
   // prev→next가 어느 updnLine 방향인지 결정 (반대 방향 차량 거름).
