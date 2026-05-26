@@ -4,7 +4,7 @@
 import { Hono } from 'hono';
 import { expectedUpdnLine, LINE_SEQUENCES, stripStation } from '@aircon/core/subwayDirection';
 import { estimateProgress } from '@aircon/core';
-import { SubwayMatchBodySchema, BusMatchBodySchema } from '@aircon/core/validation';
+import { SubwayMatchBodySchema, BusMatchBodySchema, BusRouteSearchQuerySchema, BusRouteStationsQuerySchema } from '@aircon/core/validation';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
 import type { Env } from '../types';
@@ -131,7 +131,18 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
 
 // ── Bus (data.go.kr) ───────────────────────────────────────────────
 
-interface BusRouteItem { busRouteId: string; busRouteNm: string; routeType: string }
+// 서울 시내버스 노선 종류 코드 (data.go.kr routeType).
+//   1=공항 2=마을 3=간선 4=지선 5=순환 6=광역 7=인천 8=경기 9=폐지 10=관광 11=공항순환
+const ROUTE_TYPE_LABEL: Record<string, string> = {
+  '1': '공항', '2': '마을', '3': '간선', '4': '지선', '5': '순환',
+  '6': '광역', '7': '인천', '8': '경기', '9': '폐지', '10': '관광', '11': '공항순환',
+};
+
+interface BusRouteItem {
+  busRouteId: string; busRouteNm: string; routeType: string;
+  // 자동완성 결과에 노출. data.go.kr 응답에 포함 (시점/종점).
+  stStationNm?: string; edStationNm?: string;
+}
 interface BusStationItem { stationNm: string; seq: string }
 interface BusPosItem { vehId: string; plainNo: string; busType: string; stOrd: string; stopFlag: string; busRouteId: string }
 
@@ -151,6 +162,67 @@ async function fetchBusJson<T>(url: string): Promise<T[]> {
   const raw = body.msgBody?.itemList;
   return Array.isArray(raw) ? raw : raw ? [raw] : [];
 }
+
+// 노선 자동완성 — 사용자가 버스 번호 일부 입력하면 후보 노선 list.
+// 디자인 wireframe: "271 [간선] 서울역 → 불광동" 같은 row.
+// 한 routeId는 양방향 1쌍의 종점 (stStationNm/edStationNm)을 가짐.
+realtimeRoutes.get('/realtime/bus/route-search', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const parsed = BusRouteSearchQuerySchema.safeParse({ q: c.req.query('q') });
+  if (!parsed.success) return c.json({ error: 'invalid_query' }, 400);
+  const { q } = parsed.data;
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ routes: [], reason: 'no_api_key' });
+  const HOST = 'http://ws.bus.go.kr/api/rest';
+  try {
+    const items = await fetchBusJson<BusRouteItem>(
+      `${HOST}/busRouteInfo/getBusRouteList?serviceKey=${encodeURIComponent(key)}&strSrch=${encodeURIComponent(q)}&resultType=json`,
+    );
+    // 정확히 q와 일치하는 노선을 위로. (예: '271' 입력 시 '271'이 '2711'보다 앞).
+    items.sort((a, b) => (a.busRouteNm === q ? 0 : 1) - (b.busRouteNm === q ? 0 : 1));
+    const routes = items.slice(0, 12).map((r) => ({
+      id: r.busRouteId,
+      name: r.busRouteNm,
+      type: r.routeType,
+      typeLabel: ROUTE_TYPE_LABEL[r.routeType] ?? '버스',
+      startStop: r.stStationNm ?? '',
+      endStop: r.edStationNm ?? '',
+    }));
+    return c.json({ routes });
+  } catch (e) {
+    return c.json({ routes: [], reason: (e as Error).message });
+  }
+});
+
+// 노선 정류장 sequence — 자동완성에서 노선 확정 후 정류장 picker용.
+realtimeRoutes.get('/realtime/bus/route-stations', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const parsed = BusRouteStationsQuerySchema.safeParse({ routeId: c.req.query('routeId') });
+  if (!parsed.success) return c.json({ error: 'invalid_query' }, 400);
+  const { routeId } = parsed.data;
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ stations: [], reason: 'no_api_key' });
+  const HOST = 'http://ws.bus.go.kr/api/rest';
+  try {
+    interface FullStation { stationNm: string; seq: string; gpsX?: string; gpsY?: string; arsId?: string }
+    const items = await fetchBusJson<FullStation>(
+      `${HOST}/busRouteInfo/getStaionByRoute?serviceKey=${encodeURIComponent(key)}&busRouteId=${encodeURIComponent(routeId)}&resultType=json`,
+    );
+    const stations = items.map((s) => ({
+      seq: parseInt(s.seq, 10),
+      name: s.stationNm,
+      // GPS (NearbyStopCard에서 distance 계산용). 비어있을 수 있어 number|null로.
+      x: s.gpsX ? parseFloat(s.gpsX) : null,
+      y: s.gpsY ? parseFloat(s.gpsY) : null,
+      arsId: s.arsId ?? null,
+    }));
+    return c.json({ stations });
+  } catch (e) {
+    return c.json({ stations: [], reason: (e as Error).message });
+  }
+});
 
 realtimeRoutes.post('/realtime/bus/match', async (c) => {
   const guard = await realtimeGuard(c);

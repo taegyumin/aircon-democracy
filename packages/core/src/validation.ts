@@ -88,6 +88,17 @@ export const BusMatchBodySchema = z.object({
   stopName: z.string().trim().min(1).max(60),
 });
 
+// Bus 리디자인: 노선 자동완성 / 정류장 list. data.go.kr 래핑 endpoint들.
+// query는 URL param. 한글 노선명도 받아야 해서 길이 여유.
+export const BusRouteSearchQuerySchema = z.object({
+  q: z.string().trim().min(1).max(20),
+});
+
+export const BusRouteStationsQuerySchema = z.object({
+  // data.go.kr의 busRouteId. 보통 9자리 숫자 문자열.
+  routeId: z.string().trim().min(1).max(40),
+});
+
 // Helper for hono routes
 export function parseBody<T>(schema: z.ZodType<T>, raw: unknown): { ok: true; data: T } | { ok: false; error: string } {
   const r = schema.safeParse(raw);

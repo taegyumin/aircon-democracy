@@ -118,6 +118,17 @@ export function createApiClient(options: ApiClientOptions = {}) {
         body: JSON.stringify(input),
       }),
 
+    // ── Bus 리디자인: 노선 자동완성 + 정류장 list ─────────────────────
+    searchBusRoutes: (q: string) =>
+      request<{ routes: BusRouteCandidate[]; reason?: string }>(
+        `/api/realtime/bus/route-search?q=${encodeURIComponent(q)}`,
+      ),
+
+    listBusRouteStations: (routeId: string) =>
+      request<{ stations: BusRouteStation[]; reason?: string }>(
+        `/api/realtime/bus/route-stations?routeId=${encodeURIComponent(routeId)}`,
+      ),
+
     // ── Auth ─────────────────────────────────────────────────────────
     me: () => request<{ user: User | null }>('/api/me'),
     logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
@@ -153,6 +164,25 @@ export interface BusMatchResult {
   currentStop?: string;
   nextStop?: string;
   reason?: string;
+}
+
+// 노선 자동완성 row — data.go.kr getBusRouteList 정규화.
+export interface BusRouteCandidate {
+  id: string;             // busRouteId (9자리 숫자 문자열)
+  name: string;           // busRouteNm (예: '271', '9401A')
+  type: string;           // routeType raw 코드
+  typeLabel: string;      // '간선' | '지선' | '광역' | '순환' | ...
+  startStop: string;      // stStationNm (시점 정류장)
+  endStop: string;        // edStationNm (종점 정류장)
+}
+
+// 노선 정류장 sequence — GPS 기반 nearby pick + 전체 list 둘 다.
+export interface BusRouteStation {
+  seq: number;            // 1부터 시작하는 정차 순서
+  name: string;
+  x: number | null;       // 경도 (gpsX) — null 가능
+  y: number | null;       // 위도 (gpsY)
+  arsId: string | null;   // ARS 번호 (사용자에게 노출 시)
 }
 
 export interface User {
