@@ -17,7 +17,8 @@
     "./yonsei": "./src/yonsei.ts",
     "./tokens": "./src/tokens.ts",
     "./brands": "./src/brands.ts",
-    "./subwayDirection": "./src/subwayDirection.ts"
+    "./subwayDirection": "./src/subwayDirection.ts",
+    "./validation": "./src/validation.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
@@ -28,5 +29,8 @@
   "devDependencies": {
     "typescript": "^5.6.3",
     "vitest": "^4.1.7"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
   }
 }
