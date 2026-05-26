@@ -1,7 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
-import { expectedUpdnLine } from '@aircon/core/subwayDirection';
+import { expectedUpdnLine, LINE_SEQUENCES, stripStation } from '@aircon/core/subwayDirection';
 import { sign as jwtSign, verify as jwtVerify } from 'hono/jwt';
 import type { Context } from 'hono';
 import {
@@ -823,9 +823,32 @@ app.post('/realtime/subway/match', async (c) => {
     }
     const p = normStation(body.prev);
     const n = normStation(body.next);
-    const atNext = rows.filter((r) => normStation(r.statnNm) === n && (r.trainSttus === '0' || r.trainSttus === '1'));
-    const justLeftPrev = rows.filter((r) => normStation(r.statnNm) === p && r.trainSttus === '2');
-    const picked = atNext[0] ?? justLeftPrev[0];
+    // 1차: 정확 매칭 (next 진입/도착 > prev 출발 > prev 정차 > next 정차)
+    const atNextEntering = rows.filter((r) => normStation(r.statnNm) === n && (r.trainSttus === '0' || r.trainSttus === '1'));
+    const justLeftPrev   = rows.filter((r) => normStation(r.statnNm) === p && r.trainSttus === '2');
+    const atPrev         = rows.filter((r) => normStation(r.statnNm) === p && (r.trainSttus === '0' || r.trainSttus === '1'));
+    const atNextAny      = rows.filter((r) => normStation(r.statnNm) === n);
+    let picked: typeof rows[0] | undefined = atNextEntering[0] ?? justLeftPrev[0] ?? atPrev[0] ?? atNextAny[0];
+
+    // 2차 (fallback): 정확 매칭 실패 시 sequence 거리 기반 ±3 정거장 내 가장 가까운 차량.
+    // 차량 헤드웨이가 길어 prev/next에 차량 없을 때 사용. 같은 방향(이미 필터됨) 보장.
+    if (!picked) {
+      const seq = LINE_SEQUENCES[body.line];
+      if (seq) {
+        const pi = seq.indexOf(p);
+        const ni = seq.indexOf(n);
+        if (pi >= 0 && ni >= 0) {
+          let bestDist = 4;
+          for (const r of rows) {
+            const idx = seq.indexOf(stripStation(r.statnNm));
+            if (idx < 0) continue;
+            const d = Math.min(Math.abs(idx - pi), Math.abs(idx - ni));
+            if (d < bestDist) { picked = r; bestDist = d; }
+          }
+        }
+      }
+    }
+
     if (!picked) return c.json({ matched: false, reason: 'no_train_at_segment' });
     return c.json({
       matched: true,

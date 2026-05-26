@@ -86,7 +86,7 @@ const LINE_9_DOWN = [
 
 // (1) prev→next가 정방향이면 '1' (하행/외선), 역방향이면 '0' (상행/내선) 반환.
 //     같은 노선의 인접쌍이 아니면 null.
-const LINE_SEQUENCES: Record<string, string[]> = {
+export const LINE_SEQUENCES: Record<string, string[]> = {
   '1호선': LINE_1_DOWN,
   '2호선': LINE_2_OUTER,
   '3호선': LINE_3_DOWN,
@@ -98,9 +98,10 @@ const LINE_SEQUENCES: Record<string, string[]> = {
   '9호선': LINE_9_DOWN,
 };
 
-function strip(s: string): string {
+export function stripStation(s: string): string {
   return s.endsWith('역') ? s.slice(0, -1) : s;
 }
+const strip = stripStation;
 
 /**
  * prev → next 방향이 swopenAPI의 어느 updnLine에 해당하는지.
