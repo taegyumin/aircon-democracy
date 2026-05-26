@@ -29,7 +29,6 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
           if (k === 'subway' || k === 'bus' || k === 'train' || k === 'classroom' || k === 'other') setCategory(k);
           else onRegisterFreeform(k as PlaceType);
         }}
-        onPickPlaceId={onPicked}
         onBack={onBack}
       />
     );
