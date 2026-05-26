@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
+    "test": "vitest run",
     "start": "next start",
     "lint": "next lint"
   },
@@ -23,9 +24,11 @@
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@vitest/coverage-v8": "^4.1.7",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.0.0",
     "typescript": "^5.6.3",
+    "vitest": "^4.1.7",
     "wrangler": "^4.86.0"
   }
 }
