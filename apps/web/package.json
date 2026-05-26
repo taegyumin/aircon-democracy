@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
+    "build:cf": "next build && next-on-pages",
+    "deploy": "bash ./deploy.sh",
     "test": "vitest run",
     "start": "next start",
     "lint": "next lint"
