@@ -4,7 +4,7 @@
 // SNUClassroomWizard 자체가 내부 sub-component 구조라 별도 파일 유지.
 // (얇긴 하지만 LocationWizardScreen에 inline 두면 wizard 모듈 패턴이 깨짐 — 유지.)
 
-import { SNUClassroomWizard } from '../../SNUClassroomWizard';
+import { SNUClassroomWizard } from './snu/SNUClassroomWizard';
 
 interface Props {
   onBack: () => void;

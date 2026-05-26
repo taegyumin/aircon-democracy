@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, GraduationCap, Building2, DoorOpen, Check, Edit3 } from 'lucide-react';
 import { TOKEN, FONT } from '@aircon/core';
-import { api } from '../lib/apiClient';
-import { BackIcon } from '../components/Icons';
+import { api } from '../../../../lib/apiClient';
+import { BackIcon } from '../../../../components/Icons';
 import {
   BUILDINGS,
   loadRooms,
@@ -18,8 +18,8 @@ import {
   type SNURoom,
 } from '@aircon/core/snu';
 import { BUILDINGS as YONSEI_BUILDINGS } from '@aircon/core/yonsei';
-import { YonseiClassroomWizard } from './YonseiClassroomWizard';
-import { WizardHeader } from './wizard/WizardHeader';
+import { YonseiClassroomWizard } from '../yonsei/YonseiClassroomWizard';
+import { WizardHeader } from '../../WizardHeader';
 
 interface Props {
   onPicked: (placeId: string) => void;

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Search, GraduationCap, Building2 } from 'lucide-react';
 import { TOKEN, FONT } from '@aircon/core';
-import { api } from '../lib/apiClient';
+import { api } from '../../../../lib/apiClient';
 import {
   BUILDINGS,
   search,
