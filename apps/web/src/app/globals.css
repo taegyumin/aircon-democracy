@@ -29,6 +29,12 @@ button {
   font-family: inherit;
 }
 
+/* iOS Safari가 input/textarea/select 의 font-size < 16px 이면 focus 시 자동 zoom in.
+   16px 이상 보장해서 zoom 방지. (CSS rendering 시각 크기는 transform/scale 로 조절) */
+input, textarea, select {
+  font-size: 16px;
+}
+
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
