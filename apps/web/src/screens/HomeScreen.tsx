@@ -42,9 +42,12 @@ function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: str
   );
 }
 
+// SSR 이후 client refetch까지 두면 같은 LEFT JOIN GROUP BY가 1~2번 돔 (LLM 리뷰 P1/P2).
+// initialPlaces가 있으면 STALE_WINDOW_MS 동안 refetch skip — SSR 결과 신뢰.
+// window 지나면 background refetch로 갱신.
+const STALE_WINDOW_MS = 30_000;
+
 export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR, onRegister, onLogin, initialPlaces }: Props) {
-  // RSC-provided list가 있으면 첫 렌더부터 채워짐 (SEO + LCP). 그래도 mount 후
-  // re-fetch는 그대로 — 사용자가 머무는 동안 fresh count 갱신.
   const [places, setPlaces] = useState<PlaceWithCounts[] | null>(initialPlaces ?? null);
   const [error, setError] = useState<string | null>(null);
   const { user, logout } = useUser();
@@ -53,18 +56,22 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR,
   const [favorites] = useState<FavoritePlace[]>(() => listFavorites());
 
   useEffect(() => {
+    // SSR이 30초 안에 fresh data 줬으면 immediate refetch skip — D1 read 절약.
+    // initialPlaces 없으면 (D1 read 실패 fallback, dev 환경 등) 즉시 fetch.
+    if (initialPlaces && initialPlaces.length > 0) {
+      const refreshAfter = setTimeout(() => {
+        api.listPlaces()
+          .then((res) => setPlaces(res.places))
+          .catch((e: Error) => setError(e.message));
+      }, STALE_WINDOW_MS);
+      return () => clearTimeout(refreshAfter);
+    }
     let cancelled = false;
     api.listPlaces()
-      .then((res) => {
-        if (!cancelled) setPlaces(res.places);
-      })
-      .catch((e: Error) => {
-        if (!cancelled) setError(e.message);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+      .then((res) => { if (!cancelled) setPlaces(res.places); })
+      .catch((e: Error) => { if (!cancelled) setError(e.message); });
+    return () => { cancelled = true; };
+  }, [initialPlaces]);
 
   const active = places?.filter((p) => p.cold + p.ok + p.hot > 0) ?? [];
 
