@@ -136,6 +136,16 @@ export function TrainModeBody(p: TrainModeBodyProps) {
           next={p.resolvedSegment!.next}
           trainMatch={p.trainMatch}
           matchLoading={p.matchLoading}
+          onResetBoth={() => {
+            p.setPrevStation(null); p.setNextStation(null);
+            p.setPrevQuery(''); p.setNextQuery('');
+          }}
+          onSwap={() => {
+            const a = p.prevStation;
+            const b = p.nextStation;
+            p.setPrevStation(b);
+            p.setNextStation(a);
+          }}
         />
       )}
 
@@ -437,16 +447,20 @@ function CandidateChips({
 // ── LineCard — 매칭 결과 + 열차 카드 통합 ──────────────────────────
 
 function LineCard({
-  line, prev, next, trainMatch, matchLoading,
+  line, prev, next, trainMatch, matchLoading, onResetBoth, onSwap,
 }: {
   line: string;
   prev: string;
   next: string;
   trainMatch: SubwayMatchResult | null;
   matchLoading: boolean;
+  onResetBoth: () => void;
+  onSwap: () => void;
 }) {
   const color = lineColor(line);
   const confirmed = trainMatch?.matched ?? false;
+  // realtime 매칭 시도했는데 실패 (1~9호선이고 응답 받았지만 그 시점에 차량 없음).
+  const realtimeFailed = !!trainMatch && !confirmed && !matchLoading;
   const trainNo = trainMatch?.trainNo;
   const destination = trainMatch?.destination;
   const lineNum = line.replace(/호선|선/g, '').trim() || '?';
@@ -455,10 +469,10 @@ function LineCard({
     ? '열차 찾는 중…'
     : confirmed
       ? '열차 확인됨'
-      : trainMatch
-        ? '열차 자동 매칭 실패 — 구간 단위로 투표'
+      : realtimeFailed
+        ? '지금 운행 중인 열차를 찾지 못했어요'
         : '노선 매칭됨';
-  const labelColor = confirmed ? TOKEN.ok : color;
+  const labelColor = confirmed ? TOKEN.ok : realtimeFailed ? AMBER : color;
 
   return (
     <div style={{ marginBottom: 12 }}>
@@ -475,12 +489,23 @@ function LineCard({
           background: TOKEN.surface, borderRadius: TOKEN.r.lg, overflow: 'hidden',
           boxShadow: confirmed
             ? `0 2px 12px rgba(0,0,0,0.07)`
-            : `0 6px 28px rgba(0,0,0,0.12)`,
-          border: confirmed ? `1.5px solid ${TOKEN.ok}40` : 'none',
+            : realtimeFailed
+              ? '0 3px 14px rgba(217,119,6,0.10)'
+              : `0 6px 28px rgba(0,0,0,0.12)`,
+          border: confirmed
+            ? `1.5px solid ${TOKEN.ok}40`
+            : realtimeFailed
+              ? `1.5px solid ${AMBER_BORDER}`
+              : 'none',
         }}
       >
-        {/* 노선 색 accent bar */}
-        <div style={{ height: 4, background: color }} />
+        {/* accent bar — realtime 실패 시 amber gradient, 그 외엔 노선 색 */}
+        <div
+          style={{
+            height: 4,
+            background: realtimeFailed ? `linear-gradient(90deg, ${AMBER}, #FBBF24)` : color,
+          }}
+        />
 
         <div style={{ padding: '18px 18px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
@@ -524,6 +549,39 @@ function LineCard({
             progress={trainMatch?.progress ?? null}
             progressLabel={trainMatch?.progressLabel ?? null}
           />
+
+          {/* realtime 매칭 실패 시 — 입력 잘못일 수도 있어 recovery actions 노출.
+              "이 구간으로 그냥 투표"는 하단 CTA로 가능 (구간 단위 fallback). */}
+          {realtimeFailed && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 11, color: AMBER_TEXT, lineHeight: 1.5, marginBottom: 12 }}>
+                혹시 역 이름·순서가 잘못됐을 수도 있어요. 다시 확인하거나 그대로 구간 단위로 투표하세요.
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={onResetBoth}
+                  style={{
+                    flex: 3, padding: '12px 0', background: TOKEN.cold, color: '#fff',
+                    border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700,
+                    cursor: 'pointer', fontFamily: FONT,
+                    boxShadow: `0 4px 14px ${TOKEN.cold}40`,
+                  }}
+                >
+                  다시 입력하기
+                </button>
+                <button
+                  onClick={onSwap}
+                  style={{
+                    flex: 2, padding: '12px 0', background: TOKEN.bg, color: TOKEN.text2,
+                    border: `1px solid ${TOKEN.border}`, borderRadius: 12, fontSize: 12,
+                    cursor: 'pointer', fontFamily: FONT,
+                  }}
+                >
+                  순서 바꾸기
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
