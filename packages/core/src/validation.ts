@@ -108,6 +108,12 @@ export const BusRouteStationsQuerySchema = z.object({
   region: RegionSchema,
 });
 
+// GPS 좌표 → cityCode (또는 'seoul'). NCP reverse-geocode 래핑용.
+export const BusRegionByCoordsQuerySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+});
+
 // Helper for hono routes
 export function parseBody<T>(schema: z.ZodType<T>, raw: unknown): { ok: true; data: T } | { ok: false; error: string } {
   const r = schema.safeParse(raw);

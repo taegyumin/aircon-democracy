@@ -12,12 +12,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   TOKEN, FONT, distanceM, formatDistance,
+  CITY_CODES, SEOUL_REGION,
   type BusRouteCandidate, type BusRouteStation, type Coords,
 } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
 import { useBusMatch, freshenBusMatch } from './useBusMatch';
 import { buildBusPlace } from './buildBusPlace';
+
+// region: 'seoul' (ws.bus.go.kr) 또는 cityCode 숫자 문자열 (TAGO 1613000).
+// 사용자 변경 가능. GPS로 자동 추론 후 사용자가 dropdown으로 override.
+type Region = string; // 'seoul' | '21' | '31010' ...
+const DEFAULT_REGION: Region = SEOUL_REGION;
 
 // ── 시각 토큰 (디자인 시안 정렬) ──────────────────────────────────
 // 서울 시내버스 type 색. 디자인 BUS map 충실.
@@ -42,11 +48,45 @@ type StopSel = BusRouteStation | { unknown: true } | null;
 export function BusWizard({ onBack, onPicked }: Props) {
   const [phase, setPhase] = useState<Phase>('number');
 
+  // Region — 진입 시 GPS로 자동 추론 후 사용자가 dropdown 변경 가능.
+  const [region, setRegion] = useState<Region>(DEFAULT_REGION);
+  const [regionLabel, setRegionLabel] = useState<string>('서울특별시');
+  const [regionDetecting, setRegionDetecting] = useState(true);
+  const regionDetectedRef = useRef(false);
+
   // Step 1 — 번호 input + autocomplete
   const [routeQuery, setRouteQuery] = useState('');
   const [routeCandidates, setRouteCandidates] = useState<BusRouteCandidate[]>([]);
   const [routeLoading, setRouteLoading] = useState(false);
   const routeSeqRef = useRef(0);
+
+  // GPS 자동 추론 — mount 시 1회. 권한 거부 또는 unsupported 시 'seoul' 기본 유지.
+  useEffect(() => {
+    if (regionDetectedRef.current) return;
+    regionDetectedRef.current = true;
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setRegionDetecting(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await api.busRegionByCoords(pos.coords.latitude, pos.coords.longitude);
+          if (res.region) {
+            setRegion(res.region);
+            const fromCode = res.region === 'seoul'
+              ? '서울특별시'
+              : CITY_CODES.find((c) => String(c.code) === res.region)?.name
+                ?? res.sigunguName ?? res.sidoName ?? res.region;
+            setRegionLabel(fromCode);
+          }
+        } catch { /* fallback to default Seoul */ }
+        setRegionDetecting(false);
+      },
+      () => { setRegionDetecting(false); },
+      { enableHighAccuracy: false, timeout: 6000, maximumAge: 300_000 },
+    );
+  }, []);
 
   // Step 2/3 — 확정된 노선 + 정류장
   const [selectedRoute, setSelectedRoute] = useState<BusRouteCandidate | null>(null);
@@ -75,7 +115,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
     setRouteLoading(true);
     const t = setTimeout(async () => {
       try {
-        const res = await api.searchBusRoutes(q);
+        const res = await api.searchBusRoutes(q, region);
         if (routeSeqRef.current !== mySeq) return;
         setRouteCandidates(res.routes ?? []);
       } catch {
@@ -86,7 +126,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
       }
     }, 200);
     return () => { clearTimeout(t); };
-  }, [routeQuery, phase]);
+  }, [routeQuery, phase, region]);
 
   // ── 노선 선택 시 정류장 list 로드 ─────────────────────────────────
   const pickRoute = useCallback(async (r: BusRouteCandidate) => {
@@ -95,7 +135,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
     setStopSel(null); setStopSearch('');
     setStationsLoading(true); setStationsErr(null);
     try {
-      const res = await api.listBusRouteStations(r.id);
+      const res = await api.listBusRouteStations(r.id, region);
       setStations(res.stations ?? []);
       if (res.reason) setStationsErr(res.reason);
     } catch (e) {
@@ -104,7 +144,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
     } finally {
       setStationsLoading(false);
     }
-  }, []);
+  }, [region]);
 
   // ── GPS 요청 ──────────────────────────────────────────────────────
   const requestGps = useCallback(() => {
@@ -127,8 +167,13 @@ export function BusWizard({ onBack, onPicked }: Props) {
   // ── 정류장 선택 후 차량 매칭 자동 trigger ─────────────────────────
   useEffect(() => {
     if (!selectedRoute || !stopSel || !('name' in stopSel)) return;
-    tryMatch(selectedRoute.name, stopSel.name);
-  }, [selectedRoute, stopSel, tryMatch]);
+    tryMatch({
+      routeName: selectedRoute.name,
+      stopName: stopSel.name,
+      region,
+      routeId: selectedRoute.id,
+    });
+  }, [selectedRoute, stopSel, tryMatch, region]);
 
   const resetToNumber = () => {
     setPhase('number');
@@ -137,6 +182,17 @@ export function BusWizard({ onBack, onPicked }: Props) {
     setGps('idle'); setCoords(null);
     resetMatch();
   };
+
+  // region 수동 변경 — 진행 중 모든 state 초기화 (이전 region의 routeId가 무효).
+  const changeRegion = useCallback((next: Region) => {
+    setRegion(next);
+    const label = next === 'seoul'
+      ? '서울특별시'
+      : CITY_CODES.find((c) => String(c.code) === next)?.name ?? next;
+    setRegionLabel(label);
+    resetToNumber();
+    setRouteQuery(''); setRouteCandidates([]);
+  }, [resetMatch]);
 
   // ── Submit ────────────────────────────────────────────────────────
   const canSubmit = phase === 'stops' && !!selectedRoute && !!stopSel && !submitting && !matchLoading;
@@ -173,7 +229,15 @@ export function BusWizard({ onBack, onPicked }: Props) {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
       <WizardHeader title="버스" onBack={onBack} />
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 0 24px' }}>
+      {/* Region inline picker — 헤더 바로 아래, Step 1 위. GPS로 자동 추론된 값 + native select. */}
+      <RegionPicker
+        region={region}
+        label={regionLabel}
+        detecting={regionDetecting}
+        onChange={changeRegion}
+      />
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 0 24px' }}>
         {phase === 'number' && (
           <NumberStep
             query={routeQuery}
@@ -251,6 +315,87 @@ export function BusWizard({ onBack, onPicked }: Props) {
           {ctaLabel}
           {canSubmit && <ArrowRight color="#fff" size={18} />}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Region inline picker — GPS 자동 추론 + native <select> 변경.
+// 광역시 9개 (서울 + TAGO 8개) + 경기/강원/충북/충남/전북/전남/경북/경남 시·군 130개.
+// 138개 정도라 native select가 가장 가벼움. group으로 보기 좋게.
+// ════════════════════════════════════════════════════════════════════
+
+function RegionPicker({
+  region, label, detecting, onChange,
+}: {
+  region: Region;
+  label: string;
+  detecting: boolean;
+  onChange: (next: Region) => void;
+}) {
+  // 광역시 (서울 + TAGO 광역시 cityCode 코드값) + 시·군 prefix 기준 그룹 분류.
+  // 시·군 그룹 라벨은 cityCode 첫 2자리로 추론 (31=경기, 32=강원, 33=충북, ...).
+  const SIDO_PREFIX_LABEL: Record<string, string> = {
+    '31': '경기도', '32': '강원도', '33': '충청북도', '34': '충청남도',
+    '35': '전라북도', '36': '전라남도', '37': '경상북도', '38': '경상남도',
+  };
+  const metropolitan = CITY_CODES.filter((c) => c.code < 100);
+  const sidoGroups = new Map<string, typeof CITY_CODES>();
+  for (const c of CITY_CODES.filter((c) => c.code >= 1000)) {
+    const prefix = String(c.code).slice(0, 2);
+    const label = SIDO_PREFIX_LABEL[prefix] ?? prefix;
+    const arr = sidoGroups.get(label) ?? [];
+    arr.push(c);
+    sidoGroups.set(label, arr);
+  }
+
+  return (
+    <div
+      style={{
+        background: TOKEN.surface, borderBottom: `1px solid ${TOKEN.border}`,
+        padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8,
+      }}
+    >
+      <span style={{ fontSize: 13 }} aria-hidden>📍</span>
+      <span style={{ fontSize: 12, color: TOKEN.text3, fontWeight: 500 }}>
+        {detecting ? '내 위치로 확인 중…' : '지역'}
+      </span>
+      <div style={{ position: 'relative', flex: 1 }}>
+        <select
+          value={region}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            width: '100%', padding: '8px 28px 8px 10px',
+            background: TOKEN.bg, border: `1px solid ${TOKEN.border}`,
+            borderRadius: 8, fontSize: 13, fontWeight: 700, color: TOKEN.text1,
+            fontFamily: FONT, appearance: 'none', WebkitAppearance: 'none',
+            cursor: 'pointer',
+          }}
+          aria-label="지역 선택"
+        >
+          <option value="seoul">서울특별시</option>
+          <optgroup label="광역시·도">
+            {metropolitan.map((c) => (
+              <option key={c.code} value={String(c.code)}>{c.name}</option>
+            ))}
+          </optgroup>
+          {Array.from(sidoGroups.entries()).map(([sido, list]) => (
+            <optgroup key={sido} label={sido}>
+              {list.map((c) => (
+                <option key={c.code} value={String(c.code)}>{c.name}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        {/* dropdown 화살표 */}
+        <span
+          style={{
+            position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+            fontSize: 9, color: TOKEN.text3, pointerEvents: 'none',
+          }}
+          aria-hidden
+        >▼</span>
       </div>
     </div>
   );

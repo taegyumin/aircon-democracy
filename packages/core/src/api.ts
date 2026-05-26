@@ -139,6 +139,12 @@ export function createApiClient(options: ApiClientOptions = {}) {
       );
     },
 
+    // GPS 좌표 → region ('seoul' 또는 cityCode). NCP reverse-geocode 래핑.
+    busRegionByCoords: (lat: number, lng: number) =>
+      request<{ region: string | null; sidoName?: string; sigunguName?: string; reason?: string }>(
+        `/api/realtime/bus/region-by-coords?lat=${lat}&lng=${lng}`,
+      ),
+
     // ── Auth ─────────────────────────────────────────────────────────
     me: () => request<{ user: User | null }>('/api/me'),
     logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),

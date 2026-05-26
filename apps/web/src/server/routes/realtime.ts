@@ -4,7 +4,11 @@
 import { Hono } from 'hono';
 import { expectedUpdnLine, LINE_SEQUENCES, stripStation } from '@aircon/core/subwayDirection';
 import { estimateProgress } from '@aircon/core';
-import { SubwayMatchBodySchema, BusMatchBodySchema, BusRouteSearchQuerySchema, BusRouteStationsQuerySchema } from '@aircon/core/validation';
+import {
+  SubwayMatchBodySchema, BusMatchBodySchema,
+  BusRouteSearchQuerySchema, BusRouteStationsQuerySchema, BusRegionByCoordsQuerySchema,
+} from '@aircon/core/validation';
+import { regionByName, SEOUL_REGION } from '@aircon/core';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
 import type { Env } from '../types';
@@ -190,18 +194,71 @@ async function fetchTagoJson<T>(url: string): Promise<T[]> {
   const res = await timedFetch(url, { headers: { Accept: 'application/json' } });
   if (!res.ok) throw new Error(`upstream_${res.status}`);
   const text = await res.text();
-  let body: { response?: { header?: { resultCode?: string; resultMsg?: string }; body?: { items?: { item?: T[] | T } | '' | null } } };
+  // items는 정상 응답일 땐 {item: T | T[]}, 빈 응답일 땐 '' (string) 반환되는 변종이라
+  // unknown으로 받아 런타임 narrow.
+  let body: { response?: { header?: { resultCode?: string; resultMsg?: string }; body?: { items?: unknown } } };
   try { body = JSON.parse(text); } catch { throw new Error(`tago_nonjson_${text.slice(0, 40)}`); }
   const header = body.response?.header;
   if (header?.resultCode && header.resultCode !== '00') {
     throw new Error(`tago_${header.resultCode}_${header.resultMsg ?? ''}`);
   }
   const items = body.response?.body?.items;
-  if (!items || items === '') return [];
-  const item = items.item;
+  if (!items || typeof items === 'string') return [];
+  const item = (items as { item?: T | T[] }).item;
   if (!item) return [];
   return Array.isArray(item) ? item : [item];
 }
+
+// GPS 좌표 → region. NCP Reverse Geocoding API 래핑.
+// 응답의 region.area1.name(시·도) + region.area2.name(시·군·구) 받아 busRegion.regionByName으로 매핑.
+//   서울특별시 → 'seoul' (ws.bus.go.kr 분기).
+//   광역시(부산/대구/…) → area1만으로 매칭.
+//   경기/강원/… → area2(시·군) 우선 매칭 (TAGO는 시·군 단위 cityCode).
+realtimeRoutes.get('/realtime/bus/region-by-coords', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const parsed = BusRegionByCoordsQuerySchema.safeParse({ lat: c.req.query('lat'), lng: c.req.query('lng') });
+  if (!parsed.success) return c.json({ region: null, reason: 'invalid_coords' }, 400);
+  const { lat, lng } = parsed.data;
+  // prod env: NCP_MAPS_CLIENT_ID 또는 VITE_NCP_MAPS_CLIENT_ID 둘 중 어느 거든 OK.
+  const env = c.env as unknown as {
+    NCP_MAPS_CLIENT_ID?: string; VITE_NCP_MAPS_CLIENT_ID?: string; NCP_MAPS_CLIENT_SECRET?: string;
+  };
+  const id = env.NCP_MAPS_CLIENT_ID ?? env.VITE_NCP_MAPS_CLIENT_ID;
+  const secret = env.NCP_MAPS_CLIENT_SECRET;
+  if (!id || !secret) return c.json({ region: null, reason: 'no_ncp_key' });
+  try {
+    const url = `https://naveropenapi.apigw.ntruss.com/map-reversegeocode/v2/gc?coords=${lng},${lat}&orders=admcode&output=json`;
+    const res = await timedFetch(url, {
+      headers: {
+        'X-NCP-APIGW-API-KEY-ID': id,
+        'X-NCP-APIGW-API-KEY': secret,
+        Accept: 'application/json',
+      },
+    });
+    if (!res.ok) return c.json({ region: null, reason: `upstream_${res.status}` });
+    interface NcpResponse {
+      results?: Array<{
+        region?: {
+          area1?: { name?: string };
+          area2?: { name?: string };
+        };
+      }>;
+    }
+    const body = (await res.json()) as NcpResponse;
+    const r = body.results?.[0]?.region;
+    const sidoName = r?.area1?.name ?? '';
+    const sigunguName = r?.area2?.name ?? '';
+    // 매칭 우선순위: 시·군(area2) > 시·도(area1). 시·군이 TAGO cityCode와 직결.
+    const fromSigungu = sigunguName ? regionByName(sigunguName) : null;
+    const fromSido = sidoName ? regionByName(sidoName) : null;
+    const matched = fromSigungu ?? fromSido;
+    if (!matched) return c.json({ region: null, sidoName, sigunguName, reason: 'unmapped' });
+    return c.json({ region: matched === SEOUL_REGION ? 'seoul' : String(matched), sidoName, sigunguName });
+  } catch (e) {
+    return c.json({ region: null, reason: (e as Error).message });
+  }
+});
 
 // 노선 자동완성 — region 별로 dispatch.
 //   Seoul (ws.bus.go.kr): strSrch=q로 노선명 부분 검색.
