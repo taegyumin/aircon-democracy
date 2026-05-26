@@ -137,6 +137,31 @@ test.describe('API 회귀', () => {
     expect(body).toHaveProperty('matched');
   });
 
+  // BUG: 2호선 매칭이 반대방향 차량을 잡았었음 (사용자 또타지하철 비교로 발견).
+  // updnLine '0' = 외선, '1' = 내선 (swopenAPI doc과 반대).
+  test('2호선 매칭 — 강남→교대 시 외선 차량 (direction=up, swopenAPI updn=0)', async ({ request }) => {
+    const res = await request.post('/api/realtime/subway/match', {
+      data: { line: '2호선', prev: '강남', next: '교대' },
+      headers: { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' },
+    });
+    const body = await res.json();
+    // 차량 없는 시점이라도 매칭됐을 때는 direction=up (외선) 이어야 함
+    if (body.matched) {
+      expect(body.direction).toBe('up');
+    }
+  });
+
+  test('2호선 매칭 — 교대→강남 시 내선 차량 (direction=down, swopenAPI updn=1)', async ({ request }) => {
+    const res = await request.post('/api/realtime/subway/match', {
+      data: { line: '2호선', prev: '교대', next: '강남' },
+      headers: { 'X-Aircon-Intent': 'user-action', Origin: 'https://aircondemocracy.com' },
+    });
+    const body = await res.json();
+    if (body.matched) {
+      expect(body.direction).toBe('down');
+    }
+  });
+
   test('places list endpoint OK', async ({ request }) => {
     const res = await request.get('/api/places');
     expect(res.ok()).toBe(true);
@@ -173,6 +198,36 @@ test.describe('API 회귀', () => {
         expect(loc).toMatch(/[&?]state=[a-f0-9-]{8,}/);
       });
     }
+  });
+});
+
+test.describe('SSR / Hydration 회귀', () => {
+  // BUG: useSearchParams hydration timing 으로 LoginScreen ?error= 표시 안 됨.
+  // server props로 받는 패턴 회귀 방지.
+  test('LoginScreen SSR HTML에 error 메시지 포함', async ({ request }) => {
+    const res = await request.get('/login?error=state_mismatch');
+    const html = await res.text();
+    expect(html).toContain('state_mismatch');
+    expect(html).toMatch(/만료|alert|에러/i);
+  });
+
+  // BUG: HomeRoute 가 wrapper height 없어서 빈 화면. 회귀 방지: 첫 페인트에 핵심 텍스트.
+  test('HomeScreen SSR 첫 페인트에 핵심 CTA 포함', async ({ request }) => {
+    const html = await (await request.get('/')).text();
+    expect(html).toContain('에어컨 민주주의');
+    expect(html).toContain('지금 어디 계세요?');
+  });
+
+  test('Wizard 검색창은 더 이상 노출 안 됨 (2026-05-26 결정)', async ({ request }) => {
+    const html = await (await request.get('/wizard')).text();
+    expect(html).not.toContain('역명 검색');
+  });
+
+  test('sitemap.xml 동적 응답 OK (Next.js metadata)', async ({ request }) => {
+    const res = await request.get('/sitemap.xml');
+    expect(res.ok()).toBe(true);
+    const xml = await res.text();
+    expect(xml).toContain('aircondemocracy.com');
   });
 });
 
