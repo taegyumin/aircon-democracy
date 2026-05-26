@@ -8,6 +8,14 @@ import type { Env } from '../types';
 
 export const realtimeRoutes = new Hono<Env>();
 
+// 외부 공공 API timeout. worker CPU 시간 (30s) 소진 방지.
+// swopenAPI/data.go.kr이 가끔 응답이 매우 늦거나 HTML 에러 페이지를 줌.
+const UPSTREAM_TIMEOUT_MS = 2000;
+
+function timedFetch(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
+}
+
 // ── Subway (swopenAPI) ─────────────────────────────────────────────
 
 const LINE_TO_SUBWAY_ID: Record<string, string> = {
@@ -33,7 +41,7 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
   const expectedDir = expectedUpdnLine(body.line, body.prev, body.next);
   try {
     const url = `http://swopenAPI.seoul.go.kr/api/subway/${encodeURIComponent(key)}/json/realtimePosition/0/200/${encodeURIComponent(body.line)}`;
-    const res = await fetch(url);
+    const res = await timedFetch(url);
     if (!res.ok) throw new Error(`upstream_${res.status}`);
     const data = (await res.json()) as { realtimePositionList?: Array<{ subwayId: string; statnNm: string; trainSttus: string; updnLine: string; trainNo: string; statnTnm?: string }> };
     let rows = data.realtimePositionList ?? [];
@@ -92,7 +100,7 @@ function normStop(s: string): string {
 }
 
 async function fetchBusJson<T>(url: string): Promise<T[]> {
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  const res = await timedFetch(url, { headers: { Accept: 'application/json' } });
   if (!res.ok) throw new Error(`upstream_${res.status}`);
   const text = await res.text();
   const body = JSON.parse(text) as { msgHeader?: { headerCd: string; headerMsg: string }; msgBody?: { itemList?: T[] | T | null } };
