@@ -1,0 +1,25 @@
+name: Check (unit + data + lint)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Data integrity
+        run: npm run check:data
+      - name: Unit tests (packages/core)
+        run: npm run test:unit
+      - name: ESLint (apps/web) — Rules of Hooks 등
+        # next lint는 react-hooks recommend 포함
+        run: npm run -w @aircon/web lint
+        continue-on-error: true # 신호용 (점진 cleanup)
