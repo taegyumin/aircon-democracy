@@ -15,9 +15,36 @@ export const VOTE_TYPES = ['cold', 'ok', 'hot'] as const;
 export const VoteTypeSchema = z.enum(VOTE_TYPES);
 export type VoteType = z.infer<typeof VoteTypeSchema>;
 
-// Place id format: <type>:<rest> (type prefix가 type 필드와 일치해야 upsert OK)
+// Place id format: <prefix>:<rest>
 const PLACE_ID_RE = /^[a-z]+:[\p{L}\p{N}\s,()/:·.\-]{1,180}$/u;
 export const PlaceIdSchema = z.string().regex(PLACE_ID_RE, 'invalid_place_id');
+
+// id prefix → type 매핑.
+//
+// **중요한 도메인 사실**: prefix는 type과 1:1이 아님. 예:
+//   snu:관악:301:402     → type='classroom' (서울대 강의실)
+//   yonsei:신촌:122      → type='classroom' (연세대 강의실)
+//   venue:gps:37.5:127.0 → type='other' (네이버 지도 좌표 기반 카페·식당)
+//   bus:vehicle:R272:V1  → type='bus' (차량 단위)
+//   bus:272:신촌오거리   → type='bus' (정류장 fallback)
+//
+// 이전엔 `id.startsWith(type + ':')`로 단순 매칭 — snu/yonsei/venue 흐름이
+// 전부 400으로 실패. LLM 리뷰 P1: prod 강의실/카페 vote 차단 버그.
+//
+// 새 prefix 추가 시 여기에도 등록. 등록 안 된 prefix는 invalid_id로 거부 (안전).
+export const ID_PREFIX_TYPE: Record<string, PlaceType> = {
+  subway: 'subway',
+  train: 'train',
+  bus: 'bus',
+  snu: 'classroom',
+  yonsei: 'classroom',
+  classroom: 'classroom',  // 자유 입력 (RegisterScreen)
+  venue: 'other',          // 네이버 지도 좌표 기반
+  cafe: 'cafe',            // 추후 전용 카페 식별
+  library: 'library',
+  office: 'office',
+  other: 'other',
+};
 
 // Place inputs.
 // 길이 제한은 prod DB의 실제 제약과 일치. 이전에는 Zod가 name 120/detail 240으로
@@ -34,9 +61,14 @@ export type CreatePlaceBody = z.infer<typeof CreatePlaceBodySchema>;
 
 export const UpsertPlaceBodySchema = PlaceCoreSchema.extend({
   id: PlaceIdSchema,
-}).refine((v) => v.id.startsWith(`${v.type}:`), {
-  message: 'invalid_id',
-});
+}).refine(
+  (v) => {
+    const prefix = v.id.split(':', 1)[0];
+    const expected = ID_PREFIX_TYPE[prefix];
+    return expected === v.type;
+  },
+  { message: 'invalid_id' },
+);
 export type UpsertPlaceBody = z.infer<typeof UpsertPlaceBodySchema>;
 
 // Vote
