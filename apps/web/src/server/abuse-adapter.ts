@@ -13,6 +13,11 @@ export interface AbuseAdapterResult {
 }
 
 export async function abuseFor(c: Context<Env>): Promise<AbuseAdapterResult> {
+  // Observability seed (LLM 리뷰 P1: D1 hot path 결정 위한 실측 데이터).
+  // 모든 audit log entry에 자동으로 handler duration 포함 — 어느 endpoint가
+  // 느린지 audit_events.meta.durMs로 사후 분석 가능. D1 query 단위 counter는
+  // binding proxy 필요라 risky → duration이 1차 신호.
+  const startedAt = Date.now();
   const keys = await abuseKeys({
     secret: c.env.ABUSE_SECRET ?? '',
     voterId: c.get('voterId'),
@@ -30,6 +35,12 @@ export async function abuseFor(c: Context<Env>): Promise<AbuseAdapterResult> {
   return {
     keys,
     auditCtx,
-    log: (eventType, status, info) => audit(auditCtx, eventType, status, info),
+    log: (eventType, status, info) => {
+      const merged: AuditMeta = {
+        ...info,
+        meta: { ...(info?.meta ?? {}), durMs: Date.now() - startedAt },
+      };
+      return audit(auditCtx, eventType, status, merged);
+    },
   };
 }
