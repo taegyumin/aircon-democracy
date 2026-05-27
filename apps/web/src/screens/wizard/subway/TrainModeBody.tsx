@@ -456,11 +456,12 @@ function CandidateCard({
 }
 
 // 카드용 미니 진행도 바 — RouteViz보다 compact. progress 0~1 (estimateProgress 결과).
+// 진행 marker는 작은 SVG 열차 (3-car body + 분리선 + 앞 윈도우로 진행 방향 hint).
 function MiniProgressBar({ prev, next, progress, color }: { prev: string; next: string; progress: number | null; color: string }) {
   const pct = progress != null ? Math.max(0, Math.min(1, progress)) * 100 : 0;
   return (
     <div>
-      <div style={{ position: 'relative', height: 6, background: TOKEN.bg, borderRadius: 3, overflow: 'visible' }}>
+      <div style={{ position: 'relative', height: 6, background: TOKEN.bg, borderRadius: 3 }}>
         <div
           style={{
             position: 'absolute', left: 0, top: 0, bottom: 0,
@@ -468,24 +469,36 @@ function MiniProgressBar({ prev, next, progress, color }: { prev: string; next: 
             transition: 'width 240ms',
           }}
         />
-        {/* 위치 marker — 3개 블럭 (시안 풍) */}
         <div
           style={{
-            position: 'absolute', left: `${pct}%`, top: -3, height: 12,
+            position: 'absolute', left: `${pct}%`, top: -5,
             transform: 'translateX(-50%)',
-            display: 'flex', gap: 2, alignItems: 'center',
+            pointerEvents: 'none',
           }}
         >
-          {[0, 1, 2].map((i) => (
-            <div key={i} style={{ width: 4, height: 12, background: color, borderRadius: 1 }} />
-          ))}
+          <MiniTrainIcon color={color} />
         </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-        <span style={{ fontSize: 10, color: TOKEN.text3 }}>{prev}</span>
-        <span style={{ fontSize: 10, color: TOKEN.text3 }}>{next}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+        <span style={{ fontSize: 10, color: TOKEN.text3, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prev}</span>
+        <span style={{ fontSize: 10, color: TOKEN.text3, maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{next}</span>
       </div>
     </div>
+  );
+}
+
+// 작은 SVG 열차 — body + 2 분리선 + 앞 윈도우 (오른쪽 진행 방향 시각화).
+function MiniTrainIcon({ color }: { color: string }) {
+  return (
+    <svg width={30} height={16} viewBox="0 0 30 16" style={{ display: 'block', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.18))' }} aria-hidden>
+      {/* 차량 body — 뒤쪽은 직각, 앞쪽(우측)은 둥글게 → 진행 방향 hint */}
+      <path d="M2 3 H22 Q28 3 28 8 Q28 13 22 13 H2 Q1 13 1 12 V4 Q1 3 2 3 Z" fill={color} />
+      {/* 차량 칸 분리선 — 3-car 표현 */}
+      <line x1="10" y1="4" x2="10" y2="12" stroke="rgba(255,255,255,0.75)" strokeWidth="1" />
+      <line x1="19" y1="4" x2="19" y2="12" stroke="rgba(255,255,255,0.75)" strokeWidth="1" />
+      {/* 앞 윈도우 — 운전석. 오른쪽 = 진행 방향. */}
+      <rect x="23" y="5" width="3.5" height="6" rx="1" fill="rgba(255,255,255,0.55)" />
+    </svg>
   );
 }
 
