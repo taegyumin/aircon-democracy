@@ -292,14 +292,23 @@
       "id": "hanbat", "name": "국립한밭대학교", "shortName": "한밭대",
       "aliases": ["Hanbat", "한밭"], "badge": "대전 (덕명)", "placeIdPrefix": "hanbat",
       "notes": "S/N 남북 zone + 번호, D 기숙사",
-      "sources": ["https://www.hanbat.ac.kr", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%ED%95%9C%EB%B0%AD%EB%8C%80%ED%95%99%EA%B5%90"],
+      "sources": ["https://www.hanbat.ac.kr/thumbnail/pdf/CMS_202410290107266030.pdf", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%ED%95%9C%EB%B0%AD%EB%8C%80%ED%95%99%EA%B5%90"],
       "campuses": [{
         "id": "deokmyung", "name": "덕명캠퍼스", "district": "대전 유성구 한밭대학교",
         "buildings": [
-          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
-          { "code": "S2", "name": "복지후생관", "aliases": [], "college": "학생복지" },
+          { "code": "N1", "name": "대학본부", "aliases": ["본관"], "college": "본부" },
+          { "code": "S1", "name": "도서관", "aliases": [], "college": "도서관" },
+          { "code": "S2", "name": "학생회관", "aliases": ["복지후생관"], "college": "학생복지" },
+          { "code": "S3", "name": "경상학관", "aliases": [], "college": "경상대학" },
           { "code": "S4", "name": "인문사회과학관", "aliases": [], "college": "인문사회대학" },
-          { "code": "N4", "name": "산업정보관", "aliases": [], "college": "공과대학" }
+          { "code": "S5", "name": "산학연협동관", "aliases": ["산학협동관"], "college": "산학협력" },
+          { "code": "S8", "name": "건설공학관", "aliases": [], "college": "공과대학" },
+          { "code": "S10", "name": "디자인관", "aliases": [], "college": "디자인" },
+          { "code": "N3", "name": "전기전자관", "aliases": [], "college": "공과대학" },
+          { "code": "N4", "name": "산업정보관", "aliases": [], "college": "공과대학" },
+          { "code": "N7", "name": "기계관", "aliases": [], "college": "공과대학" },
+          { "code": "N8", "name": "소재관 및 공동실험실습관", "aliases": ["소재관", "공동실험실습관"], "college": "공과대학" },
+          { "code": "N13", "name": "그린에너지관", "aliases": [], "college": "공과대학" }
         ]
       }]
     },
