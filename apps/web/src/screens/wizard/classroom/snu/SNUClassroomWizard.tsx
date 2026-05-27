@@ -168,7 +168,7 @@ export function SNUClassroomWizard({ onPicked, onFreeform, onBack }: Props) {
     );
   }
 
-  // ─── Step 2b: Generic schools (40 Seoul-area universities) ────────
+  // ─── Step 2b: Generic schools (Seoul + national university dataset) ─
   if (univ !== 'snu') {
     const knownEntry = KNOWN_UNIVS.find((u) => u.id === univ && u.kind === 'generic');
     if (knownEntry && knownEntry.university) {

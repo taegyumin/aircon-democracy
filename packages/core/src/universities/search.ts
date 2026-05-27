@@ -100,7 +100,8 @@ export function univPlaceId(univ: University, campus: UnivCampus, building: Univ
 
 export function univPlaceName(univ: University, campus: UnivCampus, building: UnivBuilding, room?: string): string {
   const campusPart = univ.campuses.length > 1 ? ` ${campus.name}` : '';
-  if (!room) return `${univ.shortName}${campusPart} ${building.name} (${building.code}동)`;
+  const codeLabel = /^\d/.test(building.code) ? `${building.code}동` : building.code;
+  if (!room) return `${univ.shortName}${campusPart} ${building.name} (${codeLabel})`;
   const num = /^\d/.test(room) ? `${room}호` : room;
   return `${univ.shortName}${campusPart} ${building.name} ${num}`;
 }

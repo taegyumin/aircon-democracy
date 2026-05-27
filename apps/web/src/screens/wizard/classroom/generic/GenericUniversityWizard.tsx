@@ -127,6 +127,9 @@ export function GenericUniversityWizard({ university, onPicked, onFreeform, onEx
 
   const currentCampus = view.campus;
   const hits = useMemo(() => searchUniversity(university, query, 20), [university, query]);
+  const visibleHits = hits.filter((h) =>
+    h.type === 'building' ? h.campus.id === currentCampus.id : h.matches.some((m) => m.campus.id === currentCampus.id)
+  );
 
   // ─── Building detail ────────────────────────────────────────────────
   if (view.mode === 'building') {
@@ -228,11 +231,11 @@ export function GenericUniversityWizard({ university, onPicked, onFreeform, onEx
             onFreeform={onFreeform}
             notes={university.notes}
           />
-        ) : hits.length === 0 ? (
+        ) : visibleHits.length === 0 ? (
           <NoResults query={query} onFreeform={onFreeform} />
         ) : (
           <HitList
-            hits={hits.filter((h) => h.type === 'building' ? h.campus.id === campus.id : h.matches.some((m) => m.campus.id === campus.id))}
+            hits={visibleHits}
             onBuilding={(b) => setView({ mode: 'building', campus: view.campus, building: b })}
             onCollege={(c) => setView({ mode: 'college', campus: view.campus, college: c })}
           />
