@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import { TOKEN, FONT } from '@aircon/core';
 import { BackIcon } from '../components/Icons';
+import { extractPlaceId } from '../lib/qrPlaceId';
 
 interface Props {
   onBack: () => void;
@@ -11,20 +12,6 @@ interface Props {
 }
 
 type Phase = 'idle' | 'starting' | 'scanning' | 'denied' | 'unavailable' | 'found';
-
-const SITE_HOST = 'aircondemocracy.com';
-
-function extractPlaceId(rawUrl: string): string | null {
-  try {
-    const u = new URL(rawUrl);
-    if (u.hostname !== SITE_HOST && u.hostname !== `www.${SITE_HOST}`) return null;
-    const m = u.pathname.match(/^\/p\/([^/]+)\/?$/);
-    if (!m) return null;
-    return decodeURIComponent(m[1]);
-  } catch {
-    return null;
-  }
-}
 
 export function QRScreen({ onBack, onSuccess }: Props) {
   const [phase, setPhase] = useState<Phase>('idle');
