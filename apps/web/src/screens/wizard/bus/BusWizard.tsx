@@ -125,20 +125,26 @@ export function BusWizard({ onBack, onPicked }: Props) {
   }, [routeQuery, phase, region]);
 
   // ── 노선 선택 시 정류장 list 로드 ─────────────────────────────────
+  // LLM P2: seq guard 추가 — 사용자가 빠르게 다른 노선 선택하면 옛 응답이
+  // 새 stations를 덮어쓰는 race. mySeq로 in-flight 무효화.
+  const stationsSeqRef = useRef(0);
   const pickRoute = useCallback(async (r: BusRouteCandidate) => {
+    const mySeq = ++stationsSeqRef.current;
     setSelectedRoute(r);
     setPhase('route-confirmed');
     setStopSel(null); setStopSearch('');
     setStationsLoading(true); setStationsErr(null);
     try {
       const res = await api.listBusRouteStations(r.id, region);
+      if (stationsSeqRef.current !== mySeq) return; // stale — 다른 pick 진행 중.
       setStations(res.stations ?? []);
       if (res.reason) setStationsErr(res.reason);
     } catch (e) {
+      if (stationsSeqRef.current !== mySeq) return;
       setStations([]);
       setStationsErr((e as Error).message);
     } finally {
-      setStationsLoading(false);
+      if (stationsSeqRef.current === mySeq) setStationsLoading(false);
     }
   }, [region]);
 

@@ -419,7 +419,9 @@ function StationRowWithSwap({
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+      {/* alignItems: center — chip이 64px 고정 height이라 화살표가 vertical center
+          맞춰져야 시각 대칭. 이전엔 paddingTop hack으로 어긋남 (사용자 보고 2026-05-27). */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <StationAutocomplete
             label="이전 역"
@@ -429,28 +431,34 @@ function StationRowWithSwap({
             placeholder="이전 역"
           />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingTop: 20 }}>
-          <button
-            onClick={handleSwap}
-            disabled={!canSwap}
-            aria-label="이전 역과 다음 역 순서 바꾸기"
-            style={{
-              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-              background: canSwap ? TOKEN.surface : TOKEN.bg,
-              border: `1.5px solid ${canSwap ? '#BFC8D6' : TOKEN.border}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: canSwap ? 'pointer' : 'default',
-              boxShadow: canSwap ? '0 2px 8px rgba(0,0,0,0.10)' : 'none',
-              transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
-              padding: 0, fontFamily: FONT,
-            }}
-          >
-            <SwapIcon
-              size={18}
-              color={canSwap ? TOKEN.text1 : TOKEN.text3}
-              angle={angle}
-            />
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          {bothFilled ? (
+            // 두 역 다 입력 시 — 원형 swap 버튼 노출. 클릭 시 ⇄ 180° 회전 + state 교환.
+            <button
+              onClick={handleSwap}
+              disabled={!canSwap}
+              aria-label="이전 역과 다음 역 순서 바꾸기"
+              style={{
+                width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                background: canSwap ? TOKEN.surface : TOKEN.bg,
+                border: `1.5px solid ${canSwap ? '#BFC8D6' : TOKEN.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: canSwap ? 'pointer' : 'default',
+                boxShadow: canSwap ? '0 2px 8px rgba(0,0,0,0.10)' : 'none',
+                transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
+                padding: 0, fontFamily: FONT,
+              }}
+            >
+              <SwapIcon
+                size={18}
+                color={canSwap ? TOKEN.text1 : TOKEN.text3}
+                angle={angle}
+              />
+            </button>
+          ) : (
+            // 평소엔 정적 → 화살표 (디자인 에셋 IcArrowR — size 17 color T.t3).
+            <ArrowRight color={TOKEN.text3} size={17} />
+          )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <StationAutocomplete
