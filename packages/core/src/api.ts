@@ -216,6 +216,16 @@ export interface SubwayMatchResult {
   progressLabel?: 'at-prev' | 'just-left-prev' | 'between' | 'approaching-next' | 'at-next';
 }
 
+export interface BusMatchCandidate {
+  vehId: string;
+  plainNo: string;
+  stOrd: number;            // 정류장 sequence (1-based)
+  stopFlag?: string;        // '1' = 도착, 그 외 = 진입/통과
+  // 진행도 (정류장 sequence 기반, 0~1). UI mini bar 표시용.
+  progress?: number;
+  progressLabel?: 'at-stop' | 'just-left' | 'approaching' | 'between';
+}
+
 export interface BusMatchResult {
   matched: boolean;
   vehId?: string;
@@ -225,6 +235,11 @@ export interface BusMatchResult {
   currentStop?: string;
   nextStop?: string;
   reason?: string;
+  // 같은 stop 근처 차량 2+일 때 사용자에게 선택받기 위해. reason='multi_candidate'와 짝.
+  candidates?: BusMatchCandidate[];
+  // 단일 매칭 시 진행도 (vehId의 위치). UI mini bar.
+  progress?: number;
+  progressLabel?: 'at-stop' | 'just-left' | 'approaching' | 'between';
 }
 
 // 노선 자동완성 row — data.go.kr getBusRouteList 정규화.

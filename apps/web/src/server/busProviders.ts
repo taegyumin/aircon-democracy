@@ -98,25 +98,62 @@ export const seoulProvider: BusProvider = {
         const positions = await fetchSeoulJson<SeoulPosItem>(
           `${SEOUL_HOST}/buspos/getBusPosByRtid?serviceKey=${encodeURIComponent(key)}&busRouteId=${encodeURIComponent(route.busRouteId)}&resultType=json`,
         );
-        const atStopFlagged = positions.find((p) => parseInt(p.stOrd, 10) === stopSeq && p.stopFlag === '1');
-        const atStop = positions.find((p) => parseInt(p.stOrd, 10) === stopSeq);
-        const justBefore = positions.find((p) => parseInt(p.stOrd, 10) === stopSeq - 1);
-        const veh = atStopFlagged ?? atStop ?? justBefore;
-        if (!veh) {
-          return { matched: false, reason: 'no_vehicle_at_stop', routeId: route.busRouteId, routeName: route.busRouteNm, currentStop: hit.stationNm };
+        // Tier 우선순위: 도착(stopFlag=1) > 진입(같은 stOrd) > 막 출발(stOrd-1).
+        const atStopFlagged = positions.filter((p) => parseInt(p.stOrd, 10) === stopSeq && p.stopFlag === '1');
+        const atStop        = positions.filter((p) => parseInt(p.stOrd, 10) === stopSeq);
+        const justBefore    = positions.filter((p) => parseInt(p.stOrd, 10) === stopSeq - 1);
+        let picked: SeoulPosItem | undefined;
+        let multi: SeoulPosItem[] | null = null;
+        for (const tier of [atStopFlagged, atStop, justBefore]) {
+          if (tier.length === 1) { picked = tier[0]; break; }
+          if (tier.length >= 2) { multi = tier; break; }
         }
         const nextStation = stations.find((s) => parseInt(s.seq, 10) === stopSeq + 1);
+        if (multi) {
+          // 출퇴근 시 같은 stop 근처 차량 2+. 사용자에게 picker 노출.
+          return {
+            matched: false,
+            reason: 'multi_candidate',
+            routeId: route.busRouteId,
+            routeName: route.busRouteNm,
+            currentStop: hit.stationNm,
+            nextStop: nextStation?.stationNm,
+            candidates: multi.map((v) => {
+              const vOrd = parseInt(v.stOrd, 10);
+              const { progress, progressLabel } = busProgressFrom(vOrd, stopSeq, v.stopFlag);
+              return { vehId: v.vehId, plainNo: v.plainNo, stOrd: vOrd, stopFlag: v.stopFlag, progress, progressLabel };
+            }),
+          };
+        }
+        if (!picked) {
+          return { matched: false, reason: 'no_vehicle_at_stop', routeId: route.busRouteId, routeName: route.busRouteNm, currentStop: hit.stationNm };
+        }
+        const { progress, progressLabel } = busProgressFrom(parseInt(picked.stOrd, 10), stopSeq, picked.stopFlag);
         return {
           matched: true,
-          vehId: veh.vehId, plainNo: veh.plainNo,
+          vehId: picked.vehId, plainNo: picked.plainNo,
           routeId: route.busRouteId, routeName: route.busRouteNm,
           currentStop: hit.stationNm, nextStop: nextStation?.stationNm,
+          progress, progressLabel,
         };
       } catch { /* try next candidate */ }
     }
     return { matched: false, reason: 'route_or_stop_not_found' };
   },
 };
+
+// 정류장 sequence 기반 진행도 — vehStOrd 가 stopSeq 대비 어디 있는지.
+// 0 = stop-1 출발 직후, 0.5 = 진입 중, 1 = 도착. UI mini bar.
+function busProgressFrom(
+  vehStOrd: number,
+  stopSeq: number,
+  stopFlag?: string,
+): { progress: number; progressLabel: 'at-stop' | 'just-left' | 'approaching' | 'between' } {
+  if (vehStOrd === stopSeq && stopFlag === '1') return { progress: 1, progressLabel: 'at-stop' };
+  if (vehStOrd === stopSeq) return { progress: 0.85, progressLabel: 'approaching' };
+  if (vehStOrd === stopSeq - 1) return { progress: 0.2, progressLabel: 'just-left' };
+  return { progress: 0.5, progressLabel: 'between' };
+}
 
 // ── TAGO (apis.data.go.kr/1613000) ─────────────────────────────────
 
@@ -199,18 +236,39 @@ export function tagoProvider(cityCode: number): BusProvider {
         `${TAGO_HOST}/BusLcInfoInqireService/getRouteAcctoBusLcList?serviceKey=${encodeURIComponent(key)}&cityCode=${cityCode}&routeId=${encodeURIComponent(routeId)}&_type=json&numOfRows=200`,
       );
       const ordOf = (p: TagoPos) => typeof p.nodeord === 'number' ? p.nodeord : parseInt(String(p.nodeord), 10);
-      const atStop = positions.find((p) => ordOf(p) === stopOrd);
-      const justBefore = positions.find((p) => ordOf(p) === stopOrd - 1);
-      const veh = atStop ?? justBefore;
-      if (!veh) {
-        return { matched: false, reason: 'no_vehicle_at_stop', routeId, routeName, currentStop: hit.nodenm };
+      // TAGO는 stopFlag 없음 — 같은 stOrd 도착/진입 구분 불가. tier: atStop > justBefore.
+      const atStop = positions.filter((p) => ordOf(p) === stopOrd);
+      const justBefore = positions.filter((p) => ordOf(p) === stopOrd - 1);
+      let picked: TagoPos | undefined;
+      let multi: TagoPos[] | null = null;
+      for (const tier of [atStop, justBefore]) {
+        if (tier.length === 1) { picked = tier[0]; break; }
+        if (tier.length >= 2) { multi = tier; break; }
       }
       const nextStation = stations.find((s) => (typeof s.nodeord === 'number' ? s.nodeord : parseInt(String(s.nodeord), 10)) === stopOrd + 1);
+      if (multi) {
+        return {
+          matched: false,
+          reason: 'multi_candidate',
+          routeId, routeName, currentStop: hit.nodenm,
+          nextStop: nextStation?.nodenm,
+          candidates: multi.map((v) => {
+            const vOrd = ordOf(v);
+            const { progress, progressLabel } = busProgressFrom(vOrd, stopOrd, undefined);
+            return { vehId: v.vehicleno, plainNo: v.vehicleno, stOrd: vOrd, progress, progressLabel };
+          }),
+        };
+      }
+      if (!picked) {
+        return { matched: false, reason: 'no_vehicle_at_stop', routeId, routeName, currentStop: hit.nodenm };
+      }
+      const { progress, progressLabel } = busProgressFrom(ordOf(picked), stopOrd, undefined);
       return {
         matched: true,
-        vehId: veh.vehicleno, plainNo: veh.vehicleno,
+        vehId: picked.vehicleno, plainNo: picked.vehicleno,
         routeId, routeName, currentStop: hit.nodenm,
         nextStop: nextStation?.nodenm,
+        progress, progressLabel,
       };
     },
   };
