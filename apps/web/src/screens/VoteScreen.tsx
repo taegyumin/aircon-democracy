@@ -81,6 +81,7 @@ function LoginPromptCard({ onLogin }: { onLogin: () => void }) {
         border: `1px solid ${TOKEN.border}`,
         borderRadius: TOKEN.r.lg,
         padding: '12px 14px',
+        marginTop: 12,
         display: 'flex',
         alignItems: 'center',
         gap: 12,
