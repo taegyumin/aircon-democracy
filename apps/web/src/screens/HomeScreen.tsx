@@ -1,91 +1,72 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { LocateFixed, Star, ScanLine } from 'lucide-react';
+// Home Redesign v2 — Claude Design 권장안 적용 (2026-05-27).
+// 구조:
+//   1. 헤더 (로고 + QR + 사용자)
+//   2. (선택) 즐겨찾기 — pinned places, inline vote
+//   3. (선택) 최근 방문 — recent voted, inline vote
+//   4. 헤드라인 "지금 어디 계세요?" + 부제
+//   5. 카테고리 picker (TransitGroup + PlacesGroup + 다른 장소 찾기)
+//
+// 의도적으로 제거:
+//   - 통합 검색바 (디자인에 없음 + Place Select Redesign에서도 제거된 결정)
+//   - 큰 "지금 어디 계세요?" CTA (카테고리 picker가 직접 노출되니 중복)
+//   - "지금 의견이 모이고 있어요" SSR 인기 장소 list — 디자인은 favorites/recents
+//     기반 재방문에 집중 (initialPlaces prop은 호환성 유지로 receive만).
+
+import { useState } from 'react';
+import { ScanLine, Star } from 'lucide-react';
 import { TOKEN, FONT } from '@aircon/core';
-import { api, type PlaceWithCounts } from '../lib/apiClient';
+import type { PlaceWithCounts } from '../lib/apiClient';
 import { useUser } from '../lib/useUser';
 import { getRecent, type RecentPlace } from '../lib/recentPlaces';
 import { listFavorites, type FavoritePlace } from '../lib/favorites';
-import { PlaceCard } from '../components/PlaceCard';
 import { QuickVoteCard } from '../components/QuickVoteCard';
+import { CategoryPicker } from './wizard/CategoryPicker';
+import type { Category } from './wizard/categories';
 
 interface Props {
   onSelectPlace: (id: string) => void;
-  onWizard: () => void;
-  onSearch: () => void;
+  onWizard: (cat?: Category) => void;
   onQR: () => void;
   onLogin?: () => void;
-  // Server-fetched 인기 장소 list. RSC가 D1에서 가져와서 첫 HTML에 박음 (SEO + LCP).
-  // 없으면 client에서 fetch (fallback — D1 binding 없는 환경 등).
+  // SSR이 D1에서 가져왔지만 v2 디자인은 인기 장소 list를 노출하지 않음.
+  // 호환성 유지로 prop는 받되 무시. RSC 호출자 정리할 때 같이 빼면 됨.
   initialPlaces?: PlaceWithCounts[];
 }
 
-function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-      {icon === 'location' && (
-        <svg width={13} height={13} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="4" fill={TOKEN.cold} />
-          <circle cx="12" cy="12" r="9" stroke={TOKEN.cold} strokeWidth="1.5" strokeDasharray="4 2" />
-        </svg>
-      )}
-      {icon === 'clock' && (
-        <svg width={13} height={13} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke={TOKEN.text2} strokeWidth="1.8" />
-          <path d="M12 7v5l3 3" stroke={TOKEN.text2} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )}
-      <span style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, letterSpacing: '0.3px' }}>{label}</span>
-    </div>
-  );
-}
-
-// SSR 이후 client refetch까지 두면 같은 LEFT JOIN GROUP BY가 1~2번 돔 (LLM 리뷰 P1/P2).
-// initialPlaces가 있으면 STALE_WINDOW_MS 동안 refetch skip — SSR 결과 신뢰.
-// window 지나면 background refetch로 갱신.
-const STALE_WINDOW_MS = 30_000;
-
-export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR, onLogin, initialPlaces }: Props) {
-  const [places, setPlaces] = useState<PlaceWithCounts[] | null>(initialPlaces ?? null);
-  const [error, setError] = useState<string | null>(null);
+export function HomeScreen({ onSelectPlace, onWizard, onQR, onLogin }: Props) {
   const { user, logout } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const [recent] = useState<RecentPlace[]>(() => getRecent(5));
   const [favorites] = useState<FavoritePlace[]>(() => listFavorites());
-
-  useEffect(() => {
-    // SSR이 30초 안에 fresh data 줬으면 immediate refetch skip — D1 read 절약.
-    // initialPlaces 없으면 (D1 read 실패 fallback, dev 환경 등) 즉시 fetch.
-    if (initialPlaces && initialPlaces.length > 0) {
-      const refreshAfter = setTimeout(() => {
-        api.listPlaces()
-          .then((res) => setPlaces(res.places))
-          .catch((e: Error) => setError(e.message));
-      }, STALE_WINDOW_MS);
-      return () => clearTimeout(refreshAfter);
-    }
-    let cancelled = false;
-    api.listPlaces()
-      .then((res) => { if (!cancelled) setPlaces(res.places); })
-      .catch((e: Error) => { if (!cancelled) setError(e.message); });
-    return () => { cancelled = true; };
-  }, [initialPlaces]);
-
-  const active = places?.filter((p) => p.cold + p.ok + p.hot > 0) ?? [];
+  const recentExFaves = recent.filter((r) => !favorites.find((f) => f.id === r.id));
+  const hasReturning = favorites.length > 0 || recentExFaves.length > 0;
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
+      {/* Header */}
       <div style={{ background: TOKEN.surface, paddingTop: 62, flexShrink: 0, borderBottom: `1px solid ${TOKEN.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px 4px' }}>
-          <img src="/icon.png" alt="" style={{ width: 34, height: 34, borderRadius: 9 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 16px 14px' }}>
+          <img src="/icon.png" alt="" style={{ width: 30, height: 30, borderRadius: 8 }} />
           <div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.5px', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.4px', lineHeight: 1.2 }}>
               에어컨 민주주의
             </div>
             <div style={{ fontSize: 9, color: TOKEN.text3, letterSpacing: '1.8px', marginTop: 1 }}>AIRCON DEMOCRACY</div>
           </div>
           <div style={{ flex: 1 }} />
+          <button
+            onClick={onQR}
+            aria-label="QR 코드 스캔"
+            style={{
+              width: 38, height: 38, background: TOKEN.cold, borderRadius: 10, border: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              marginRight: 4,
+            }}
+          >
+            <ScanLine size={18} color="#fff" strokeWidth={2.2} />
+          </button>
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => {
@@ -93,17 +74,9 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR,
                 else onLogin?.();
               }}
               style={{
-                background: TOKEN.bg,
-                border: 'none',
-                borderRadius: 999,
-                width: 34,
-                height: 34,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                padding: 0,
-                overflow: 'hidden',
+                background: TOKEN.bg, border: `1px solid ${TOKEN.border}`, borderRadius: '50%',
+                width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', padding: 0, overflow: 'hidden',
               }}
               aria-label={user ? '계정 메뉴' : '로그인'}
             >
@@ -119,16 +92,10 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR,
             {user && menuOpen && (
               <div
                 style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: 42,
-                  minWidth: 180,
-                  background: TOKEN.surface,
-                  border: `1px solid ${TOKEN.border}`,
-                  borderRadius: TOKEN.r.md,
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                  zIndex: 100,
-                  padding: '8px 0',
+                  position: 'absolute', right: 0, top: 42, minWidth: 180,
+                  background: TOKEN.surface, border: `1px solid ${TOKEN.border}`,
+                  borderRadius: TOKEN.r.md, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                  zIndex: 100, padding: '8px 0',
                 }}
               >
                 <div style={{ padding: '8px 14px', borderBottom: `1px solid ${TOKEN.border}` }}>
@@ -136,20 +103,10 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR,
                   <div style={{ fontSize: 10, color: TOKEN.text3, marginTop: 2 }}>{user.provider}</div>
                 </div>
                 <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    logout();
-                  }}
+                  onClick={() => { setMenuOpen(false); logout(); }}
                   style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    background: 'none',
-                    border: 'none',
-                    fontSize: 13,
-                    color: TOKEN.text1,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontFamily: FONT,
+                    width: '100%', padding: '10px 14px', background: 'none', border: 'none',
+                    fontSize: 13, color: TOKEN.text1, cursor: 'pointer', textAlign: 'left', fontFamily: FONT,
                   }}
                 >
                   로그아웃
@@ -158,102 +115,13 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR,
             )}
           </div>
         </div>
-
-        <div style={{ display: 'flex', gap: 8, padding: '10px 20px 16px' }}>
-          <button
-            onClick={onWizard}
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '11px 16px',
-              background: TOKEN.bg,
-              borderRadius: TOKEN.r.lg,
-              cursor: 'pointer',
-              border: 'none',
-              textAlign: 'left',
-              fontFamily: FONT,
-            }}
-          >
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-              <circle cx="11" cy="11" r="8" stroke={TOKEN.text3} strokeWidth="2" />
-              <path d="M21 21l-4.35-4.35" stroke={TOKEN.text3} strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            <span style={{ fontSize: 14, color: TOKEN.text3 }}>장소 이름 또는 건물 검색</span>
-          </button>
-          <button
-            onClick={onQR}
-            aria-label="QR 코드 스캔"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 16px',
-              background: TOKEN.cold,
-              borderRadius: TOKEN.r.lg,
-              border: 'none',
-              cursor: 'pointer',
-              color: '#fff',
-              minWidth: 58,
-              fontFamily: FONT,
-            }}
-          >
-            <ScanLine size={22} color="#fff" strokeWidth={2.2} />
-          </button>
-        </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 80px' }}>
-        {/* Primary CTA: location wizard — ALWAYS top (under search bar) */}
-        <button
-          onClick={onWizard}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            width: '100%',
-            padding: '18px 18px',
-            background: TOKEN.cold,
-            border: 'none',
-            borderRadius: TOKEN.r.lg,
-            cursor: 'pointer',
-            fontFamily: FONT,
-            color: '#fff',
-            boxShadow: `0 8px 24px ${TOKEN.cold}40`,
-            marginBottom: 22,
-            textAlign: 'left',
-          }}
-        >
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: 'rgba(255,255,255,0.18)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <LocateFixed size={20} color="#fff" strokeWidth={2.2} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 900, letterSpacing: '-0.4px' }}>지금 어디 계세요?</div>
-          </div>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-            <path d="M9 6l6 6-6 6" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-
-        {/* Favorites: pinned places */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 16px 60px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+        {/* 즐겨찾기 */}
         {favorites.length > 0 && (
-          <div style={{ marginBottom: 22 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 10, letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Star size={12} color="#F59E0B" fill="#F59E0B" strokeWidth={0} />
-              <span>고정한 장소</span>
-            </div>
+          <div>
+            <SectionHeader icon="star" label="즐겨찾기" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {favorites.slice(0, 3).map((f) => (
                 <QuickVoteCard
@@ -267,14 +135,12 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR,
           </div>
         )}
 
-        {/* QuickVote: recently voted places with inline vote buttons */}
-        {recent.filter((r) => !favorites.find((f) => f.id === r.id)).length > 0 && (
-          <div style={{ marginBottom: 22 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, marginBottom: 10, letterSpacing: '0.3px' }}>
-              최근 투표한 곳
-            </div>
+        {/* 최근 방문 */}
+        {recentExFaves.length > 0 && (
+          <div>
+            <SectionHeader icon="clock" label="최근 방문" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {recent.filter((r) => !favorites.find((f) => f.id === r.id)).map((p) => (
+              {recentExFaves.map((p) => (
                 <QuickVoteCard
                   key={p.id}
                   place={p}
@@ -286,33 +152,45 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR,
           </div>
         )}
 
-        {error && (
-          <div style={{ padding: 14, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 13, marginBottom: 16 }}>
-            장소를 불러오지 못했어요: {error}
+        {/* 구분선 — 재방문 컨텍스트가 있을 때만 */}
+        {hasReturning && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1, height: 1, background: TOKEN.border }} />
+            <span style={{ fontSize: 12, color: TOKEN.text3, fontWeight: 500 }}>다른 장소 찾기</span>
+            <div style={{ flex: 1, height: 1, background: TOKEN.border }} />
           </div>
         )}
 
-        {!places && !error && (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: TOKEN.text3, fontSize: 13 }}>
-            불러오는 중…
-          </div>
-        )}
-
-        {active.length > 0 && (
-          <>
-            <SectionHeader icon="location" label="지금 의견이 모이고 있어요" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
-              {active.map((p) => (
-                <PlaceCard key={p.id} place={p} onTap={() => onSelectPlace(p.id)} />
-              ))}
+        {/* 헤드라인 — 첫 방문이면 강조, 재방문이면 카테고리 그리드 위 가벼운 안내 */}
+        {!hasReturning && (
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.5px', lineHeight: 1.35, marginBottom: 6 }}>
+              지금 어디 계세요?
             </div>
-          </>
+            <div style={{ fontSize: 13, color: TOKEN.text2, lineHeight: 1.6 }}>
+              장소 유형을 고르면 바로 투표할 수 있어요
+            </div>
+          </div>
         )}
 
-        {/* 2026-05-27: '장소가 없나요? 직접 등록하기' CTA 제거. 사용자 피드백: 메인에서
-            아직 탐색도 안 했는데 '없냐'고 묻는 게 어색. 등록은 wizard → 다른 장소 찾기
-            (custom)로 흐름 통합. */}
+        {/* 카테고리 picker — 탭 시 wizard로 cat 파라미터 전달 */}
+        <CategoryPicker onPick={(k) => onWizard(k)} />
       </div>
+    </div>
+  );
+}
+
+function SectionHeader({ icon, label }: { icon: 'star' | 'clock'; label: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+      {icon === 'star' && <Star size={13} color="#F59E0B" fill="#F59E0B" strokeWidth={0} />}
+      {icon === 'clock' && (
+        <svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke={TOKEN.text3} strokeWidth="1.8" />
+          <path d="M12 7v5l3 3" stroke={TOKEN.text3} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+      <span style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, letterSpacing: '0.3px' }}>{label}</span>
     </div>
   );
 }

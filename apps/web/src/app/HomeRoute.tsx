@@ -2,7 +2,7 @@
 
 // Next.js router로 callback prop을 라우팅 push로 매핑.
 // HomeScreen은 height:100% 의존이라 100vh wrapper 필수.
-// initialPlaces는 server (page.tsx)에서 D1으로 가져온 인기 장소 list — SSR 첫 HTML에 포함.
+// 카테고리 picker가 직접 노출되므로 onWizard(cat?)으로 /wizard?cat=... 라우팅.
 
 import { useRouter } from 'next/navigation';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -18,8 +18,7 @@ export default function HomeRoute({ initialPlaces }: Props) {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <HomeScreen
         onSelectPlace={(id) => router.push(`/p/${encodeURIComponent(id)}`)}
-        onWizard={() => router.push('/wizard')}
-        onSearch={() => router.push('/wizard')}
+        onWizard={(cat) => router.push(cat ? `/wizard?cat=${cat}` : '/wizard')}
         onQR={() => router.push('/qr')}
         onLogin={() => router.push('/login')}
         initialPlaces={initialPlaces}
