@@ -163,17 +163,28 @@ export function QRScreen({ onBack, onSuccess }: Props) {
             </div>
           </div>
         )}
-        {(phase === 'scanning' || phase === 'found') && (
-          <div style={{ position: 'relative', width: '100%', maxWidth: 420, aspectRatio: '1', margin: '0 auto' }}>
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 16, background: '#000' }}
-            />
+        {/* video element는 항상 mount — start() 호출 시점에 videoRef.current 채워져 있어야
+            srcObject 할당 가능. scanning/found가 아니면 hidden으로 처리. */}
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            maxWidth: 420,
+            aspectRatio: '1',
+            margin: '0 auto',
+            display: phase === 'scanning' || phase === 'found' ? 'block' : 'none',
+          }}
+        >
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 16, background: '#000' }}
+          />
+          {(phase === 'scanning' || phase === 'found') && (
             <ScanOverlay color={phase === 'found' ? TOKEN.ok : TOKEN.cold} />
-          </div>
-        )}
+          )}
+        </div>
         {phase === 'scanning' && (
           <div style={{ marginTop: 24, fontSize: 13, opacity: 0.7 }}>QR을 프레임 안에 맞춰주세요</div>
         )}
