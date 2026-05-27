@@ -29,6 +29,7 @@ function extractPlaceId(rawUrl: string): string | null {
 export function QRScreen({ onBack, onSuccess }: Props) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [foundLabel, setFoundLabel] = useState('');
+  const [errDetail, setErrDetail] = useState<string>('');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -49,27 +50,42 @@ export function QRScreen({ onBack, onSuccess }: Props) {
 
   const start = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
+      setErrDetail('getUserMedia API 없음 (구버전 또는 비HTTPS)');
       setPhase('unavailable');
       return;
     }
     setPhase('starting');
     stoppedRef.current = false;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false,
-      });
-      streamRef.current = stream;
-      const video = videoRef.current!;
-      video.srcObject = stream;
-      await video.play();
-      setPhase('scanning');
-      tick();
-    } catch (e) {
-      const name = (e as { name?: string }).name ?? '';
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') setPhase('denied');
-      else setPhase('unavailable');
+    setErrDetail('');
+    // 일부 Safari는 facingMode constraint에 엄격해 ideal도 무시하고 throw.
+    // Mac은 후면 카메라 없어서 더 흔함. 두 단계 시도 — environment 먼저, 실패 시 generic.
+    const attempts: MediaStreamConstraints[] = [
+      { video: { facingMode: { ideal: 'environment' } }, audio: false },
+      { video: true, audio: false },
+    ];
+    let lastErr: { name?: string; message?: string } | null = null;
+    for (const constraints of attempts) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        streamRef.current = stream;
+        const video = videoRef.current!;
+        video.srcObject = stream;
+        await video.play();
+        setPhase('scanning');
+        tick();
+        return;
+      } catch (e) {
+        lastErr = e as { name?: string; message?: string };
+        // 권한 거부면 즉시 종료 — fallback 시도 의미 없음.
+        if (lastErr.name === 'NotAllowedError' || lastErr.name === 'PermissionDeniedError') {
+          setPhase('denied');
+          return;
+        }
+        // 그 외 (NotFound/OverConstrained/NotReadable 등)는 다음 constraint 시도.
+      }
     }
+    setErrDetail(`${lastErr?.name ?? 'error'}: ${lastErr?.message ?? ''}`);
+    setPhase('unavailable');
   }, []);
 
   const tick = useCallback(() => {
@@ -133,10 +149,18 @@ export function QRScreen({ onBack, onSuccess }: Props) {
         )}
         {phase === 'unavailable' && (
           <div style={{ textAlign: 'center', padding: '0 32px' }}>
-            <div style={{ fontSize: 14, opacity: 0.85, marginBottom: 16 }}>
+            <div style={{ fontSize: 14, opacity: 0.85, marginBottom: 8 }}>
               이 기기/브라우저에서 카메라를 쓸 수 없어요.
             </div>
-            <button onClick={onBack} style={btn}>돌아가기</button>
+            {errDetail && (
+              <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 16, wordBreak: 'break-word' }}>
+                {errDetail}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button onClick={start} style={btn}>다시 시도</button>
+              <button onClick={onBack} style={{ ...btn, background: 'rgba(255,255,255,0.1)' }}>돌아가기</button>
+            </div>
           </div>
         )}
         {(phase === 'scanning' || phase === 'found') && (
