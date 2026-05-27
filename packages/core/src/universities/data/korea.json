@@ -939,10 +939,23 @@
       "campuses": [{
         "id": "main", "name": "익산캠퍼스", "district": "전북 익산 원광대학교",
         "buildings": [
-          { "code": "본관", "name": "대학본관", "aliases": [], "college": "본부" },
-          { "code": "의과대학", "name": "의과대학", "aliases": [], "college": "의과대학" },
-          { "code": "한의과대학", "name": "한의과대학", "aliases": [], "college": "한의과대학" },
-          { "code": "중앙도서관", "name": "중앙도서관", "aliases": ["2012 신축"], "college": "도서관" }
+          { "code": "12", "name": "대학본관", "aliases": ["본관"], "college": "본부" },
+          { "code": "14", "name": "학생지원관", "aliases": ["구 중앙도서관"], "college": "학생지원" },
+          { "code": "14-1", "name": "중앙도서관", "aliases": ["2012 신축"], "college": "도서관" },
+          { "code": "16", "name": "60주년기념관", "aliases": ["WON웰니스센터"], "college": "공용시설" },
+          { "code": "17", "name": "숭산기념관", "aliases": ["대학교당"], "college": "공용·종교" },
+          { "code": "24", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "51", "name": "사회관", "aliases": [], "college": "사회과학대학" },
+          { "code": "53", "name": "경상관", "aliases": [], "college": "경영대학" },
+          { "code": "56", "name": "인문관", "aliases": [], "college": "인문대학" },
+          { "code": "57", "name": "새천년관", "aliases": [], "college": "공용강의동" },
+          { "code": "59", "name": "공학관", "aliases": [], "college": "공과대학" },
+          { "code": "63", "name": "자연과학관", "aliases": [], "college": "자연과학대학" },
+          { "code": "68", "name": "약학관", "aliases": [], "college": "약학대학" },
+          { "code": "69", "name": "의학관", "aliases": ["의과대학"], "college": "의과대학" },
+          { "code": "70", "name": "한의전문관", "aliases": [], "college": "한의과대학" },
+          { "code": "71", "name": "한의관", "aliases": ["한의과대학"], "college": "한의과대학" },
+          { "code": "72", "name": "사범관", "aliases": [], "college": "사범대학" }
         ]
       }]
     },
