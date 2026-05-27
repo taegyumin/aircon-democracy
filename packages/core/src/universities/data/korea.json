@@ -173,6 +173,22 @@
       }]
     },
     {
+      "id": "hanshin", "name": "한신대학교", "shortName": "한신대",
+      "aliases": ["Hanshin University", "한신", "오산"], "badge": "오산", "placeIdPrefix": "hanshin",
+      "sources": ["https://ent.hs.ac.kr/upload_data/mojib/RF%280%29_211213154255.pdf", "https://hs.ac.kr/", "https://d.namu.moe/w/%ED%95%9C%EC%8B%A0%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4", "https://www.christiandaily.co.kr/news/144970"],
+      "campuses": [{
+        "id": "osan", "name": "오산캠퍼스", "district": "경기 오산 한신대학교",
+        "buildings": [
+          { "code": "1", "name": "장공관", "aliases": ["대학본부"], "college": "본부" },
+          { "code": "2", "name": "필헌관", "aliases": ["대학원"], "college": "대학원" },
+          { "code": "3", "name": "만우관", "aliases": [], "college": "공용강의동" },
+          { "code": "6", "name": "경삼관", "aliases": ["중앙도서관"], "college": "도서관" },
+          { "code": "7", "name": "송암관", "aliases": ["제2강의동"], "college": "공용강의동" },
+          { "code": "장준하통일관", "name": "장준하통일관", "aliases": [], "college": "공용시설" }
+        ]
+      }]
+    },
+    {
       "id": "kangwon", "name": "강원대학교", "shortName": "강원대",
       "aliases": ["Kangwon", "춘천"], "badge": "춘천", "placeIdPrefix": "kangwon",
       "sources": ["https://wwwk.kangwon.ac.kr/site/campusmap/chuncheon.html", "https://namu.wiki/w/%EA%B0%95%EC%9B%90%EB%8C%80%ED%95%99%EA%B5%90/%EC%B6%98%EC%B2%9C%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
