@@ -255,14 +255,20 @@ realtimeRoutes.get('/realtime/poi/search', async (c) => {
     lng: c.req.query('lng'),
   });
   if (!parsed.success) return c.json({ error: 'invalid_query' }, 400);
+  // NAVER 키는 OAuth(로그인)용과 동일한 application의 ID/Secret 재사용 가능.
+  // SEARCH_* override 있으면 우선, 없으면 NAVER_CLIENT_* fallback.
   const env = c.env as unknown as {
     NAVER_SEARCH_CLIENT_ID?: string;
     NAVER_SEARCH_CLIENT_SECRET?: string;
+    NAVER_CLIENT_ID?: string;
+    NAVER_CLIENT_SECRET?: string;
     KAKAO_REST_API_KEY?: string;
   };
+  const naverId = env.NAVER_SEARCH_CLIENT_ID || env.NAVER_CLIENT_ID;
+  const naverSecret = env.NAVER_SEARCH_CLIENT_SECRET || env.NAVER_CLIENT_SECRET;
   const providers: { naver?: ReturnType<typeof naverProvider>; kakao?: ReturnType<typeof kakaoProvider> } = {};
-  if (env.NAVER_SEARCH_CLIENT_ID && env.NAVER_SEARCH_CLIENT_SECRET) {
-    providers.naver = naverProvider(env.NAVER_SEARCH_CLIENT_ID, env.NAVER_SEARCH_CLIENT_SECRET);
+  if (naverId && naverSecret) {
+    providers.naver = naverProvider(naverId, naverSecret);
   }
   if (env.KAKAO_REST_API_KEY) {
     providers.kakao = kakaoProvider(env.KAKAO_REST_API_KEY);
