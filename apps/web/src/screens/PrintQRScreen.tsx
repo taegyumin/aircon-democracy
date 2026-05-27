@@ -35,7 +35,10 @@ export function PrintQRScreen({ placeId, onBack }: Props) {
   }
 
   return (
-    <>
+    // 단일 wrapper로 감싸기 — globals.css의 `body > * { min-height: 100vh }`가 Fragment
+    // 풀린 두 형제 각각에 100vh 적용해 header가 100vh 차지 → 본문이 화면 밖으로 밀려나는
+    // 회귀 (사용자 보고 2026-05-27). 한 wrapper면 body 자식 1개라 OK.
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -45,7 +48,7 @@ export function PrintQRScreen({ placeId, onBack }: Props) {
         @page { size: A4; margin: 18mm; }
       `}</style>
 
-      <div className="no-print" style={{ background: TOKEN.bg, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${TOKEN.border}`, fontFamily: FONT }}>
+      <div className="no-print" style={{ background: TOKEN.bg, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${TOKEN.border}`, fontFamily: FONT, flexShrink: 0 }}>
         <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: TOKEN.text2, fontSize: 14, fontFamily: FONT }}>← 뒤로</button>
         <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: TOKEN.text1 }}>{place.name} — 인쇄용 QR</div>
         <button onClick={() => window.print()} style={btnPrimary}>인쇄</button>
@@ -54,7 +57,7 @@ export function PrintQRScreen({ placeId, onBack }: Props) {
       <div
         className="print-page"
         style={{
-          minHeight: 'calc(100vh - 60px)',
+          flex: 1,
           background: '#fff',
           display: 'flex',
           flexDirection: 'column',
@@ -98,7 +101,7 @@ export function PrintQRScreen({ placeId, onBack }: Props) {
 
         <div style={{ marginTop: 40, fontSize: 11, color: '#A0A0AE' }}>aircondemocracy.com</div>
       </div>
-    </>
+    </div>
   );
 }
 

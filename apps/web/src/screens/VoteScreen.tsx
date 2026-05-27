@@ -608,7 +608,7 @@ function ShareSheet({
           </button>
         </div>
 
-        {/* QR + URL */}
+        {/* QR — URL 제거(긴 문자열, 아래 '링크 복사'로 대체). 스캔 안내만. */}
         <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
           <div
             id="vote-share-qr"
@@ -621,17 +621,16 @@ function ShareSheet({
             {QRMod ? <QRMod.QRCodeSVG value={placeUrl} size={148} level="M" includeMargin={false} /> : <div style={{ width: 148, height: 148, background: TOKEN.bg }} />}
           </div>
           <div style={{ fontSize: 12, color: TOKEN.text3, textAlign: 'center', lineHeight: 1.6 }}>
-            스캔하면 바로 투표 화면으로 이동해요<br />
-            <span style={{ color: TOKEN.cold, fontWeight: 600, wordBreak: 'break-all' }}>{placeUrl.replace(/^https?:\/\//, '')}</span>
+            스캔하면 바로 투표 화면으로 이동해요
           </div>
         </div>
 
-        {/* action rows */}
+        {/* action rows — PNG 저장은 copied 상태와 무관 (link copy 전용). */}
         <div style={{ borderTop: `1px solid ${TOKEN.border}`, padding: '8px 0 32px' }}>
           <ShareActionRow
             iconBg={TOKEN.coldBg}
             icon={<DownloadIcon size={19} color={TOKEN.cold} />}
-            label={copied ? '복사됨 ✓' : 'PNG 저장'}
+            label="PNG 저장"
             sub="QR 이미지를 사진첩에 저장"
             onClick={downloadPNG}
           />
