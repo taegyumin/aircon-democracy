@@ -189,6 +189,24 @@
       }]
     },
     {
+      "id": "hyupsung", "name": "협성대학교", "shortName": "협성대",
+      "aliases": ["Hyupsung University", "UHS", "협성", "화성"], "badge": "화성", "placeIdPrefix": "hyupsung",
+      "sources": ["https://iphak.uhs.ac.kr/introduce/compus.do", "https://unisquads.io/w/%ED%98%91%EC%84%B1%EB%8C%80%ED%95%99%EA%B5%90", "https://iphak.uhs.ac.kr/resources/pdf/2024_uhs.pdf"],
+      "campuses": [{
+        "id": "hwaseong", "name": "화성캠퍼스", "district": "경기 화성 협성대학교",
+        "buildings": [
+          { "code": "본관", "name": "본관(성암관)", "aliases": ["성암관"], "college": "본부" },
+          { "code": "인문사회관", "name": "인문사회관", "aliases": [], "college": "인문사회대학" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+          { "code": "웨슬리창의융합관", "name": "웨슬리창의융합관", "aliases": ["교양관"], "college": "교양교육" },
+          { "code": "이공관", "name": "이공관", "aliases": [], "college": "이공대학" },
+          { "code": "예술관", "name": "예술관", "aliases": [], "college": "예술대학" },
+          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "산학협력관", "name": "산학협력관", "aliases": [], "college": "산학협력" }
+        ]
+      }]
+    },
+    {
       "id": "kangwon", "name": "강원대학교", "shortName": "강원대",
       "aliases": ["Kangwon", "춘천"], "badge": "춘천", "placeIdPrefix": "kangwon",
       "sources": ["https://wwwk.kangwon.ac.kr/site/campusmap/chuncheon.html", "https://namu.wiki/w/%EA%B0%95%EC%9B%90%EB%8C%80%ED%95%99%EA%B5%90/%EC%B6%98%EC%B2%9C%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
