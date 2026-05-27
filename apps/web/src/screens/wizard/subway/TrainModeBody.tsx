@@ -398,7 +398,6 @@ function StationRowWithSwap({
   nextStation: Station | null; setNextStation: (v: Station | null) => void;
   nextSuggestions: Station[];
 }) {
-  const [swapCount, setSwapCount] = useState(0);
   const [angle, setAngle] = useState(0);
   const [swapping, setSwapping] = useState(false);
   const bothFilled = !!prevStation && !!nextStation;
@@ -412,7 +411,6 @@ function StationRowWithSwap({
     setTimeout(() => {
       const a = prevStation; const b = nextStation;
       setPrevStation(b); setNextStation(a);
-      setSwapCount((c) => c + 1);
     }, 200);
     setTimeout(() => setSwapping(false), 500);
   };
@@ -471,27 +469,8 @@ function StationRowWithSwap({
         </div>
       </div>
 
-      {/* hint / counter — 두 칩 다 채워졌을 때만 */}
-      {bothFilled && swapCount === 0 && (
-        <div
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-            padding: '7px 12px', background: TOKEN.coldBg, borderRadius: 999,
-            width: 'fit-content', margin: '9px auto 0',
-          }}
-        >
-          <span style={{ fontSize: 11, color: TOKEN.cold, fontWeight: 700 }}>
-            가운데 버튼으로 순서를 바꿀 수 있어요
-          </span>
-        </div>
-      )}
-      {bothFilled && swapCount > 0 && (
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <span style={{ fontSize: 11, color: TOKEN.text3 }}>
-            {swapCount}번 바꿨어요 · {prevStation?.name} → {nextStation?.name} 방향
-          </span>
-        </div>
-      )}
+      {/* swap counter / hint 모두 제거 — 사용자 가치 모호 + noise (2026-05-27 사용자 보고).
+          원형 ⇄ 아이콘 자체가 affordance 충분. */}
     </div>
   );
 }
