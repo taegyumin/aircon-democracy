@@ -28,7 +28,7 @@ export function SiteFooter() {
           <a href="/privacy" style={{ color: TOKEN.text2, marginRight: 12 }}>개인정보 처리방침</a>
         </div>
         <div style={{ marginTop: 6, color: TOKEN.text3, fontSize: 10 }}>
-          © {new Date().getFullYear()} 미나리 · 본 서비스는 광고·과금 없는 무료 공익 시민 참여 플랫폼입니다.
+          © {new Date().getFullYear()} 미나리 · 시민 참여 플랫폼
         </div>
       </div>
     </footer>
