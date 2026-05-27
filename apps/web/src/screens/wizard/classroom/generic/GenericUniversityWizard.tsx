@@ -56,7 +56,7 @@ export function GenericUniversityWizard({ university, onPicked, onFreeform, onEx
   };
 
   const header = (title: string) => (
-    <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
+    <div style={{ background: TOKEN.surface, paddingTop: 'var(--header-top-pad)', borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px 14px' }}>
         <button
           onClick={back}

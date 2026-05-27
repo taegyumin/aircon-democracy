@@ -109,7 +109,7 @@ export function QRScreen({ onBack, onSuccess }: Props) {
 
   return (
     <div style={{ height: '100%', background: '#0D0D13', display: 'flex', flexDirection: 'column', fontFamily: FONT, color: '#fff' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '68px 20px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 'var(--header-top-pad)', paddingLeft: 20, paddingRight: 20, paddingBottom: 16 }}>
         <button onClick={() => { stop(); onBack(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }} aria-label="뒤로">
           <BackIcon color="rgba(255,255,255,0.75)" />
         </button>

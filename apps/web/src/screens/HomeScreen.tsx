@@ -46,8 +46,8 @@ export function HomeScreen({ onSelectPlace, onWizard, onQR, onLogin }: Props) {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-      {/* Header — env(safe-area-inset-top)으로 status bar/노치 영역 가리되 paddingTop hardcode 줄임. */}
-      <div style={{ background: TOKEN.surface, paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', flexShrink: 0, borderBottom: `1px solid ${TOKEN.border}` }}>
+      {/* Header — paddingTop은 globals.css의 --header-top-pad 변수로 통일 (회귀 방지). */}
+      <div style={{ background: TOKEN.surface, paddingTop: 'var(--header-top-pad)', flexShrink: 0, borderBottom: `1px solid ${TOKEN.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 16px 14px' }}>
           <img src="/icon.png" alt="" style={{ width: 30, height: 30, borderRadius: 8 }} />
           <div>

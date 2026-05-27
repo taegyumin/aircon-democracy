@@ -288,7 +288,7 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-      <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
+      <div style={{ background: TOKEN.surface, paddingTop: 'var(--header-top-pad)', borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px 14px' }}>
           <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center', borderRadius: TOKEN.r.sm }} aria-label="뒤로">
             <BackIcon />

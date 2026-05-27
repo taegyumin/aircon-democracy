@@ -45,7 +45,7 @@ export default function LoginClient({ error: errorParam }: { error: string | nul
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-      <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
+      <div style={{ background: TOKEN.surface, paddingTop: 'var(--header-top-pad)', borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px 14px' }}>
           <button
             onClick={() => router.back()}

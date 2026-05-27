@@ -111,7 +111,7 @@ export function SNUClassroomWizard({ onPicked, onFreeform, onBack }: Props) {
   // Custom header used inside the SNU sub-wizard so the back button goes to
   // the university picker instead of the category picker.
   const innerHeader = (title: string) => (
-    <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
+    <div style={{ background: TOKEN.surface, paddingTop: 'var(--header-top-pad)', borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px 14px' }}>
         <button
           onClick={() => {
@@ -145,7 +145,7 @@ export function SNUClassroomWizard({ onPicked, onFreeform, onBack }: Props) {
     // Yonsei's wizard renders its own header with custom back handlers, so
     // we provide a (title, onBack) renderer that styles the bar the same way.
     const yRenderHeader = (title: string, onBack: () => void) => (
-      <div style={{ background: TOKEN.surface, paddingTop: 62, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
+      <div style={{ background: TOKEN.surface, paddingTop: 'var(--header-top-pad)', borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px 14px' }}>
           <button
             onClick={onBack}

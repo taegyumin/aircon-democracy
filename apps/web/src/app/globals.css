@@ -6,15 +6,26 @@
   padding: 0;
 }
 
+/* 모든 페이지 헤더가 status bar/노치 영역을 가리되 paddingTop이 광활해지지 않도록
+   공통 변수. 새 페이지 만들 때 magic number(62px 등) 박지 말고 var(--header-top-pad) 사용. */
+:root {
+  --header-top-pad: calc(env(safe-area-inset-top, 0px) + 12px);
+}
+
 html,
 body {
   height: 100%;
+  /* iOS Safari/Chrome의 overscroll bounce 자체를 차단. 위/아래 스크롤 끝에서
+     rubber-band 효과 없음 → html/body 뒤 영역이 노출되지 않음. 페이지마다 헤더
+     색이 달라서 html에 단일 색 하드코딩으로는 근본 해결 안 됨 (홈=흰색 OK, QR=검정 미스매치).
+     iOS 16.4+, Chrome 63+ 지원. (2026-05-27 사용자 회귀 재발) */
+  overscroll-behavior-y: contain;
 }
 
-/* iOS Safari overscroll(bounce) 시 body 뒤 html 영역이 노출됨. 헤더와 같은 흰색으로
-   맞춰 위쪽 bounce에서 회색 빈 영역 안 보이게. (2026-05-27 사용자 회귀) */
+/* iOS 16.4 미만 fallback. overscroll-behavior 미지원 시 위쪽 bounce는 발생하지만
+   다수 페이지가 회색 body bg(#f2f2f7) 위에 흰색 헤더 패턴이므로 body bg와 맞춤. */
 html {
-  background: #ffffff;
+  background: #f2f2f7;
 }
 
 /* Next.js App Router는 body > div#__next 없음. children 컨테이너에 100% 직접 적용 */
