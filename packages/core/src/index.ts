@@ -13,6 +13,7 @@ export * from './subwayDirection';
 export * from './buildBusPlace';
 export * from './busRegion';
 export * from './subwayProgress';
+export * from './subwayHours';
 // validation은 server/client 모두에서 사용. 두 import 경로 (main + subpath) 통하도록
 // selective re-export — `export *`는 places/tokens와 export name 충돌(PlaceType, VoteType).
 // 충돌 없는 schema/helper만 main에서 그대로 import 가능.

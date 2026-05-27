@@ -3,7 +3,7 @@
 
 import { Hono } from 'hono';
 import { expectedUpdnLine, LINE_SEQUENCES, stripStation } from '@aircon/core/subwayDirection';
-import { estimateProgress } from '@aircon/core';
+import { estimateProgress, isSubwayServiceClosed } from '@aircon/core';
 import {
   SubwayMatchBodySchema, BusMatchBodySchema,
   BusRouteSearchQuerySchema, BusRouteStationsQuerySchema, BusRegionByCoordsQuerySchema,
@@ -82,7 +82,13 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
     const res = await timedFetch(url);
     if (!res.ok) throw new Error(`upstream_${res.status}`);
     const data = (await res.json()) as { realtimePositionList?: Array<{ subwayId: string; statnNm: string; trainSttus: string; updnLine: string; trainNo: string; statnTnm?: string }> };
-    let rows = data.realtimePositionList ?? [];
+    const allRows = data.realtimePositionList ?? [];
+    // 전체 차량 0 + KST 01:00~05:00 = 운행 종료 시간대. 사용자에게 명확히 알림.
+    // 운행 시간대인데 0건이면 헤드웨이 사이 일시 차량 없음 (기존 'no_train_at_segment').
+    if (allRows.length === 0 && isSubwayServiceClosed()) {
+      return c.json({ matched: false, reason: 'service_closed' });
+    }
+    let rows = allRows;
     if (expectedDir !== null) {
       rows = rows.filter((r) => r.updnLine === expectedDir);
     }
