@@ -421,12 +421,18 @@ realtimeRoutes.post('/realtime/bus/match', async (c) => {
   }
 
   // ─── Seoul 분기 (기존 ws.bus.go.kr) ─────────────────────────────
+  // LLM P1: passedRouteId가 있으면 routeName 검색 생략 — 같은 번호 양방향/지선 중
+  // 사용자가 명시적으로 고른 routeId 그대로 사용해야 다른 bucket으로 새지 않음.
   const HOST = 'http://ws.bus.go.kr/api/rest';
   try {
-    const routes = await fetchBusJson<BusRouteItem>(
-      `${HOST}/busRouteInfo/getBusRouteList?serviceKey=${encodeURIComponent(key)}&strSrch=${encodeURIComponent(routeName)}&resultType=json`,
-    );
-    routes.sort((a, b) => (a.busRouteNm === routeName ? 0 : 1) - (b.busRouteNm === routeName ? 0 : 1));
+    const routes: BusRouteItem[] = passedRouteId
+      ? [{ busRouteId: passedRouteId, busRouteNm: routeName, routeType: '' }]
+      : await fetchBusJson<BusRouteItem>(
+          `${HOST}/busRouteInfo/getBusRouteList?serviceKey=${encodeURIComponent(key)}&strSrch=${encodeURIComponent(routeName)}&resultType=json`,
+        );
+    if (!passedRouteId) {
+      routes.sort((a, b) => (a.busRouteNm === routeName ? 0 : 1) - (b.busRouteNm === routeName ? 0 : 1));
+    }
     const target = normStop(stopName);
     for (const route of routes) {
       try {

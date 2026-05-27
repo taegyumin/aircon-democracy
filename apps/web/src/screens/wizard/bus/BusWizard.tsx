@@ -48,11 +48,11 @@ type StopSel = BusRouteStation | { unknown: true } | null;
 export function BusWizard({ onBack, onPicked }: Props) {
   const [phase, setPhase] = useState<Phase>('number');
 
-  // Region — 진입 시 GPS로 자동 추론 후 사용자가 dropdown 변경 가능.
+  // Region — privacy contract: 자동 GPS 요청 X. 사용자가 'GPS로 찾기' 버튼 누를 때만 요청.
+  // (이전 회귀: 진입 시 silent geolocation → 사용자 모르게 좌표 NCP/서버 전송. LLM P1.)
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [regionLabel, setRegionLabel] = useState<string>('서울특별시');
-  const [regionDetecting, setRegionDetecting] = useState(true);
-  const regionDetectedRef = useRef(false);
+  const [regionDetecting, setRegionDetecting] = useState(false);
 
   // Step 1 — 번호 input + autocomplete
   const [routeQuery, setRouteQuery] = useState('');
@@ -60,14 +60,10 @@ export function BusWizard({ onBack, onPicked }: Props) {
   const [routeLoading, setRouteLoading] = useState(false);
   const routeSeqRef = useRef(0);
 
-  // GPS 자동 추론 — mount 시 1회. 권한 거부 또는 unsupported 시 'seoul' 기본 유지.
-  useEffect(() => {
-    if (regionDetectedRef.current) return;
-    regionDetectedRef.current = true;
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setRegionDetecting(false);
-      return;
-    }
+  // 사용자가 명시적으로 'GPS로 찾기' 누를 때만 위치 요청 + 서버 호출.
+  const detectRegionByGps = useCallback(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    setRegionDetecting(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
@@ -80,7 +76,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
                 ?? res.sigunguName ?? res.sidoName ?? res.region;
             setRegionLabel(fromCode);
           }
-        } catch { /* fallback to default Seoul */ }
+        } catch { /* keep current */ }
         setRegionDetecting(false);
       },
       () => { setRegionDetecting(false); },
@@ -101,7 +97,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
   // 정류장 확정 후 차량 매칭 (기존 hook 그대로).
   const { match: rawMatch, loading: matchLoading, tryMatch, reset: resetMatch } = useBusMatch();
   const selectedStopName = stopSel && 'name' in stopSel ? stopSel.name : '';
-  const vehicleMatch = freshenBusMatch(rawMatch, selectedRoute?.name ?? '', selectedStopName);
+  const vehicleMatch = freshenBusMatch(rawMatch, selectedRoute?.name ?? '', selectedStopName, region, selectedRoute?.id);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -202,7 +198,10 @@ export function BusWizard({ onBack, onPicked }: Props) {
     try {
       const routeName = selectedRoute.name;
       const stopName = stopSel && 'name' in stopSel ? stopSel.name : '';
-      const payload = buildBusPlace({ routeName, stopName, match: vehicleMatch });
+      const payload = buildBusPlace({
+        routeName, stopName, match: vehicleMatch,
+        region, routeId: selectedRoute.id,
+      });
       await api.upsertPlace(payload);
       onPicked(payload.id);
     } catch (e) {
@@ -235,6 +234,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
         label={regionLabel}
         detecting={regionDetecting}
         onChange={changeRegion}
+        onUseGps={detectRegionByGps}
       />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 0 24px' }}>
@@ -327,12 +327,13 @@ export function BusWizard({ onBack, onPicked }: Props) {
 // ════════════════════════════════════════════════════════════════════
 
 function RegionPicker({
-  region, label, detecting, onChange,
+  region, label, detecting, onChange, onUseGps,
 }: {
   region: Region;
   label: string;
   detecting: boolean;
   onChange: (next: Region) => void;
+  onUseGps: () => void;
 }) {
   // 광역시 (서울 + TAGO 광역시 cityCode 코드값) + 시·군 prefix 기준 그룹 분류.
   // 시·군 그룹 라벨은 cityCode 첫 2자리로 추론 (31=경기, 32=강원, 33=충북, ...).
@@ -357,10 +358,7 @@ function RegionPicker({
         padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8,
       }}
     >
-      <span style={{ fontSize: 13 }} aria-hidden>📍</span>
-      <span style={{ fontSize: 12, color: TOKEN.text3, fontWeight: 500 }}>
-        {detecting ? '내 위치로 확인 중…' : '지역'}
-      </span>
+      <span style={{ fontSize: 12, color: TOKEN.text3, fontWeight: 500 }}>지역</span>
       <div style={{ position: 'relative', flex: 1 }}>
         <select
           value={region}
@@ -397,6 +395,22 @@ function RegionPicker({
           aria-hidden
         >▼</span>
       </div>
+      <button
+        onClick={onUseGps}
+        disabled={detecting}
+        title="현재 위치로 지역 자동 선택 — 명시적으로 누를 때만 좌표 사용"
+        style={{
+          padding: '7px 10px', fontSize: 11, fontWeight: 700,
+          background: detecting ? TOKEN.bg : TOKEN.coldBg,
+          color: TOKEN.cold,
+          border: `1px solid ${TOKEN.cold}30`,
+          borderRadius: 8, cursor: detecting ? 'default' : 'pointer',
+          fontFamily: FONT, flexShrink: 0,
+        }}
+        aria-label="현재 위치로 지역 찾기"
+      >
+        {detecting ? '확인 중…' : '📍 GPS'}
+      </button>
     </div>
   );
 }

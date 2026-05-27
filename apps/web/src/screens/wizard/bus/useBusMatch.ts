@@ -73,14 +73,21 @@ export function useBusMatch(): UseBusMatchResult {
 
 // Pure helper: 현재 입력과 match의 input이 일치할 때만 match를 반환.
 // 입력이 바뀌었거나 match가 null이면 null 반환 → builder는 fallback 분기를 탄다.
+// 2026-05-27 LLM P1: region / routeId도 비교 — 사용자가 region 변경 후 동일 routeName
+// 입력 시 옛 region의 match가 fresh로 잘못 잡힐 race 방지.
 export function freshenBusMatch(
   match: BusMatchWithInput | null,
   currentRouteName: string,
   currentStopName: string,
+  currentRegion?: string,
+  currentRouteId?: string,
 ): BusMatchWithInput | null {
   if (!match) return null;
   const r = currentRouteName.trim();
   const s = currentStopName.trim();
   if (match.input.routeName !== r || match.input.stopName !== s) return null;
+  // region/routeId가 명시된 경우만 비교 (optional — 옛 호출자 호환).
+  if (currentRegion !== undefined && match.input.region !== currentRegion) return null;
+  if (currentRouteId !== undefined && match.input.routeId !== currentRouteId) return null;
   return match;
 }
