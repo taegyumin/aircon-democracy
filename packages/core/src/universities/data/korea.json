@@ -776,14 +776,24 @@
     {
       "id": "knu", "name": "경북대학교", "shortName": "경북대",
       "aliases": ["KNU", "경북", "대구"], "badge": "대구 (산격)", "placeIdPrefix": "knu",
-      "sources": ["https://www.knu.ac.kr/wbbs/wbbs/contents/index.action?menu_url=campus/service02_03&menu_idx=147", "https://namu.wiki/w/%EA%B2%BD%EB%B6%81%EB%8C%80%ED%95%99%EA%B5%90/%EB%8C%80%EA%B5%AC%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.knu.ac.kr/wbbs/wbbs/contents/index.action?menu_url=campus/service02_03&menu_idx=147", "https://ir.knu.ac.kr/theme/knuir/state/data/report2018.pdf", "https://cse.knu.ac.kr/sub1_3_a.php", "https://gp.knu.ac.kr/gp/", "https://namu.wiki/w/%EA%B2%BD%EB%B6%81%EB%8C%80%ED%95%99%EA%B5%90/%EB%8C%80%EA%B5%AC%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "daegu", "name": "대구캠퍼스 (산격)", "district": "대구 북구 경북대학교",
         "buildings": [
           { "code": "본관", "name": "본관", "aliases": ["사적 442호", "구 대구의학전문학교"], "college": "본부·역사" },
           { "code": "구관", "name": "구관", "aliases": [], "college": "공용시설" },
           { "code": "신관", "name": "신관", "aliases": [], "college": "공용시설" },
+          { "code": "중앙도서관", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+          { "code": "박물관", "name": "박물관", "aliases": [], "college": "박물관" },
+          { "code": "대강당", "name": "대강당", "aliases": [], "college": "공용시설" },
+          { "code": "정보전산원", "name": "정보전산원", "aliases": ["전자계산소"], "college": "정보화" },
+          { "code": "종합정보센터", "name": "종합정보센터", "aliases": ["종합정보센타"], "college": "정보화" },
+          { "code": "복지관", "name": "복지관", "aliases": [], "college": "학생복지" },
+          { "code": "복현회관", "name": "복현회관", "aliases": [], "college": "공용시설" },
           { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "제1학생회관", "name": "제1학생회관(백호관)", "aliases": ["백호관"], "college": "학생복지" },
+          { "code": "글로벌플라자", "name": "글로벌플라자", "aliases": ["KNU글로벌플라자"], "college": "국제교류·공용시설" },
+          { "code": "415", "name": "IT대학 융복합관", "aliases": ["IT융복합관"], "college": "IT대학" },
           { "code": "인성관", "name": "인성관", "aliases": [], "college": "공용시설" }
         ]
       }]
