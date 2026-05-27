@@ -382,6 +382,8 @@
       "placeIdPrefix": "seoultech",
       "sources": [
         "https://www.seoultech.ac.kr/intro/map/",
+        "https://www.seoultech.ac.kr/storage/www/brochure/20120312_webcatalog_kr.pdf",
+        "https://times.seoultech.ac.kr/reports?idx=20385",
         "https://namu.wiki/w/%EC%84%9C%EC%9A%B8%EA%B3%BC%ED%95%99%EA%B8%B0%EC%88%A0%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"
       ],
       "campuses": [
@@ -390,8 +392,20 @@
           "name": "공릉캠퍼스",
           "district": "서울 노원구 서울과학기술대학교",
           "buildings": [
+            { "code": "1", "name": "대학본부", "aliases": [], "college": "본부" },
             { "code": "다산관", "name": "다산관", "aliases": ["본관", "등록문화유산 12호"], "college": "본부·역사관" },
-            { "code": "창학관", "name": "창학관", "aliases": ["등록문화유산 12호"], "college": "정보통신대학" }
+            { "code": "창학관", "name": "창학관", "aliases": ["등록문화유산 12호"], "college": "정보통신대학" },
+            { "code": "5", "name": "혜성관", "aliases": ["Hyesung Hall"], "college": "공과대학" },
+            { "code": "6", "name": "청운관", "aliases": [], "college": "공용강의동" },
+            { "code": "32", "name": "프론티어관", "aliases": ["Frontier Hall"], "college": "공과대학" },
+            { "code": "33", "name": "하이테크관", "aliases": [], "college": "공과대학" },
+            { "code": "34", "name": "도서관", "aliases": ["중앙도서관", "정보전산원"], "college": "도서관" },
+            { "code": "37", "name": "학생회관", "aliases": [], "college": "학생복지" },
+            { "code": "38", "name": "국제관", "aliases": [], "college": "국제교육" },
+            { "code": "39", "name": "다빈치관", "aliases": [], "college": "공용시설" },
+            { "code": "40", "name": "어의관", "aliases": [], "college": "공용강의동" },
+            { "code": "51", "name": "100주년기념관", "aliases": [], "college": "공용시설" },
+            { "code": "57", "name": "무궁관", "aliases": ["Mugung Hall"], "college": "공과대학" }
           ]
         }
       ]
