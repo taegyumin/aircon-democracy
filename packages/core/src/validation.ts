@@ -106,7 +106,18 @@ export const SubwayMatchBodySchema = z.object({
 
 // region: 'seoul' 또는 TAGO cityCode(숫자 문자열). 비어 있으면 'seoul' 기본.
 // (서울은 ws.bus.go.kr 분기, 그 외는 TAGO 1613000 분기로 라우팅.)
-const RegionSchema = z.string().trim().max(10).optional();
+// LLM P2: cityCode CITY_CODES set으로 refine — 임의 숫자 거부.
+// busRegion에서 VALID_REGION_VALUES import (cycle 없음 — busRegion은 zod 사용 안 함).
+import { VALID_REGION_VALUES } from './busRegion';
+const RegionSchema = z
+  .string()
+  .trim()
+  .max(10)
+  .optional()
+  .refine(
+    (v) => v === undefined || v === '' || VALID_REGION_VALUES.has(v),
+    { message: 'invalid_region' },
+  );
 
 export const BusMatchBodySchema = z.object({
   routeName: z.string().trim().min(1).max(20),

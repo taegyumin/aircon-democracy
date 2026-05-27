@@ -77,17 +77,35 @@ export const CITY_CODES: CityCode[] = [
 export const SEOUL_REGION = 'seoul' as const;
 export type BusRegion = number | typeof SEOUL_REGION;
 
+// 유효한 region (server-side schema refine + frontend dropdown options 공유).
+export const VALID_REGION_VALUES: ReadonlySet<string> = new Set<string>([
+  SEOUL_REGION,
+  ...CITY_CODES.map((c) => String(c.code)),
+]);
+
+// 합쳐진 이름 split alias — '대전광역시/계룡시' → ['대전광역시', '계룡시'].
+// NCP reverseGeocode가 '계룡시'만 줄 때도 매칭되도록.
+const ALIASES: Array<{ alias: string; code: number }> = CITY_CODES
+  .filter((c) => c.name.includes('/'))
+  .flatMap((c) => c.name.split('/').map((alias) => ({ alias: alias.trim(), code: c.code })));
+
 // '서울' / '서울특별시' / Seoul → SEOUL_REGION. 외에는 CITY_CODES에서 prefix 매칭.
+// 합쳐진 이름의 두 번째 alias도 매칭 (LLM P2: '계룡시', '횡성군' 미매칭 문제).
 export function regionByName(name: string): BusRegion | null {
   const n = name.trim();
   if (!n) return null;
   if (/^서울/.test(n) || /seoul/i.test(n)) return SEOUL_REGION;
-  // 정확 일치 우선.
   const exact = CITY_CODES.find((c) => c.name === n);
   if (exact) return exact.code;
+  // alias 정확 일치 ('계룡시' 등).
+  const alias = ALIASES.find((a) => a.alias === n);
+  if (alias) return alias.code;
   // prefix 매칭 (예: "부산" → "부산광역시", "수원" → "수원시").
   const pref = CITY_CODES.find((c) => c.name.startsWith(n));
   if (pref) return pref.code;
+  // alias prefix ('계룡' → '계룡시').
+  const aliasPref = ALIASES.find((a) => a.alias.startsWith(n));
+  if (aliasPref) return aliasPref.code;
   return null;
 }
 

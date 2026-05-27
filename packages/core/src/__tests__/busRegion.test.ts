@@ -42,6 +42,15 @@ describe('regionByName', () => {
     expect(regionByName('대전광역시')).toBe(25);
     expect(regionByName('대전')).toBe(25);
   });
+
+  it('합쳐진 이름의 alias도 매칭 (LLM P2 회귀 방지)', () => {
+    // "원주시/횡성군"의 두 번째 alias "횡성군"이 단독 entry 없어 합쳐진 코드에 매칭.
+    expect(regionByName('횡성군')).toBe(32020);
+    expect(regionByName('횡성')).toBe(32020);
+    // 주의: "계룡시"는 충남에 단독 entry(34070) 있어 alias 우선순위가 정확 일치로 그쪽.
+    // 둘 다 valid한 cityCode라 어느 쪽이든 TAGO API가 답함. 단독 entry 우선이 일관.
+    expect(regionByName('계룡시')).toBe(34070);
+  });
 });
 
 describe('CITY_CODES data integrity', () => {

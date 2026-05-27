@@ -1,5 +1,8 @@
 'use client';
 
+// LLM P3: place navigation을 button + onClick → <a href>로. Yeti(네이버 봇) JS 의존 없이
+// 인기 place link 발견 가능. SPA 라우팅도 e.preventDefault() + onTap()으로 유지.
+
 import { useState } from 'react';
 import { TOKEN, VOTE_CONFIG, FONT, type VoteType } from '@aircon/core';
 import type { PlaceWithCounts } from '../lib/apiClient';
@@ -25,8 +28,15 @@ export function PlaceCard({ place, onTap }: Props) {
   const [hover, setHover] = useState(false);
 
   return (
-    <button
-      onClick={onTap}
+    <a
+      href={`/p/${encodeURIComponent(place.id)}`}
+      onClick={(e) => {
+        // 일반 클릭은 SPA 라우팅 (onTap이 router.push). cmd/ctrl/middle click는
+        // 브라우저 기본(새 탭)을 그대로 두기 — 사용자 friction 줄임.
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault();
+        onTap();
+      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -43,6 +53,8 @@ export function PlaceCard({ place, onTap }: Props) {
         boxShadow: '0 1px 5px rgba(0,0,0,0.06)',
         transition: 'all 0.15s',
         fontFamily: FONT,
+        textDecoration: 'none',
+        color: 'inherit',
       }}
     >
       <div
@@ -103,6 +115,6 @@ export function PlaceCard({ place, onTap }: Props) {
           <span style={{ fontSize: 11, color: TOKEN.text3 }}>의견 없음</span>
         )}
       </div>
-    </button>
+    </a>
   );
 }
