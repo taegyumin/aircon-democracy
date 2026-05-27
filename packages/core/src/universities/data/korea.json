@@ -423,11 +423,26 @@
       "id": "ut", "name": "국립한국교통대학교", "shortName": "한국교통대",
       "aliases": ["UT", "KNUT", "교통대", "충주"], "badge": "충주", "placeIdPrefix": "ut",
       "notes": "E/W 동서 zone + 번호 (E1~E17, W1~W22)",
-      "sources": ["https://www.ut.ac.kr/prog/campusMap/kor/sub01_07_02/list.do", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%ED%95%9C%EA%B5%AD%EA%B5%90%ED%86%B5%EB%8C%80%ED%95%99%EA%B5%90/%EC%B6%A9%EC%A3%BC%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.ut.ac.kr/prog/campusMap/kor/sub01_07_02/list.do", "https://ut.ac.kr/gonet/FileDownload.do?code=rcrit%2F&fileName=rcrit_202112151026068480.pdf", "https://namu.wiki/w/%EA%B5%AD%EB%A6%BD%ED%95%9C%EA%B5%AD%EA%B5%90%ED%86%B5%EB%8C%80%ED%95%99%EA%B5%90/%EC%B6%A9%EC%A3%BC%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "chungju", "name": "충주캠퍼스", "district": "충북 충주 한국교통대학교",
         "buildings": [
-          { "code": "E8", "name": "대학본부", "aliases": ["본관"], "college": "본부" }
+          { "code": "E4", "name": "시스템관/국원문화관", "aliases": ["시스템관", "국원문화관"], "college": "공용시설" },
+          { "code": "E5", "name": "테크노관", "aliases": [], "college": "공과대학" },
+          { "code": "E6", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "E7", "name": "경영항공관", "aliases": [], "college": "경영·항공" },
+          { "code": "E8", "name": "대학본부", "aliases": ["본관"], "college": "본부" },
+          { "code": "E8-1", "name": "대학본부 별관", "aliases": ["본부 별관"], "college": "본부" },
+          { "code": "E12", "name": "건축관", "aliases": [], "college": "건축학" },
+          { "code": "E13", "name": "건설환경관", "aliases": [], "college": "건설환경" },
+          { "code": "E14", "name": "인문사회관", "aliases": [], "college": "인문사회" },
+          { "code": "E17", "name": "스마트ICT관", "aliases": [], "college": "ICT" },
+          { "code": "W5", "name": "종합강의관", "aliases": [], "college": "공용강의동" },
+          { "code": "W6", "name": "휴스퀘어관", "aliases": [], "college": "공용시설" },
+          { "code": "W7", "name": "화학생명관", "aliases": [], "college": "화학생명" },
+          { "code": "W16", "name": "IT관", "aliases": [], "college": "IT" },
+          { "code": "W18", "name": "미래융합정보관", "aliases": ["중앙정보관"], "college": "미래융합" },
+          { "code": "W20", "name": "중앙도서관/교육관", "aliases": ["중앙도서관", "교육관"], "college": "도서관·교육" }
         ]
       }]
     },
