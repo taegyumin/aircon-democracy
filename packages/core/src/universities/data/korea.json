@@ -436,7 +436,12 @@
           { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
           { "code": "벤처교육관", "name": "벤처교육관", "aliases": [], "college": "공용시설" },
           { "code": "음악관", "name": "음악관", "aliases": [], "college": "음악·예술" },
-          { "code": "복지교육관", "name": "복지교육관", "aliases": [], "college": "공용시설" }
+          { "code": "복지교육관", "name": "복지교육관", "aliases": [], "college": "공용시설" },
+          { "code": "복지회관", "name": "복지회관", "aliases": [], "college": "학생복지" },
+          { "code": "종합정보관", "name": "종합정보관", "aliases": ["도서관"], "college": "도서관·공용시설" },
+          { "code": "1호관", "name": "1호관", "aliases": [], "college": "공용강의동" },
+          { "code": "2호관", "name": "2호관", "aliases": [], "college": "공용강의동" },
+          { "code": "3호관", "name": "3호관", "aliases": [], "college": "공용강의동" }
         ]
       }]
     },
