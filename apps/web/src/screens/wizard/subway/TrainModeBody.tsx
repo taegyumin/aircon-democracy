@@ -417,9 +417,9 @@ function StationRowWithSwap({
 
   return (
     <div style={{ marginBottom: 16 }}>
-      {/* alignItems: center — chip이 64px 고정 height이라 화살표가 vertical center
-          맞춰져야 시각 대칭. 이전엔 paddingTop hack으로 어긋남 (사용자 보고 2026-05-27). */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {/* flex-start + 화살표 자체 64px height — 두 input top align 유지 (suggestion list
+          펼침이 다른 input 위치에 영향 X). 화살표는 input 자체 height 가운데. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <StationAutocomplete
             label="이전 역"
@@ -429,7 +429,7 @@ function StationRowWithSwap({
             placeholder="이전 역"
           />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, height: 64 }}>
           {bothFilled ? (
             // 두 역 다 입력 시 — 원형 swap 버튼 노출. 클릭 시 ⇄ 180° 회전 + state 교환.
             <button
