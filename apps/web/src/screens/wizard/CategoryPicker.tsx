@@ -1,6 +1,6 @@
 'use client';
 
-// 카테고리 그리드 — WizardLanding과 HomeScreen이 공유.
+// 카테고리 그리드 — HomeScreen에서 사용. /wizard?cat=... 라우팅으로 dispatch.
 // Place Select Redesign + Home Redesign v2: 지하철 primary row, 버스/기차 split,
 // 머무르는 곳 split (강의실 / 카페·음식점), 다른 장소 찾기 footer row.
 
