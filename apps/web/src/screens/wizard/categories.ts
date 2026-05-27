@@ -33,6 +33,7 @@ export const CATEGORIES: CategoryDef[] = [
   { key: 'train',     Icon: TrainFront,    tint: '#DC2626', label: '기차',       sub: 'KTX·SRT 등',             group: 'move', rank: 'muted' },
   { key: 'classroom', Icon: GraduationCap, tint: '#7C3AED', label: '강의실',     sub: '학교·대학교',             group: 'stay', rank: 'secondary' },
   { key: 'other',     Icon: MapPin,        tint: '#F97316', label: '카페·음식점', sub: '카페·식당',              group: 'stay', rank: 'secondary' },
-  // 직접 등록 — 빌딩/매장/회의실 등 내부 공간. 로그인 후 link/QR로만 공유.
-  { key: 'custom',    Icon: PencilLine,    tint: '#475569', label: '직접 등록',   sub: '사무실·매장·회의실 등',  group: 'stay', rank: 'secondary' },
+  // 다른 장소 찾기 — 사무실·회의실 등 검색하거나 직접 등록. WizardLanding에서 stay grid
+  // 와 분리된 footer row로 노출 (Place Select Redesign v2).
+  { key: 'custom',    Icon: PencilLine,    tint: '#475569', label: '다른 장소 찾기', sub: '사무실·회의실 등 — 검색하거나 직접 등록',  group: 'stay', rank: 'secondary' },
 ];

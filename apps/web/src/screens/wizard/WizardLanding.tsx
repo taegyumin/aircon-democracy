@@ -121,7 +121,9 @@ function SecondaryTile({ c, onPick, muted }: { c: CategoryDef; onPick: () => voi
 
 export function WizardLanding({ onPickCategory, onBack }: Props) {
   const moveCats = CATEGORIES.filter((c) => c.group === 'move');
-  const stayCats = CATEGORIES.filter((c) => c.group === 'stay');
+  // 'custom'은 별도 footer row로 분리 (Place Select Redesign v2). stay grid에서 제외.
+  const stayCats = CATEGORIES.filter((c) => c.group === 'stay' && c.key !== 'custom');
+  const customCat = CATEGORIES.find((c) => c.key === 'custom');
   const primaryMove = moveCats.find((c) => c.rank === 'primary');
   const secondaryMove = moveCats.filter((c) => c.rank !== 'primary');
 
@@ -149,7 +151,7 @@ export function WizardLanding({ onPickCategory, onBack }: Props) {
           )}
         </div>
 
-        {/* 머무르는 곳 — 강의실 / 카페·음식점 / 사무실 3 동등 */}
+        {/* 머무르는 곳 — 강의실 / 카페·음식점 (사무실 제거, custom은 아래 footer row). */}
         <div>
           <SectionLabel>머무르는 곳</SectionLabel>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -162,7 +164,60 @@ export function WizardLanding({ onPickCategory, onBack }: Props) {
             ))}
           </div>
         </div>
+
+        {/* 다른 장소 찾기 — full-width footer row (custom 라우팅).
+            사무실·회의실 등 기존 카테고리에 안 맞는 공간은 직접 등록. */}
+        {customCat && (
+          <FindOtherRow c={customCat} onPick={() => onPickCategory(customCat.key)} />
+        )}
       </div>
     </div>
+  );
+}
+
+// ── FindOtherRow — 머무르는 곳 grid 아래 별도 full-width 검색-style row.
+//
+// Place Select Redesign v2: stay grid에서 사무실 chip 빼고, 대신 "다른 장소 찾기"
+// 한 줄로 통합. 검색 아이콘 + 사무실·회의실 등 안내 + 화살표.
+function FindOtherRow({ c, onPick }: { c: CategoryDef; onPick: () => void }) {
+  return (
+    <button
+      onClick={onPick}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+        background: TOKEN.surface, borderRadius: 16, padding: '14px 16px',
+        border: `1px solid ${TOKEN.border}`,
+        boxShadow: '0 1px 5px rgba(0,0,0,0.05)',
+        cursor: 'pointer', fontFamily: FONT, textAlign: 'left',
+      }}
+    >
+      <div
+        style={{
+          width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+          background: TOKEN.bg,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <SearchIcon size={18} color={TOKEN.text2} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.2px', marginBottom: 2 }}>
+          다른 장소 찾기
+        </div>
+        <div style={{ fontSize: 11, color: TOKEN.text3, lineHeight: 1.4 }}>
+          {c.sub}
+        </div>
+      </div>
+      <ArrowRight color={TOKEN.text3} />
+    </button>
+  );
+}
+
+function SearchIcon({ size = 18, color = '#6B6B7A' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="11" cy="11" r="8" stroke={color} strokeWidth="2" />
+      <path d="M21 21l-4.35-4.35" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }
