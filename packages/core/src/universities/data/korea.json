@@ -857,12 +857,29 @@
     {
       "id": "postech", "name": "포항공과대학교", "shortName": "POSTECH",
       "aliases": ["POSTECH", "포스텍", "포항공대"], "badge": "포항", "placeIdPrefix": "postech",
-      "sources": ["https://www.postech.ac.kr/kor/university-introduction/campus_map.do", "https://namu.wiki/w/%ED%8F%AC%ED%95%AD%EA%B3%B5%EA%B3%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.postech.ac.kr/eng/about/campus_map.do", "https://ir.postech.ac.kr/ir/about/visit.do", "https://cgp.ibs.re.kr/files/general/POSTECH%20Campus%20Map_20140801.pdf", "https://namu.wiki/w/%ED%8F%AC%ED%95%AD%EA%B3%B5%EA%B3%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "main", "name": "포항캠퍼스", "district": "경북 포항 POSTECH",
         "buildings": [
-          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
-          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "M-01", "name": "대학본관", "aliases": ["본관", "Administration Bld"], "college": "본부" },
+          { "code": "M-02", "name": "과학관 1", "aliases": ["Science Bld I"], "college": "기초과학" },
+          { "code": "M-03", "name": "무은재기념관", "aliases": ["Hogil Kim Memorial Hall"], "college": "무은재학부" },
+          { "code": "M-04", "name": "과학관 2", "aliases": ["Science Bld II"], "college": "기초과학" },
+          { "code": "M-05", "name": "과학관 4", "aliases": ["Science Bld IV"], "college": "기초과학" },
+          { "code": "M-06", "name": "학생회관", "aliases": ["Student Union Bld"], "college": "학생복지" },
+          { "code": "M-07", "name": "과학관 5", "aliases": ["Science Bld V"], "college": "기초과학" },
+          { "code": "M-08", "name": "과학관 3", "aliases": ["Science Bld III"], "college": "기초과학" },
+          { "code": "M-09", "name": "대강당", "aliases": ["Auditorium"], "college": "공용시설" },
+          { "code": "M-10", "name": "수리과학관", "aliases": ["Mathematical Science Bld"], "college": "수학" },
+          { "code": "M-11", "name": "인공지능연구원", "aliases": ["Institute of Artificial Intelligence"], "college": "AI" },
+          { "code": "M-12", "name": "LG연구동", "aliases": ["LG Cooperative Electronics Engineering Bld"], "college": "전자전기공학" },
+          { "code": "M-13", "name": "환경공학동", "aliases": ["Environmental Science and Engineering Bld"], "college": "환경공학" },
+          { "code": "M-15", "name": "POSCO국제관", "aliases": ["POSCO International Center"], "college": "국제교류" },
+          { "code": "S-01", "name": "박태준학술정보관", "aliases": ["Tae-Joon Park Digital Library"], "college": "도서관" },
+          { "code": "S-02", "name": "C5", "aliases": ["IT융합공학과"], "college": "융합연구" },
+          { "code": "S-03", "name": "지곡연구동", "aliases": ["Jigok Research Bld"], "college": "연구" },
+          { "code": "S-04", "name": "생명공학연구센터", "aliases": ["POSTECH Biotech Center"], "college": "생명공학" },
+          { "code": "E-01", "name": "포항가속기연구소", "aliases": ["Pohang Accelerator Laboratory"], "college": "연구시설" },
           { "code": "78계단", "name": "78계단", "aliases": ["랜드마크"], "college": "공용·명소" }
         ]
       }]
