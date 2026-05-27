@@ -26,19 +26,42 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1B53E5"
       },
-      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-router",
       [
         "expo-camera",
-        { "cameraPermission": "QR 코드를 스캔하기 위해 카메라를 사용합니다." }
+        {
+          "cameraPermission": "QR 코드를 스캔하기 위해 카메라를 사용합니다."
+        }
       ],
       [
         "expo-location",
-        { "locationAlwaysAndWhenInUsePermission": "근처 지하철역을 추천하기 위해 사용합니다." }
+        {
+          "locationAlwaysAndWhenInUsePermission": "근처 지하철역을 추천하기 위해 사용합니다."
+        }
       ]
     ],
-    "experiments": { "typedRoutes": true }
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "5a57a567-de79-4c3a-bbac-8f5e69e97039"
+      }
+    },
+    "owner": "taegyumin"
   }
 }

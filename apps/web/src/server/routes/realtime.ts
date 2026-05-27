@@ -3,7 +3,7 @@
 
 import { Hono } from 'hono';
 import { expectedUpdnLine, LINE_SEQUENCES, stripStation } from '@aircon/core/subwayDirection';
-import { estimateProgress, isSubwayServiceClosed } from '@aircon/core';
+import { estimateProgress } from '@aircon/core';
 import {
   SubwayMatchBodySchema, BusMatchBodySchema,
   BusRouteSearchQuerySchema, BusRouteStationsQuerySchema, BusRegionByCoordsQuerySchema,
@@ -81,11 +81,24 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
     const url = `http://swopenAPI.seoul.go.kr/api/subway/${encodeURIComponent(key)}/json/realtimePosition/0/200/${encodeURIComponent(body.line)}`;
     const res = await timedFetch(url);
     if (!res.ok) throw new Error(`upstream_${res.status}`);
-    const data = (await res.json()) as { realtimePositionList?: Array<{ subwayId: string; statnNm: string; trainSttus: string; updnLine: string; trainNo: string; statnTnm?: string }> };
+    const data = (await res.json()) as {
+      errorMessage?: { code?: string };
+      status?: number;
+      code?: string;
+      realtimePositionList?: Array<{ subwayId: string; statnNm: string; trainSttus: string; updnLine: string; trainNo: string; statnTnm?: string }>;
+    };
+    // swopenAPI는 응답 envelope에 code를 errorMessage.code (일반 응답) 또는 root code
+    // (status=500 + INFO-200 같은 special 응답) 둘 다로 줌. 양쪽 다 체크.
+    const apiCode = data.errorMessage?.code ?? data.code;
     const allRows = data.realtimePositionList ?? [];
-    // 전체 차량 0 + KST 01:00~05:00 = 운행 종료 시간대. 사용자에게 명확히 알림.
-    // 운행 시간대인데 0건이면 헤드웨이 사이 일시 차량 없음 (기존 'no_train_at_segment').
-    if (allRows.length === 0 && isSubwayServiceClosed()) {
+    // INFO-200 "해당하는 데이터가 없습니다" — swopenAPI가 이 노선 데이터 자체를 안 가짐
+    // (김포골드라인/의정부경전철/용인경전철 등). 운행 시간 무관.
+    if (apiCode === 'INFO-200') {
+      return c.json({ matched: false, reason: 'realtime_unsupported' });
+    }
+    // INFO-000 + 0건 = 운행 종료. 서울 도시철도 헤드웨이 5~8분이라 운행 시간대엔 항상
+    // 노선당 최소 10대+ 운행 (2호선 한 바퀴 100분 / 5분 = 20대 등). 0대는 사실상 운행 외.
+    if (apiCode === 'INFO-000' && allRows.length === 0) {
       return c.json({ matched: false, reason: 'service_closed' });
     }
     let rows = allRows;

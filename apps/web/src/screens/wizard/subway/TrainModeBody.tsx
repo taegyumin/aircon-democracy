@@ -507,6 +507,7 @@ function LineCard({
   // realtime 매칭 시도했는데 실패 (1~9호선이고 응답 받았지만 그 시점에 차량 없음).
   const realtimeFailed = !!trainMatch && !confirmed && !matchLoading;
   const serviceClosed = trainMatch?.reason === 'service_closed';
+  const realtimeUnsupported = trainMatch?.reason === 'realtime_unsupported';
   const trainNo = trainMatch?.trainNo;
   const destination = trainMatch?.destination;
   const lineNum = line.replace(/호선|선/g, '').trim() || '?';
@@ -517,9 +518,11 @@ function LineCard({
       ? '열차 확인됨'
       : serviceClosed
         ? '운행 시간이 아니에요'
-        : realtimeFailed
-          ? '지금 운행 중인 열차를 찾지 못했어요'
-          : '노선 매칭됨';
+        : realtimeUnsupported
+          ? '이 노선은 실시간 정보 없음'
+          : realtimeFailed
+            ? '지금 운행 중인 열차를 찾지 못했어요'
+            : '노선 매칭됨';
   const labelColor = confirmed ? TOKEN.ok : realtimeFailed ? AMBER : color;
 
   return (
@@ -611,8 +614,10 @@ function LineCard({
             <div style={{ marginTop: 14 }}>
               <div style={{ fontSize: 11, color: AMBER_TEXT, lineHeight: 1.5, marginBottom: 12 }}>
                 {serviceClosed
-                  ? '지금 도시철도 운행 시간이 아니에요 (보통 새벽 1시 ~ 5시). 그래도 구간 단위로 투표할 수 있어요.'
-                  : '혹시 역 이름·순서가 잘못됐을 수도 있어요. 다시 확인하거나 그대로 구간 단위로 투표하세요.'}
+                  ? '지금 이 노선에 운행 중인 차량이 없어요. 운행 시간이 아닐 가능성이 커요. 그래도 구간 단위로 투표할 수 있어요.'
+                  : realtimeUnsupported
+                    ? '이 노선은 실시간 차량 정보를 제공하지 않아요 (김포골드라인 등). 그래도 구간 단위로 투표할 수 있어요.'
+                    : '혹시 역 이름·순서가 잘못됐을 수도 있어요. 다시 확인하거나 그대로 구간 단위로 투표하세요.'}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
