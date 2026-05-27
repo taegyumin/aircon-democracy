@@ -1,28 +1,32 @@
-// Mobile VoteScreen — 3개 vote 버튼 + 결과 표시 + anchoring A 가드.
-// 가장 핵심 화면. 진입 후 30초 안에 투표 가능해야 함.
+// Mobile VoteScreen — 추워요/적당해요/더워요 + 결과 + 즐겨찾기 + 최근 방문 기록.
+// Anchoring A: counts는 vote 후에만 표시.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import * as React from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { TOKEN, VOTE_CONFIG, type VoteType, type PlaceDetail } from '@aircon/core';
-import { API_BASE } from '../../src/lib/apiClient';
+import { api } from '../../src/lib/apiClient';
+import { recordVote } from '../../src/lib/recentPlaces';
+import { isFavorite, toggleFavorite } from '../../src/lib/favorites';
+import { useUser } from '../../src/lib/useUser';
 
 const POLL_MS = 5000;
 
 export default function VoteScreen() {
   const params = useLocalSearchParams<{ placeId: string }>();
   const placeId = decodeURIComponent(params.placeId ?? '');
-  const [detail, setDetail] = useState<PlaceDetail | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { user } = useUser();
+  const [detail, setDetail] = React.useState<PlaceDetail | null>(null);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [faved, setFaved] = React.useState(false);
+  const pollRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const load = useCallback(async () => {
+  const load = React.useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/places/${encodeURIComponent(placeId)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const body = (await res.json()) as PlaceDetail;
+      const body = await api.getPlace(placeId);
       setDetail(body);
       setLoadError(null);
     } catch (e) {
@@ -30,20 +34,25 @@ export default function VoteScreen() {
     }
   }, [placeId]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     load();
     pollRef.current = setInterval(load, POLL_MS);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [load]);
 
+  React.useEffect(() => { isFavorite(placeId).then(setFaved); }, [placeId]);
+
   const handleVote = async (vote: VoteType) => {
     if (!detail || submitting) return;
     setSubmitting(true);
     try {
-      await fetch(`${API_BASE}/api/places/${encodeURIComponent(placeId)}/vote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action', Origin: API_BASE },
-        body: JSON.stringify({ vote }),
+      await api.vote(placeId, vote);
+      // 최근 방문 기록 (anonymous, AsyncStorage)
+      await recordVote({
+        id: detail.place.id,
+        name: detail.place.name,
+        type: detail.place.type,
+        district: detail.place.district,
       });
       await load();
     } catch (e) {
@@ -51,6 +60,17 @@ export default function VoteScreen() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleToggleFav = async () => {
+    if (!detail || !user) return;
+    const next = await toggleFavorite({
+      id: detail.place.id,
+      name: detail.place.name,
+      type: detail.place.type,
+      district: detail.place.district,
+    });
+    setFaved(next);
   };
 
   if (!detail && !loadError) {
@@ -76,7 +96,31 @@ export default function VoteScreen() {
   const hasVoted = !!detail.me;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* 상단 — 뒤로 + 즐겨찾기 */}
+      <View style={styles.topBar}>
+        <Pressable onPress={() => router.push('/')} hitSlop={8}>
+          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+            <Path d="M15 18l-6-6 6-6" stroke={TOKEN.text1} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+        </Pressable>
+        <View style={{ flex: 1 }} />
+        <Pressable
+          onPress={user ? handleToggleFav : () => router.push('/login')}
+          hitSlop={8}
+          accessibilityLabel={!user ? '로그인 후 즐겨찾기' : faved ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+        >
+          <Svg width={22} height={22} viewBox="0 0 24 24" fill={user && faved ? '#F59E0B' : 'none'}>
+            <Path
+              d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+              stroke={user && faved ? '#F59E0B' : TOKEN.text3}
+              strokeWidth={2}
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </Pressable>
+      </View>
+
       <View style={styles.body}>
         <View style={styles.placeBox}>
           <Text style={styles.placeName}>{detail.place.name}</Text>
@@ -94,7 +138,11 @@ export default function VoteScreen() {
                 key={t}
                 onPress={() => handleVote(t)}
                 disabled={submitting}
-                style={[styles.voteBtn, { backgroundColor: cfg.bg, borderColor: cfg.color }, active && { borderWidth: 3 }]}
+                style={[
+                  styles.voteBtn,
+                  { backgroundColor: cfg.bg, borderColor: cfg.color },
+                  active && { borderWidth: 3 },
+                ]}
               >
                 <Text style={[styles.voteText, { color: cfg.color }]}>{cfg.label}</Text>
               </Pressable>
@@ -126,8 +174,6 @@ export default function VoteScreen() {
             </View>
           </View>
         )}
-
-        <Pressable onPress={() => router.push('/')} style={styles.home}><Text style={styles.homeText}>← 홈으로</Text></Pressable>
       </View>
     </SafeAreaView>
   );
@@ -135,6 +181,15 @@ export default function VoteScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKEN.bg },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: TOKEN.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: TOKEN.border,
+  },
   body: { flex: 1, padding: 20 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
   errText: { color: TOKEN.hot, fontSize: 14, marginBottom: 16 },
@@ -156,6 +211,4 @@ const styles = StyleSheet.create({
   barPct: { fontSize: 12, color: TOKEN.text3, fontVariant: ['tabular-nums'] },
   barTrack: { height: 6, backgroundColor: TOKEN.bg, borderRadius: 3, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 3 },
-  home: { marginTop: 'auto', padding: 12, alignItems: 'center' },
-  homeText: { fontSize: 13, color: TOKEN.text2 },
 });
