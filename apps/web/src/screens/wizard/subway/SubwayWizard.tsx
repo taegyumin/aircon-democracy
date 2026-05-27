@@ -66,6 +66,23 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
     setPickedCandidate(null);
   }, [resolvedSegment?.line, resolvedSegment?.prev, resolvedSegment?.next]);
 
+  // dev/prod에서 picker UI 즉시 테스트용. URL ?mock=multi-candidate 일 때 backend 응답을
+  // override. 실제 timing 없이 picker 보기 위함. mock 데이터는 fake placeId라 vote는 안 됨.
+  const mockTrainMatch = useMemo((): SubwayMatchResult | null => {
+    if (typeof window === 'undefined') return null;
+    const mock = new URLSearchParams(window.location.search).get('mock');
+    if (mock !== 'multi-candidate' || !resolvedSegment) return null;
+    return {
+      matched: false,
+      reason: 'multi_candidate',
+      candidates: [
+        { trainNo: '2449', currentStation: resolvedSegment.prev, trainSttus: '2', direction: 'down', destination: '성수' },
+        { trainNo: '2451', currentStation: resolvedSegment.next, trainSttus: '0', direction: 'down', destination: '성수' },
+        { trainNo: '2453', currentStation: resolvedSegment.prev, trainSttus: '1', direction: 'down', destination: '성수' },
+      ],
+    };
+  }, [resolvedSegment]);
+
   const trainMatch: SubwayMatchResult | null = pickedCandidate
     ? {
         matched: true,
@@ -74,7 +91,7 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
         currentStation: pickedCandidate.currentStation,
         destination: pickedCandidate.destination,
       }
-    : rawTrainMatch;
+    : (mockTrainMatch ?? rawTrainMatch);
 
   const submitTrain = async () => {
     if (!resolvedSegment || car === null || submitting) return;
