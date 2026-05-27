@@ -261,14 +261,29 @@
       "id": "kaist", "name": "한국과학기술원", "shortName": "KAIST",
       "aliases": ["KAIST", "카이스트", "대전", "한국과학기술원"], "badge": "대전 본원", "placeIdPrefix": "kaist-daejeon",
       "notes": "동/서/북 방위 + 번호 (E14 본관 등)",
-      "sources": ["https://www.kaist.ac.kr/kr/html/kaist/01140301.html", "https://namu.wiki/w/%ED%95%9C%EA%B5%AD%EA%B3%BC%ED%95%99%EA%B8%B0%EC%88%A0%EC%9B%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.kaist.ac.kr/Upload/map/Campus_Map_2023.pdf", "https://student.kaist.ac.kr/wiki/ATM", "https://librewiki.net/wiki/%EC%B9%B4%EC%9D%B4%EC%8A%A4%ED%8A%B8", "https://namu.wiki/w/%ED%95%9C%EA%B5%AD%EA%B3%BC%ED%95%99%EA%B8%B0%EC%88%A0%EC%9B%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "daejeon", "name": "대전 본원", "district": "대전 유성구 KAIST",
         "buildings": [
+          { "code": "E2", "name": "산업경영학동", "aliases": [], "college": "산업및시스템공학" },
+          { "code": "E3", "name": "정보전자공학동", "aliases": [], "college": "전산·전기전자" },
+          { "code": "E4", "name": "KI빌딩", "aliases": ["KAIST Institutes B/D"], "college": "연구" },
+          { "code": "E6", "name": "자연과학동", "aliases": [], "college": "자연과학" },
+          { "code": "E9", "name": "학술문화관", "aliases": ["도서관", "Academic Cultural Complex"], "college": "도서관" },
+          { "code": "E11", "name": "창의학습관", "aliases": [], "college": "공용강의동" },
           { "code": "E14", "name": "본관", "aliases": [], "college": "본부" },
-          { "code": "N1", "name": "IT융합 빌딩", "aliases": [], "college": "전산학·IT" },
+          { "code": "E15", "name": "대강당", "aliases": [], "college": "공용시설" },
+          { "code": "E16", "name": "정문술빌딩", "aliases": ["ChungMoonSoul B/D"], "college": "바이오및뇌공학" },
+          { "code": "E21", "name": "카이스트 클리닉", "aliases": ["약국"], "college": "보건" },
+          { "code": "N1", "name": "김병호·김삼열 IT융합 빌딩", "aliases": ["IT융합 빌딩"], "college": "전산학·IT" },
+          { "code": "N3", "name": "스포츠 컴플렉스", "aliases": [], "college": "체육" },
+          { "code": "N7", "name": "기계공학동", "aliases": [], "college": "기계공학" },
+          { "code": "N13", "name": "태울관", "aliases": ["장영신 학생회관"], "college": "학생복지" },
+          { "code": "N24", "name": "LG이노베이션홀", "aliases": [], "college": "연구·강의" },
           { "code": "W1", "name": "응용공학동", "aliases": ["신소재·건설환경·생명화학공학"], "college": "공과대학" },
-          { "code": "학술문화관", "name": "학술문화관(도서관)", "aliases": ["2018 개관"], "college": "도서관" }
+          { "code": "W2", "name": "학생회관-1", "aliases": ["인터내셔널센터"], "college": "학생복지" },
+          { "code": "W8", "name": "교육지원동", "aliases": ["중앙분석센터", "카이헬프"], "college": "교육지원" },
+          { "code": "W13", "name": "메타융합관", "aliases": [], "college": "융합연구" }
         ]
       }]
     },
