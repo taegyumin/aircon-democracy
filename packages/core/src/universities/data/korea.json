@@ -1002,13 +1002,19 @@
     {
       "id": "jj", "name": "전주대학교", "shortName": "전주대",
       "aliases": ["Jeonju Univ", "JJ", "전주"], "badge": "전주", "placeIdPrefix": "jj",
-      "sources": ["https://www.jj.ac.kr/jj/introduction/office/general.jsp", "https://namu.wiki/w/%EC%A0%84%EC%A3%BC%EB%8C%80%ED%95%99%EA%B5%90"],
+      "sources": ["https://jj.ac.kr/jj/introduction/facility.do", "https://jj.ac.kr/jj/campuslife/dormitory-join.do", "https://footballk.net/mediawiki/%EC%A0%84%EC%A3%BC%EB%8C%80%ED%95%99%EA%B5%90", "https://namu.wiki/w/%EC%A0%84%EC%A3%BC%EB%8C%80%ED%95%99%EA%B5%90"],
       "campuses": [{
         "id": "main", "name": "전주캠퍼스", "district": "전북 전주 전주대학교",
         "buildings": [
           { "code": "본관", "name": "대학 본관", "aliases": [], "college": "본부" },
           { "code": "스타센터", "name": "스타센터", "aliases": [], "college": "공용시설" },
-          { "code": "스타타워", "name": "스타타워", "aliases": [], "college": "공용시설" }
+          { "code": "스타타워", "name": "스타타워", "aliases": [], "college": "학생생활관" },
+          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
+          { "code": "진리관", "name": "진리관", "aliases": [], "college": "공용강의동" },
+          { "code": "예술관", "name": "예술관", "aliases": [], "college": "예술" },
+          { "code": "스타홈", "name": "스타홈", "aliases": [], "college": "학생생활관" },
+          { "code": "스타빌", "name": "스타빌", "aliases": [], "college": "학생생활관" },
+          { "code": "스타누리", "name": "스타누리", "aliases": [], "college": "학생생활관" }
         ]
       }]
     },
