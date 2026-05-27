@@ -7,6 +7,7 @@
 //   3. 칸 선택은 horizontal train silhouette + "칸 모름" 자연스러운 row option.
 //   4. CTA 카피는 상태별 ("역 이름을 입력해주세요" / "5번 칸으로 투표하기" 등).
 
+import { useState } from 'react';
 import {
   TOKEN, FONT, lineColor, carCountFor, stationDisplay, type Station,
 } from '@aircon/core';
@@ -62,34 +63,16 @@ export function TrainModeBody(p: TrainModeBodyProps) {
       {/* 상태별 헤드라인 */}
       <Headline state={bothFilled ? (segReady ? 'matched' : noMatch ? 'no-match' : 'matching') : 'empty'} />
 
-      {/* 두 station chip 가로 배치 */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <StationAutocomplete
-            label="이전 역"
-            query={p.prevQuery}
-            setQuery={p.setPrevQuery}
-            station={p.prevStation}
-            setStation={p.setPrevStation}
-            suggestions={p.prevSuggestions}
-            placeholder="이전 역"
-          />{/* placeholder는 input hint — label과 같아도 한 번만 노출 */}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingTop: 32 }}>
-          <ArrowRight color={bothFilled ? TOKEN.text1 : TOKEN.text3} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <StationAutocomplete
-            label="다음 역"
-            query={p.nextQuery}
-            setQuery={p.setNextQuery}
-            station={p.nextStation}
-            setStation={p.setNextStation}
-            suggestions={p.nextSuggestions}
-            placeholder="다음 역"
-          />
-        </div>
-      </div>
+      {/* 두 station chip 가로 배치 + 가운데 원형 swap 버튼 (Claude Design v3 시안 A 채택).
+          ArrowRight(정적 →)는 swap이 안 보였음 — 원형 ⇄ 버튼으로 swap 발견성 강화. */}
+      <StationRowWithSwap
+        prevQuery={p.prevQuery} setPrevQuery={p.setPrevQuery}
+        prevStation={p.prevStation} setPrevStation={p.setPrevStation}
+        prevSuggestions={p.prevSuggestions}
+        nextQuery={p.nextQuery} setNextQuery={p.setNextQuery}
+        nextStation={p.nextStation} setNextStation={p.setNextStation}
+        nextSuggestions={p.nextSuggestions}
+      />
 
       {/* 인접역 chip은 제거 — 한쪽 입력 시 SubwayWizard suggestions가 인접역으로 채워지고,
           반대편 input의 list 자리에 그대로 표시됨 (검색창에 텍스트 입력 시 전체 검색으로 교체). */}
@@ -394,6 +377,130 @@ function LinePickerCard({
 }
 
 // CandidateChips 제거 — suggestions list 자리에 통합 (2026-05-27).
+
+// ── StationRowWithSwap — 두 station chip + 가운데 원형 swap (Claude Design v3 시안 A) ─
+//
+// 디자인 의도:
+//   - 정적 ArrowRight(→)는 swap 발견성 0. 사용자가 prev/next 순서 잘못 입력해도
+//     교환 방법을 못 찾아 "다시 입력" 흐름으로 빠짐.
+//   - 원형 ⇄ 버튼 (44px tap target) — 두 칩 다 채워졌을 때 활성. 클릭 시 180° 회전
+//     애니메이션 + state swap. 처음에는 hint chip, 그 후엔 "N번 바꿨어요" helper.
+//   - swap 카운트가 1+ 되면 사용자 친화 helper로 hint 대체.
+
+function StationRowWithSwap({
+  prevQuery, setPrevQuery, prevStation, setPrevStation, prevSuggestions,
+  nextQuery, setNextQuery, nextStation, setNextStation, nextSuggestions,
+}: {
+  prevQuery: string; setPrevQuery: (v: string) => void;
+  prevStation: Station | null; setPrevStation: (v: Station | null) => void;
+  prevSuggestions: Station[];
+  nextQuery: string; setNextQuery: (v: string) => void;
+  nextStation: Station | null; setNextStation: (v: Station | null) => void;
+  nextSuggestions: Station[];
+}) {
+  const [swapCount, setSwapCount] = useState(0);
+  const [angle, setAngle] = useState(0);
+  const [swapping, setSwapping] = useState(false);
+  const bothFilled = !!prevStation && !!nextStation;
+  const canSwap = bothFilled && !swapping;
+
+  const handleSwap = () => {
+    if (!canSwap) return;
+    setSwapping(true);
+    setAngle((a) => a + 180);
+    // 짧은 회전 동안 두 station 교환 (UI 깜빡임 자연스럽게).
+    setTimeout(() => {
+      const a = prevStation; const b = nextStation;
+      setPrevStation(b); setNextStation(a);
+      setSwapCount((c) => c + 1);
+    }, 200);
+    setTimeout(() => setSwapping(false), 500);
+  };
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <StationAutocomplete
+            label="이전 역"
+            query={prevQuery} setQuery={setPrevQuery}
+            station={prevStation} setStation={setPrevStation}
+            suggestions={prevSuggestions}
+            placeholder="이전 역"
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, paddingTop: 20 }}>
+          <button
+            onClick={handleSwap}
+            disabled={!canSwap}
+            aria-label="이전 역과 다음 역 순서 바꾸기"
+            style={{
+              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+              background: canSwap ? TOKEN.surface : TOKEN.bg,
+              border: `1.5px solid ${canSwap ? '#BFC8D6' : TOKEN.border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: canSwap ? 'pointer' : 'default',
+              boxShadow: canSwap ? '0 2px 8px rgba(0,0,0,0.10)' : 'none',
+              transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
+              padding: 0, fontFamily: FONT,
+            }}
+          >
+            <SwapIcon
+              size={18}
+              color={canSwap ? TOKEN.text1 : TOKEN.text3}
+              angle={angle}
+            />
+          </button>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <StationAutocomplete
+            label="다음 역"
+            query={nextQuery} setQuery={setNextQuery}
+            station={nextStation} setStation={setNextStation}
+            suggestions={nextSuggestions}
+            placeholder="다음 역"
+          />
+        </div>
+      </div>
+
+      {/* hint / counter — 두 칩 다 채워졌을 때만 */}
+      {bothFilled && swapCount === 0 && (
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+            padding: '7px 12px', background: TOKEN.coldBg, borderRadius: 999,
+            width: 'fit-content', margin: '9px auto 0',
+          }}
+        >
+          <span style={{ fontSize: 11, color: TOKEN.cold, fontWeight: 700 }}>
+            가운데 버튼으로 순서를 바꿀 수 있어요
+          </span>
+        </div>
+      )}
+      {bothFilled && swapCount > 0 && (
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          <span style={{ fontSize: 11, color: TOKEN.text3 }}>
+            {swapCount}번 바꿨어요 · {prevStation?.name} → {nextStation?.name} 방향
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SwapIcon({ size = 18, color = '#1A1A1F', angle = 0 }: { size?: number; color?: string; angle?: number }) {
+  return (
+    <svg
+      width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden
+      style={{ transform: `rotate(${angle}deg)`, transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+    >
+      {/* 위 화살표: 오른쪽 → */}
+      <path d="M4 8h14M14 4l4 4-4 4" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {/* 아래 화살표: 왼쪽 ← */}
+      <path d="M20 16H6M10 12l-4 4 4 4" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 // ── LineCard — 매칭 결과 + 열차 카드 통합 ──────────────────────────
 
