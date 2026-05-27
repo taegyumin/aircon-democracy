@@ -123,14 +123,18 @@
     {
       "id": "dankook-cheonan", "name": "단국대학교 천안캠퍼스", "shortName": "단국대 천안",
       "aliases": ["Dankook Cheonan", "단국 천안"], "badge": "천안", "placeIdPrefix": "dankook-cheonan",
-      "sources": ["https://www.dankook.ac.kr/en/-67", "https://namu.wiki/w/%EB%8B%A8%EA%B5%AD%EB%8C%80%ED%95%99%EA%B5%90/%EC%B2%9C%EC%95%88%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.dankook.ac.kr/en/-67", "https://4dmaker.dankook.ac.kr/en/-526", "https://www.k-wiki.kr/wiki/%EB%8B%A8%EA%B5%AD%EB%8C%80", "https://tcatmon.com/wiki/%EB%8B%A8%EA%B5%AD%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "cheonan", "name": "천안캠퍼스", "district": "충남 천안 단국대학교 천안캠퍼스",
         "buildings": [
           { "code": "인문과학관", "name": "인문과학관(외국어대학관)", "aliases": ["본관"], "college": "외국어대학·본부" },
+          { "code": "사회과학관", "name": "사회과학관", "aliases": [], "college": "사회과학대학" },
           { "code": "약학관", "name": "약학관", "aliases": ["2016 준공"], "college": "약학대학" },
           { "code": "보건과학관", "name": "보건과학관", "aliases": ["구 3과학관", "보건간호학관"], "college": "보건과학대학" },
-          { "code": "제2자연과학관", "name": "제2자연과학관", "aliases": ["2016 완공"], "college": "자연과학대학" }
+          { "code": "제2자연과학관", "name": "제2자연과학관", "aliases": ["제2과학관", "2016 완공"], "college": "자연과학대학" },
+          { "code": "의학관", "name": "의학관", "aliases": ["의과대학"], "college": "의과대학" },
+          { "code": "생명자원과학관", "name": "생명자원과학관", "aliases": [], "college": "바이오융합대학" },
+          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" }
         ]
       }]
     },
