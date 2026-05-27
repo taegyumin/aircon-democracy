@@ -3,6 +3,7 @@
 // normalizer' 경계에 쓰는 게 더 효과적.
 
 import { z } from 'zod';
+import { UNIVERSITIES } from './universities';
 
 // Place types — must match VALID_PLACE_TYPES in apps/web/src/server/_abuse.ts.
 // schema-as-truth: 새 type 추가 시 여기만 바꾸면 클라/서버 둘 다 적용.
@@ -57,6 +58,13 @@ export function isFreeTypePrefix(prefix: string): boolean {
   return PLACE_ID_TYPE_FREE_PREFIXES.has(prefix);
 }
 
+// 머지로 들어온 generic universities (112교) — 모두 type='classroom'으로 강제 매핑.
+// snu/yonsei처럼 일일이 ID_PREFIX_TYPE에 넣지 않고 데이터에서 자동 도출.
+const UNIVERSITY_PREFIXES = new Set<string>(UNIVERSITIES.map((u) => u.placeIdPrefix));
+export function isUniversityPrefix(prefix: string): boolean {
+  return UNIVERSITY_PREFIXES.has(prefix);
+}
+
 // Place inputs.
 // 길이 제한은 prod DB의 실제 제약과 일치. 이전에는 Zod가 name 120/detail 240으로
 // 느슨해서 서버가 _abuse.ts에서 40/80으로 다시 거르는 drift가 있었음. Zod가 SOT.
@@ -76,6 +84,7 @@ export const UpsertPlaceBodySchema = PlaceCoreSchema.extend({
   (v) => {
     const prefix = v.id.split(':', 1)[0];
     if (isFreeTypePrefix(prefix)) return true; // user: 는 type 자유.
+    if (isUniversityPrefix(prefix)) return v.type === 'classroom'; // generic 대학 prefix 전부 강의실.
     const expected = ID_PREFIX_TYPE[prefix];
     return expected === v.type;
   },

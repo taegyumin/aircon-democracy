@@ -24,6 +24,7 @@ export {
   PlaceIdSchema,
   ID_PREFIX_TYPE,
   isFreeTypePrefix,
+  isUniversityPrefix,
   CreatePlaceBodySchema,
   UpsertPlaceBodySchema,
   PostVoteBodySchema,
