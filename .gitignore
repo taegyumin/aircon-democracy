@@ -5,6 +5,10 @@ dist-ssr
 *.local
 .vite
 *.tsbuildinfo
+
+# Next.js / Turbo build artifacts (root에서도 발생 — apps/web/.next 외에)
+.next
+.turbo
 .env
 .env.*
 !.env.example
