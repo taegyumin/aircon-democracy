@@ -128,6 +128,7 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
   const [submitting, setSubmitting] = useState(false);
   const [showCorrection, setShowCorrection] = useState(false);
   const [, setFavTick] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
   const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const correctionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -300,6 +301,13 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
             </div>
           </div>
           <button
+            onClick={() => setShareOpen(true)}
+            aria-label="이 장소 공유하기"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', display: 'flex', alignItems: 'center' }}
+          >
+            <ShareIcon size={20} color={TOKEN.text1} />
+          </button>
+          <button
             onClick={() => {
               if (!user) {
                 onLogin();
@@ -325,6 +333,15 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
           </button>
         </div>
       </div>
+
+      {/* ShareSheet bottom sheet — header 공유 아이콘 또는 하단 ShareRow에서 열림. */}
+      {shareOpen && (
+        <ShareSheet
+          placeId={detail.place.id}
+          placeName={detail.place.name}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 80px' }}>
         {arrivedViaQR && (
@@ -427,6 +444,10 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
           </div>
         )}
 
+        {/* 하단 ShareRow — secondary 공유 진입점 (Vote Share Redesign).
+            투표 후 스크롤 다운했을 때 발견. 헤더 ShareIcon은 quick access. */}
+        <ShareRow onOpen={() => setShareOpen(true)} />
+
         <LoginPromptCard onLogin={onLogin} />
 
         <div style={{ textAlign: 'center', marginTop: 18 }}>
@@ -436,5 +457,270 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Share UI 컴포넌트들 (Vote Share Redesign v3 — 2026-05-27) ─────────
+
+function ShareIcon({ size = 20, color = '#1A1A1F' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="16,6 12,2 8,6" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="12" y1="2" x2="12" y2="15" stroke={color} strokeWidth="1.9" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ShareRow({ onOpen }: { onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+        background: TOKEN.surface, border: `1px solid ${TOKEN.border}`,
+        borderRadius: 14, padding: '14px 16px', marginTop: 14,
+        cursor: 'pointer', fontFamily: FONT, textAlign: 'left',
+        boxShadow: '0 1px 5px rgba(0,0,0,0.05)',
+      }}
+    >
+      <div
+        style={{
+          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+          background: TOKEN.coldBg,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <ShareIcon size={18} color={TOKEN.cold} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: TOKEN.text1, marginBottom: 2 }}>
+          이 장소 공유하기
+        </div>
+        <div style={{ fontSize: 11, color: TOKEN.text3, lineHeight: 1.4 }}>
+          QR 코드 · 링크 · A4 인쇄 템플릿
+        </div>
+      </div>
+      <span style={{ fontSize: 14, color: TOKEN.text3 }}>›</span>
+    </button>
+  );
+}
+
+function ShareSheet({
+  placeId, placeName, onClose,
+}: {
+  placeId: string;
+  placeName: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [QRMod, setQRMod] = useState<typeof import('qrcode.react') | null>(null);
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://aircondemocracy.com';
+  const placeUrl = `${origin}/p/${encodeURIComponent(placeId)}`;
+  const printUrl = `${origin}/print/${encodeURIComponent(placeId)}`;
+
+  useEffect(() => {
+    import('qrcode.react').then(setQRMod).catch(() => { /* skip */ });
+  }, []);
+
+  const copyLink = async () => {
+    try {
+      if (navigator.clipboard) await navigator.clipboard.writeText(placeUrl);
+      else {
+        const ta = document.createElement('textarea');
+        ta.value = placeUrl; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* ignore */ }
+  };
+
+  const downloadPNG = () => {
+    const svg = document.querySelector('#vote-share-qr svg') as SVGElement | null;
+    if (!svg) return;
+    const xml = new XMLSerializer().serializeToString(svg);
+    const svg64 = btoa(unescape(encodeURIComponent(xml)));
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 512, 512);
+      ctx.drawImage(img, 0, 0, 512, 512);
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = `aircon-${placeId.replace(/:/g, '-')}.png`;
+      a.click();
+    };
+    img.src = `data:image/svg+xml;base64,${svg64}`;
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+      }}
+    >
+      {/* dimmed backdrop */}
+      <div
+        onClick={onClose}
+        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.42)', cursor: 'pointer' }}
+        aria-label="닫기"
+      />
+      {/* sheet */}
+      <div
+        style={{
+          position: 'relative', background: TOKEN.surface,
+          borderRadius: '24px 24px 0 0',
+          boxShadow: '0 -4px 32px rgba(0,0,0,0.16)',
+          maxHeight: '88vh', overflowY: 'auto',
+        }}
+      >
+        {/* handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 6px' }}>
+          <div style={{ width: 36, height: 4, borderRadius: 999, background: TOKEN.border }} />
+        </div>
+
+        {/* title + close */}
+        <div style={{ padding: '4px 20px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 17, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.4px' }}>
+              이 장소 공유하기
+            </div>
+            <div style={{ fontSize: 12, color: TOKEN.text2, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {placeName}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="닫기"
+            style={{
+              background: TOKEN.bg, border: 'none', borderRadius: '50%',
+              width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', fontSize: 18, color: TOKEN.text2, flexShrink: 0,
+              fontFamily: FONT,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* QR + URL */}
+        <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+          <div
+            id="vote-share-qr"
+            style={{
+              background: '#fff', borderRadius: 16, padding: 16,
+              border: `1px solid ${TOKEN.border}`,
+              boxShadow: '0 2px 10px rgba(0,0,0,0.07)',
+            }}
+          >
+            {QRMod ? <QRMod.QRCodeSVG value={placeUrl} size={148} level="M" includeMargin={false} /> : <div style={{ width: 148, height: 148, background: TOKEN.bg }} />}
+          </div>
+          <div style={{ fontSize: 12, color: TOKEN.text3, textAlign: 'center', lineHeight: 1.6 }}>
+            스캔하면 바로 투표 화면으로 이동해요<br />
+            <span style={{ color: TOKEN.cold, fontWeight: 600, wordBreak: 'break-all' }}>{placeUrl.replace(/^https?:\/\//, '')}</span>
+          </div>
+        </div>
+
+        {/* action rows */}
+        <div style={{ borderTop: `1px solid ${TOKEN.border}`, padding: '8px 0 32px' }}>
+          <ShareActionRow
+            iconBg={TOKEN.coldBg}
+            icon={<DownloadIcon size={19} color={TOKEN.cold} />}
+            label={copied ? '복사됨 ✓' : 'PNG 저장'}
+            sub="QR 이미지를 사진첩에 저장"
+            onClick={downloadPNG}
+          />
+          <ShareActionRow
+            iconBg={TOKEN.bg}
+            icon={<PrintIcon size={19} color={TOKEN.text1} />}
+            label="A4 인쇄 페이지 열기"
+            sub="카페·사무실 부착용 포스터"
+            onClick={() => window.open(printUrl, '_blank', 'noopener')}
+          />
+          <ShareActionRow
+            iconBg={TOKEN.bg}
+            icon={<LinkIcon size={19} color={TOKEN.text1} />}
+            label={copied ? '복사됨 ✓' : '링크 복사'}
+            sub={placeUrl.replace(/^https?:\/\//, '')}
+            onClick={copyLink}
+            isLast
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShareActionRow({
+  icon, iconBg, label, sub, onClick, isLast,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  label: string;
+  sub: string;
+  onClick: () => void;
+  isLast?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+        padding: '13px 20px',
+        borderBottom: isLast ? 'none' : `1px solid ${TOKEN.border}`,
+        background: 'none', border: 'none', cursor: 'pointer',
+        textAlign: 'left', fontFamily: FONT,
+      }}
+    >
+      <div
+        style={{
+          width: 38, height: 38, borderRadius: 10, background: iconBg, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.2px' }}>{label}</div>
+        <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</div>
+      </div>
+      <svg width={15} height={15} viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M5 12h14M13 6l6 6-6 6" stroke={TOKEN.text3} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
+function DownloadIcon({ size = 20, color = '#1A1A1F' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="7,10 12,15 17,10" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="12" y1="15" x2="12" y2="3" stroke={color} strokeWidth="1.9" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PrintIcon({ size = 20, color = '#1A1A1F' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <polyline points="6,9 6,2 18,2 18,9" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="6" y="14" width="12" height="8" rx="1" stroke={color} strokeWidth="1.9" />
+    </svg>
+  );
+}
+
+function LinkIcon({ size = 20, color = '#1A1A1F' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
