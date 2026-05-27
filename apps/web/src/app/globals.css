@@ -11,6 +11,12 @@ body {
   height: 100%;
 }
 
+/* iOS Safari overscroll(bounce) 시 body 뒤 html 영역이 노출됨. 헤더와 같은 흰색으로
+   맞춰 위쪽 bounce에서 회색 빈 영역 안 보이게. (2026-05-27 사용자 회귀) */
+html {
+  background: #ffffff;
+}
+
 /* Next.js App Router는 body > div#__next 없음. children 컨테이너에 100% 직접 적용 */
 body > * {
   min-height: 100vh;

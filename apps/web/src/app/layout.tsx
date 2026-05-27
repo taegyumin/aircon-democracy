@@ -1,6 +1,15 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
+
+// viewport-fit=cover로 PWA standalone 모드의 notch/status bar 영역에 env(safe-area-inset-*)
+// 적용 가능. 일반 Safari에서는 env() = 0이라 영향 없음.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#1B53E5',
+};
 
 export const metadata: Metadata = {
   title: '에어컨 민주주의 — 지하철·카페·강의실 에어컨 익명 투표',
@@ -36,7 +45,6 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   manifest: '/manifest.webmanifest',
-  themeColor: '#1B53E5',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
