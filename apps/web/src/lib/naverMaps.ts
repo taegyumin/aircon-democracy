@@ -58,7 +58,10 @@ export function loadNaverMaps(): Promise<NaverMapsModule> {
       return;
     }
     const script = document.createElement('script');
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${encodeURIComponent(clientId)}&submodules=geocoder`;
+    // 2026-05-27: NAVER Maps API v3는 `ncpKeyId`만 받음. 옛 `ncpClientId`는 deprecate.
+    // 키 자체 형식(10자 소문자)은 동일. param 이름만 바꿔야 인증 통과.
+    // 공식 가이드: https://navermaps.github.io/maps.js.ncp/
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}&submodules=geocoder`;
     script.async = true;
     script.onload = () => {
       if (window.naver?.maps) resolve(window.naver.maps);
