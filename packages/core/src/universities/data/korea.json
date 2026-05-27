@@ -189,14 +189,27 @@
       "id": "kaist", "name": "한국과학기술원", "shortName": "KAIST",
       "aliases": ["KAIST", "카이스트", "대전", "한국과학기술원"], "badge": "대전 본원", "placeIdPrefix": "kaist-daejeon",
       "notes": "동/서/북 방위 + 번호 (E14 본관 등)",
-      "sources": ["https://www.kaist.ac.kr/kr/html/kaist/01140301.html", "https://namu.wiki/w/%ED%95%9C%EA%B5%AD%EA%B3%BC%ED%95%99%EA%B8%B0%EC%88%A0%EC%9B%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.kaist.ac.kr/site/map/index.html", "https://www.kaist.ac.kr/Upload/map/Campus_Map_2023.pdf", "https://namu.wiki/w/%ED%95%9C%EA%B5%AD%EA%B3%BC%ED%95%99%EA%B8%B0%EC%88%A0%EC%9B%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "daejeon", "name": "대전 본원", "district": "대전 유성구 KAIST",
         "buildings": [
-          { "code": "E14", "name": "본관", "aliases": [], "college": "본부" },
-          { "code": "N1", "name": "IT융합 빌딩", "aliases": [], "college": "전산학·IT" },
+          { "code": "E14", "name": "본관", "aliases": ["Main Administration B/D"], "college": "본부" },
+          { "code": "E11", "name": "창의학습관", "aliases": ["Creative Learning B/D", "입학처"], "college": "학사·공용강의" },
+          { "code": "E9", "name": "학술문화관", "aliases": ["Academic Cultural Complex", "도서관"], "college": "도서관" },
+          { "code": "N1", "name": "김병호·김삼열 IT융합 빌딩", "aliases": ["IT융합 빌딩", "Kim Beang-Ho & Kim Sam-Youl ITC Building"], "college": "전산학·IT" },
+          { "code": "N3", "name": "스포츠 컴플렉스", "aliases": ["Sports Complex"], "college": "체육" },
+          { "code": "N4", "name": "어학센터", "aliases": ["Language Center"], "college": "어학·공용강의" },
+          { "code": "N5", "name": "융합연구동", "aliases": ["Convergence Research B/D"], "college": "연구" },
+          { "code": "N10", "name": "교양분관", "aliases": ["Undergraduate Branch Library"], "college": "도서관" },
+          { "code": "N11", "name": "학생식당", "aliases": ["Cafeteria"], "college": "학생복지" },
+          { "code": "N12", "name": "학생회관-2", "aliases": ["Student Center-2"], "college": "학생복지" },
+          { "code": "N25", "name": "산업디자인학과동", "aliases": ["Dept. of Industrial Design B/D"], "college": "산업디자인학과" },
+          { "code": "E2", "name": "수리과학·산업및시스템공학동", "aliases": ["Dept. of Mathematical Sciences", "Industrial & Systems Engineering"], "college": "자연과학·공과대학" },
+          { "code": "E6", "name": "자연과학동", "aliases": ["Natural Science B/D"], "college": "자연과학대학" },
+          { "code": "E16", "name": "정문술빌딩", "aliases": ["ChungMoonSoul B/D"], "college": "전산학·전자공학" },
           { "code": "W1", "name": "응용공학동", "aliases": ["신소재·건설환경·생명화학공학"], "college": "공과대학" },
-          { "code": "학술문화관", "name": "학술문화관(도서관)", "aliases": ["2018 개관"], "college": "도서관" }
+          { "code": "W2", "name": "학생회관-1", "aliases": ["Student Center-1", "인터내셔널센터"], "college": "학생복지·국제" },
+          { "code": "W8", "name": "교육지원동", "aliases": ["Educational Support B/D", "중앙분석센터"], "college": "교육지원·연구" }
         ]
       }]
     },
@@ -431,16 +444,33 @@
     {
       "id": "pusan", "name": "부산대학교", "shortName": "부산대",
       "aliases": ["PNU", "Pusan Nat'l", "부산"], "badge": "부산 (장전)", "placeIdPrefix": "pnu",
-      "sources": ["https://www.pusan.ac.kr/kor/CMS/Contents/Contents.do?mCode=MN212", "https://namu.wiki/w/%EB%B6%80%EC%82%B0%EB%8C%80%ED%95%99%EA%B5%90/%EB%B6%80%EC%82%B0%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.pnu.kr/kor/CMS/Contents/Contents.do?mCode=MN212", "https://namu.wiki/w/%EB%B6%80%EC%82%B0%EB%8C%80%ED%95%99%EA%B5%90/%EB%B6%80%EC%82%B0%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "busan", "name": "부산캠퍼스 (장전)", "district": "부산 금정구 부산대학교",
         "buildings": [
-          { "code": "205", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "102", "name": "IT관", "aliases": [], "college": "정보·공학" },
+          { "code": "103", "name": "제12공학관", "aliases": [], "college": "공과대학" },
+          { "code": "105", "name": "제3공학관(융합기계관)", "aliases": ["융합기계관"], "college": "공과대학" },
+          { "code": "107", "name": "제8공학관(항공관)", "aliases": ["항공관"], "college": "공과대학" },
+          { "code": "108", "name": "제9공학관(기전관)", "aliases": ["기전관"], "college": "공과대학" },
+          { "code": "201", "name": "제6공학관(컴퓨터공학관)", "aliases": ["컴퓨터공학관"], "college": "공과대학" },
+          { "code": "205", "name": "대학본부", "aliases": ["본관"], "college": "본부" },
+          { "code": "206", "name": "제11공학관(조선해양공학관)", "aliases": ["조선해양공학관"], "college": "공과대학" },
+          { "code": "207", "name": "제10공학관(특성화공학관)", "aliases": ["특성화공학관"], "college": "공과대학" },
+          { "code": "210", "name": "언어교육원", "aliases": [], "college": "어학·공용강의" },
           { "code": "306", "name": "인문관", "aliases": ["김중업 설계", "1959"], "college": "인문대학" },
-          { "code": "313", "name": "자연대 연구동", "aliases": [], "college": "자연과학대학" },
-          { "code": "물리관", "name": "물리관", "aliases": [], "college": "자연과학대학" },
-          { "code": "생물관", "name": "생물관", "aliases": [], "college": "자연과학대학" },
-          { "code": "제1공학관", "name": "제1공학관", "aliases": [], "college": "공과대학" }
+          { "code": "308", "name": "제1물리관", "aliases": [], "college": "자연과학대학" },
+          { "code": "309", "name": "제2물리관", "aliases": [], "college": "자연과학대학" },
+          { "code": "310", "name": "문창회관", "aliases": [], "college": "학생복지·공용" },
+          { "code": "313", "name": "자연대 연구실험동", "aliases": ["자연대 연구동"], "college": "자연과학대학" },
+          { "code": "401", "name": "건설관", "aliases": [], "college": "공과대학" },
+          { "code": "420", "name": "새벽벌도서관", "aliases": [], "college": "도서관" },
+          { "code": "421", "name": "사회관", "aliases": [], "college": "사회과학대학" },
+          { "code": "514", "name": "경영관", "aliases": [], "college": "경영대학" },
+          { "code": "516", "name": "경제통상관", "aliases": [], "college": "경제통상대학" },
+          { "code": "607", "name": "수학관·공동연구소동", "aliases": [], "college": "자연과학대학" },
+          { "code": "609", "name": "법학관", "aliases": [], "college": "법학전문대학원" },
+          { "code": "708", "name": "학생회관", "aliases": [], "college": "학생복지" }
         ]
       }]
     },
@@ -626,15 +656,20 @@
     {
       "id": "knu", "name": "경북대학교", "shortName": "경북대",
       "aliases": ["KNU", "경북", "대구"], "badge": "대구 (산격)", "placeIdPrefix": "knu",
-      "sources": ["https://www.knu.ac.kr/wbbs/wbbs/contents/index.action?menu_url=campus/service02_03&menu_idx=147", "https://namu.wiki/w/%EA%B2%BD%EB%B6%81%EB%8C%80%ED%95%99%EA%B5%90/%EB%8C%80%EA%B5%AC%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.knu.ac.kr/wbbs/wbbs/contents/index.action?menu_url=campus/service02_03&menu_idx=147", "https://seigy.knu.ac.kr/notice/1070", "https://namu.wiki/w/%EA%B2%BD%EB%B6%81%EB%8C%80%ED%95%99%EA%B5%90/%EB%8C%80%EA%B5%AC%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "daegu", "name": "대구캠퍼스 (산격)", "district": "대구 북구 경북대학교",
         "buildings": [
-          { "code": "본관", "name": "본관", "aliases": ["사적 442호", "구 대구의학전문학교"], "college": "본부·역사" },
-          { "code": "구관", "name": "구관", "aliases": [], "college": "공용시설" },
-          { "code": "신관", "name": "신관", "aliases": [], "college": "공용시설" },
-          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
-          { "code": "인성관", "name": "인성관", "aliases": [], "college": "공용시설" }
+          { "code": "103", "name": "글로벌플라자", "aliases": [], "college": "공용강의·행정" },
+          { "code": "208", "name": "제1과학관", "aliases": [], "college": "자연과학대학" },
+          { "code": "209", "name": "자연과학대학", "aliases": ["자연대"], "college": "자연과학대학" },
+          { "code": "210", "name": "제2과학관", "aliases": [], "college": "자연과학대학" },
+          { "code": "217", "name": "생물학관", "aliases": [], "college": "자연과학대학" },
+          { "code": "219", "name": "미래융합과학관", "aliases": [], "college": "자연과학대학" },
+          { "code": "302", "name": "교육대학원", "aliases": ["영재교육원행정실"], "college": "교육대학원" },
+          { "code": "304", "name": "제4합동강의동", "aliases": [], "college": "공용강의동" },
+          { "code": "407", "name": "화학관", "aliases": [], "college": "자연과학대학" },
+          { "code": "415", "name": "IT대학 5호관", "aliases": ["IT대학 융복합관"], "college": "IT대학" }
         ]
       }]
     },
@@ -707,13 +742,32 @@
     {
       "id": "postech", "name": "포항공과대학교", "shortName": "POSTECH",
       "aliases": ["POSTECH", "포스텍", "포항공대"], "badge": "포항", "placeIdPrefix": "postech",
-      "sources": ["https://www.postech.ac.kr/kor/university-introduction/campus_map.do", "https://namu.wiki/w/%ED%8F%AC%ED%95%AD%EA%B3%B5%EA%B3%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.postech.ac.kr/kor/university-introduction/campus_map.do", "https://ir.postech.ac.kr/ir/about/visit.do", "https://namu.wiki/w/%ED%8F%AC%ED%95%AD%EA%B3%B5%EA%B3%BC%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "main", "name": "포항캠퍼스", "district": "경북 포항 POSTECH",
         "buildings": [
-          { "code": "본관", "name": "본관", "aliases": [], "college": "본부" },
-          { "code": "학생회관", "name": "학생회관", "aliases": [], "college": "학생복지" },
-          { "code": "78계단", "name": "78계단", "aliases": ["랜드마크"], "college": "공용·명소" }
+          { "code": "M01", "name": "대학본관", "aliases": ["Administration Bld"], "college": "본부" },
+          { "code": "M02", "name": "제1과학관", "aliases": ["Science Bld I"], "college": "자연과학·공용강의" },
+          { "code": "M03", "name": "김호길기념관", "aliases": ["Hogil Kim Memorial Hall"], "college": "공용시설" },
+          { "code": "M04", "name": "제2과학관", "aliases": ["Science Bld II"], "college": "자연과학·공용강의" },
+          { "code": "M05", "name": "제4과학관", "aliases": ["Science Bld IV"], "college": "자연과학·연구" },
+          { "code": "M06", "name": "학생회관", "aliases": ["Student Union Bld"], "college": "학생복지" },
+          { "code": "M07", "name": "제5과학관", "aliases": ["Science Bld V"], "college": "자연과학·연구" },
+          { "code": "M08", "name": "제3과학관", "aliases": ["Science Bld III"], "college": "자연과학·공용강의" },
+          { "code": "M09", "name": "대강당", "aliases": ["Auditorium"], "college": "공용시설" },
+          { "code": "M10", "name": "수리과학관", "aliases": ["Mathematical Science Bld"], "college": "수학과" },
+          { "code": "M11", "name": "인공지능연구원", "aliases": ["Institute of Artificial Intelligence"], "college": "인공지능대학원" },
+          { "code": "M12", "name": "LG연구동", "aliases": ["LG Cooperative Electronics Engineering Bld"], "college": "전자전기공학" },
+          { "code": "M13", "name": "환경공학동", "aliases": ["Environmental Science and Engineering Bld"], "college": "환경공학부" },
+          { "code": "M15", "name": "POSCO 국제관", "aliases": ["POSCO International Center"], "college": "국제·공용시설" },
+          { "code": "S01", "name": "박태준학술정보관", "aliases": ["Tae-Joon Park Digital Library"], "college": "도서관" },
+          { "code": "S02", "name": "C5", "aliases": [], "college": "융합연구" },
+          { "code": "S04", "name": "생명공학연구센터", "aliases": ["Biotech Center"], "college": "생명공학" },
+          { "code": "E03", "name": "생명과학관", "aliases": ["Life Science Bld"], "college": "생명과학과" },
+          { "code": "E09", "name": "화학관", "aliases": ["Chemistry Bld"], "college": "화학과" },
+          { "code": "D01", "name": "지곡회관", "aliases": ["Jigok Community Center"], "college": "학생복지" },
+          { "code": "D06", "name": "체육관", "aliases": ["Gymnasium"], "college": "체육" },
+          { "code": "LM78", "name": "78계단", "aliases": ["랜드마크"], "college": "공용·명소" }
         ]
       }]
     },
