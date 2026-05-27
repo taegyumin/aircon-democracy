@@ -31,7 +31,8 @@ interface TagoEnvelope<TItem> {
 
 function normalizeItems<T>(env: TagoEnvelope<T>): T[] {
   const items = env.response?.body?.items;
-  if (!items || items === '') return [];
+  // TAGO는 0건일 때 items가 빈 문자열 또는 null로 옴 (object 아님). typeof로 narrowing.
+  if (!items || typeof items !== 'object') return [];
   const raw = items.item;
   if (!raw) return [];
   return Array.isArray(raw) ? raw : [raw];
@@ -58,10 +59,13 @@ interface TrainInfoStationRow { nodeid: string; nodename: string }
 interface TrainInfoVhcleRow { vehiclekndid: string; vehiclekndnm: string }
 interface TrainInfoScheduleRow {
   trainno: string | number;
-  vehiclekndnm: string;
+  // 실측 (2026-05-28): 가이드 docx의 `vehiclekndnm`이 아니라 `traingradename`.
+  // 값은 GetVhcleKndList의 vehiclekndnm과 같은 형식 ("KTX", "KTX-산천(A-type)", "SRT", …).
+  traingradename: string;
   depplacename: string;
   arrplacename: string;
-  depplandtime: string | number;     // YYYYMMDDHHMI
+  // 실측: 12자리 'YYYYMMDDHHMI'가 아닌 14자리 'YYYYMMDDHHMMSS'. slice(8,10)+slice(10,12)로 HH:MM 추출은 동일.
+  depplandtime: string | number;
   arrplandtime: string | number;
   adultcharge?: number;
 }
@@ -132,7 +136,7 @@ export const trainInfoProvider = {
       trainNo: input.trainNo,
       runDt: input.runDt,
       carOrdr: input.carOrdr,
-      vehicleKndNm: hit.vehiclekndnm,
+      vehicleKndNm: hit.traingradename,
       depPlaceNm: hit.depplacename,
       arrPlaceNm: hit.arrplacename,
       depPlandTime: String(hit.depplandtime),
