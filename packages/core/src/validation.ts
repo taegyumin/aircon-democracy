@@ -17,7 +17,8 @@ export const VoteTypeSchema = z.enum(VOTE_TYPES);
 export type VoteType = z.infer<typeof VoteTypeSchema>;
 
 // Place id format: <prefix>:<rest>
-const PLACE_ID_RE = /^[a-z]+:[\p{L}\p{N}\s,()/:·.\-]{1,180}$/u;
+// prefix 안에 hyphen 허용 — subway-station: 같은 복합 prefix 위해 ('subway' vs 'subway-station' 구분).
+const PLACE_ID_RE = /^[a-z][a-z-]*:[\p{L}\p{N}\s,()/:·.\-]{1,180}$/u;
 export const PlaceIdSchema = z.string().regex(PLACE_ID_RE, 'invalid_place_id');
 
 // id prefix → type 매핑.
@@ -35,6 +36,10 @@ export const PlaceIdSchema = z.string().regex(PLACE_ID_RE, 'invalid_place_id');
 // 새 prefix 추가 시 여기에도 등록. 등록 안 된 prefix는 invalid_id로 거부 (안전).
 export const ID_PREFIX_TYPE: Record<string, PlaceType> = {
   subway: 'subway',
+  // 지방 도시철도 station-level (TAGO SubwayInfo 기반). 부산·대구·광주·대전·인천2.
+  // id 형식: subway-station:{subwayStationId} 예) subway-station:MTRBS1119
+  // swopenAPI cover X 노선에서 station 단위 투표 — 차량 단위 식별은 일관성 깨져 포기.
+  'subway-station': 'subway',
   train: 'train',
   bus: 'bus',
   snu: 'classroom',
@@ -173,6 +178,39 @@ export const PoiSearchQuerySchema = z.object({
   q: z.string().trim().min(1).max(40),
   lat: z.coerce.number().min(-90).max(90).optional(),
   lng: z.coerce.number().min(-180).max(180).optional(),
+});
+
+// ── TAGO 간선철도 (TrainInfo, 15098552) ───────────────────────────
+// 사용자 좌석권 정보(trainNo+호차+출도착+날짜)를 받아 TAGO 시각표로 운행 검증.
+// 결정적인 점: 사용자가 좌석권에서 직접 보고 입력하므로 차량 단위 일관성 100%
+// (시간표 보간 추정 안 함). swopenAPI의 trainNo와 같은 의미로 작동.
+
+export const TrainVerifyBodySchema = z.object({
+  // 5자리 미만이면 backend가 zero-pad 해서 TAGO에 보냄 (예: "123" → "00123").
+  trainNo: z.string().trim().regex(/^\d{1,6}$/, 'invalid_train_no'),
+  runDt: z.string().regex(/^\d{8}$/, 'invalid_run_date'), // YYYYMMDD
+  // TrainInfo.GetCtyAcctoTrainSttnList의 nodeid 형식. 예: NAT010000, NATH30000.
+  depPlaceId: z.string().regex(/^NAT[A-Z0-9]+$/, 'invalid_dep_place_id'),
+  arrPlaceId: z.string().regex(/^NAT[A-Z0-9]+$/, 'invalid_arr_place_id'),
+  carOrdr: z.coerce.number().int().min(1).max(20),
+});
+export type TrainVerifyBody = z.infer<typeof TrainVerifyBodySchema>;
+
+export const TrainStationsQuerySchema = z.object({
+  cityCode: z.string().regex(/^\d{2,5}$/, 'invalid_city_code'),
+});
+
+// ── TAGO 지방 도시철도 (SubwayInfo, 15098554) station 키워드 검색 ──
+// region 필터: subwayStationId prefix 기반.
+//   MTRBS* = 부산, MTRDG* = 대구, MTRDJ* = 대전, MTRGJ* = 광주, MTRICI2* = 인천2.
+// 'all'은 prefix 무관 (개발/디버그용).
+export const RegionalSubwayRegions = ['all', 'busan', 'daegu', 'gwangju', 'daejeon', 'incheon2'] as const;
+export const RegionalSubwayRegionSchema = z.enum(RegionalSubwayRegions);
+export type RegionalSubwayRegion = z.infer<typeof RegionalSubwayRegionSchema>;
+
+export const RegionalSubwaySearchQuerySchema = z.object({
+  q: z.string().trim().min(1).max(40),
+  region: RegionalSubwayRegionSchema.optional().default('all'),
 });
 
 // Helper for hono routes

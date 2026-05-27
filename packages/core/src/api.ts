@@ -176,6 +176,44 @@ export function createApiClient(options: ApiClientOptions = {}) {
         { method: 'POST', body: JSON.stringify(input) },
       ),
 
+    // ── TAGO 간선철도 (TrainInfo) — 사용자 좌석권 검증 ──────────────────
+    // 도시 list (서울=11, 부산=21, …). UI 출도착 도시 picker.
+    listTrainCities: () =>
+      request<{ cities: TrainCity[]; reason?: string }>('/api/realtime/train/cities'),
+
+    // 도시별 기차역 list (서울 → 서울/용산/영등포/...).
+    listTrainStations: (cityCode: string) => {
+      const p = new URLSearchParams({ cityCode });
+      return request<{ stations: TrainStationApi[]; reason?: string }>(
+        `/api/realtime/train/stations?${p.toString()}`,
+      );
+    },
+
+    // 열차종 enum (KTX/ITX/새마을/무궁화/SRT/…).
+    listTrainVehicleKinds: () =>
+      request<{ kinds: TrainVehicleKind[]; reason?: string }>('/api/realtime/train/vehicle-kinds'),
+
+    // 좌석권 정보 검증 → 운행 중인 차량이면 placeId 발급.
+    verifyTrain: (input: {
+      trainNo: string; runDt: string;
+      depPlaceId: string; arrPlaceId: string;
+      carOrdr: number;
+    }) =>
+      request<TrainVerifyResult>('/api/realtime/train/verify', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+
+    // ── TAGO 지방 도시철도 (SubwayInfo) — station 키워드 검색 ─────────
+    // region: 'all' | 'busan' | 'daegu' | 'gwangju' | 'daejeon' | 'incheon2'.
+    searchRegionalSubwayStations: (q: string, region?: string) => {
+      const p = new URLSearchParams({ q });
+      if (region) p.set('region', region);
+      return request<{ stations: RegionalSubwayStation[]; reason?: string }>(
+        `/api/realtime/regional-subway/search?${p.toString()}`,
+      );
+    },
+
     // ── Auth ─────────────────────────────────────────────────────────
     me: () => request<{ user: User | null }>('/api/me'),
     logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
@@ -269,6 +307,47 @@ export interface BusRouteStation {
   x: number | null;       // 경도 (gpsX) — null 가능
   y: number | null;       // 위도 (gpsY)
   arsId: string | null;   // ARS 번호 (사용자에게 노출 시)
+}
+
+// ── TAGO 간선철도 (TrainInfo) types ────────────────────────────────
+export interface TrainCity {
+  cityCode: string;          // "11", "21", …
+  cityName: string;          // "서울특별시", "부산광역시"
+}
+
+export interface TrainStationApi {
+  nodeId: string;            // "NAT010000" (서울), "NATH30000" (수서)
+  nodeName: string;          // "서울", "용산", …
+}
+
+export interface TrainVehicleKind {
+  vehicleKndId: string;      // "00", "07", "17", …
+  vehicleKndNm: string;      // "KTX", "KTX-산천(A-type)", "SRT", "ITX-새마을", …
+}
+
+export interface TrainVerifyResult {
+  matched: boolean;
+  // matched=true 시 다 채워짐.
+  placeId?: string;           // train:tago:{trainNo}:{runDt}:car{N}
+  trainNo?: string;
+  runDt?: string;
+  carOrdr?: number;
+  vehicleKndNm?: string;
+  depPlaceNm?: string;
+  arrPlaceNm?: string;
+  depPlandTime?: string;      // "YYYYMMDDHHMI"
+  arrPlandTime?: string;
+  // matched=false 시 사유. 'not_found' | 'not_running_today' | 'service_closed' | 'invalid_*'
+  reason?: string;
+}
+
+// ── TAGO 지방 도시철도 (SubwayInfo) types ──────────────────────────
+export interface RegionalSubwayStation {
+  subwayStationId: string;   // "MTRBS1119" 등
+  subwayStationName: string; // "서면", "동대구"
+  subwayRouteName: string;   // "1호선", "2호선", "대경선"
+  // backend가 stationId prefix로 분류해서 함께 반환 — UI 그룹화·필터에 사용.
+  region: 'busan' | 'daegu' | 'gwangju' | 'daejeon' | 'incheon2' | 'other';
 }
 
 export interface User {

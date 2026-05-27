@@ -8,10 +8,12 @@ import {
   SubwayMatchBodySchema, BusMatchBodySchema,
   BusRouteSearchQuerySchema, BusRouteStationsQuerySchema, BusRegionByCoordsQuerySchema,
   PoiSearchQuerySchema,
+  TrainVerifyBodySchema, TrainStationsQuerySchema, RegionalSubwaySearchQuerySchema,
 } from '@aircon/core/validation';
 import { regionByName, SEOUL_REGION } from '@aircon/core';
 import { parseBusRegion, providerFor } from '../busProviders';
 import { naverProvider, kakaoProvider, searchPoiCombined } from '../poiProviders';
+import { trainInfoProvider, subwayInfoProvider } from '../tagoProviders';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
 import type { Env } from '../types';
@@ -291,6 +293,88 @@ realtimeRoutes.post('/realtime/bus/match', async (c) => {
     return c.json(result);
   } catch (e) {
     return c.json({ matched: false, reason: (e as Error).message });
+  }
+});
+
+// ── TAGO 간선철도 (TrainInfo) ──────────────────────────────────────
+// 사용자 좌석권(trainNo+호차+출도착+runDt)을 받아 TAGO 시각표로 운행 검증.
+// matched=true 시 placeId 발급 (train:tago:{trainNo}:{runDt}:car{N}).
+
+realtimeRoutes.get('/realtime/train/cities', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ cities: [], reason: 'no_api_key' });
+  try {
+    const cities = await trainInfoProvider.listCities(key);
+    return c.json({ cities });
+  } catch (e) {
+    return c.json({ cities: [], reason: (e as Error).message });
+  }
+});
+
+realtimeRoutes.get('/realtime/train/stations', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const parsed = TrainStationsQuerySchema.safeParse({ cityCode: c.req.query('cityCode') });
+  if (!parsed.success) return c.json({ stations: [], reason: 'invalid_query' }, 400);
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ stations: [], reason: 'no_api_key' });
+  try {
+    const stations = await trainInfoProvider.listStations(parsed.data.cityCode, key);
+    return c.json({ stations });
+  } catch (e) {
+    return c.json({ stations: [], reason: (e as Error).message });
+  }
+});
+
+realtimeRoutes.get('/realtime/train/vehicle-kinds', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ kinds: [], reason: 'no_api_key' });
+  try {
+    const kinds = await trainInfoProvider.listVehicleKinds(key);
+    return c.json({ kinds });
+  } catch (e) {
+    return c.json({ kinds: [], reason: (e as Error).message });
+  }
+});
+
+realtimeRoutes.post('/realtime/train/verify', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  let raw: unknown;
+  try { raw = await c.req.json(); } catch { return c.json({ matched: false, reason: 'invalid_json' }, 400); }
+  const parsed = TrainVerifyBodySchema.safeParse(raw);
+  if (!parsed.success) return c.json({ matched: false, reason: 'invalid_body' }, 400);
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ matched: false, reason: 'no_api_key' });
+  try {
+    const result = await trainInfoProvider.verify(parsed.data, key);
+    return c.json(result);
+  } catch (e) {
+    return c.json({ matched: false, reason: (e as Error).message });
+  }
+});
+
+// ── TAGO 지방 도시철도 (SubwayInfo) station 키워드 검색 ──────────
+// place_id = subway-station:{subwayStationId}. swopenAPI cover X 노선 station-level 투표.
+realtimeRoutes.get('/realtime/regional-subway/search', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const parsed = RegionalSubwaySearchQuerySchema.safeParse({
+    q: c.req.query('q'),
+    region: c.req.query('region'),
+  });
+  if (!parsed.success) return c.json({ stations: [], reason: 'invalid_query' }, 400);
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ stations: [], reason: 'no_api_key' });
+  try {
+    const stations = await subwayInfoProvider.searchStations(parsed.data.q, parsed.data.region, key);
+    return c.json({ stations });
+  } catch (e) {
+    return c.json({ stations: [], reason: (e as Error).message });
   }
 });
 
