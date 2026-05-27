@@ -154,6 +154,25 @@
       }]
     },
     {
+      "id": "myongji-yongin", "name": "명지대학교 자연캠퍼스", "shortName": "명지대 자연",
+      "aliases": ["Myongji Natural Campus", "MJU Natural", "명지대 용인", "용인"], "badge": "용인", "placeIdPrefix": "myongji-yongin",
+      "sources": ["https://www.mju.ac.kr/bbs/mjukr/147/164462/download.do", "https://namu.moe/w/%EB%AA%85%EC%A7%80%EB%8C%80%ED%95%99%EA%B5%90/%EC%9E%90%EC%97%B0%EC%BA%A0%ED%8D%BC%EC%8A%A4", "https://www.veritas-a.com/news/articleView.html?idxno=42764"],
+      "campuses": [{
+        "id": "yongin", "name": "자연캠퍼스", "district": "경기 용인 명지대학교 자연캠퍼스",
+        "buildings": [
+          { "code": "창조예술관", "name": "창조예술관", "aliases": ["창조관"], "college": "예술체육대학" },
+          { "code": "산학협력관", "name": "산학협력관", "aliases": [], "college": "산학협력" },
+          { "code": "명진당", "name": "명진당", "aliases": [], "college": "공용강의·박물관" },
+          { "code": "제1공학관", "name": "제1공학관", "aliases": ["1공학관"], "college": "공과대학" },
+          { "code": "제2공학관", "name": "제2공학관", "aliases": ["2공학관"], "college": "공과대학" },
+          { "code": "제3공학관", "name": "제3공학관", "aliases": ["3공학관"], "college": "공과대학" },
+          { "code": "제5공학관", "name": "제5공학관", "aliases": ["5공학관"], "college": "반도체·ICT대학" },
+          { "code": "함박관", "name": "함박관", "aliases": [], "college": "방목기초교육대학" },
+          { "code": "차세대과학관", "name": "차세대과학관", "aliases": ["차세대관"], "college": "화학·생명과학대학" }
+        ]
+      }]
+    },
+    {
       "id": "kangwon", "name": "강원대학교", "shortName": "강원대",
       "aliases": ["Kangwon", "춘천"], "badge": "춘천", "placeIdPrefix": "kangwon",
       "sources": ["https://wwwk.kangwon.ac.kr/site/campusmap/chuncheon.html", "https://namu.wiki/w/%EA%B0%95%EC%9B%90%EB%8C%80%ED%95%99%EA%B5%90/%EC%B6%98%EC%B2%9C%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
