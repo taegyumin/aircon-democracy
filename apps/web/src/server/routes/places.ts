@@ -5,7 +5,7 @@
 import { Hono } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { verify as jwtVerify } from 'hono/jwt';
-import { UserPlaceCreateBodySchema } from '@aircon/core/validation';
+import { UserPlaceCreateBodySchema, PlaceReportBodySchema } from '@aircon/core/validation';
 import {
   isBlocked,
   isKillSwitchOn,
@@ -277,4 +277,60 @@ placesRoutes.post('/places/user', async (c) => {
 
   await log('user_place_create', 201, { placeId: id, meta: { type: body.type } });
   return c.json({ id, name: body.name, type: body.type, description: body.description ?? null, created_at: now }, 201);
+});
+
+// POST /api/places/:id/report — 장소 정보 신고 (anonymous, voter cookie 기반).
+// 같은 voter + 같은 place + 같은 reason은 unique index로 중복 차단 (409).
+placesRoutes.post('/places/:id/report', async (c) => {
+  const placeId = c.req.param('id');
+  let raw: unknown;
+  try { raw = await c.req.json(); } catch { return c.json({ error: 'invalid_json' }, 400); }
+  const parsed = PlaceReportBodySchema.safeParse(raw);
+  if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'invalid_body' }, 400);
+  const body = parsed.data;
+
+  const { keys, log } = await abuseFor(c);
+  if (await isKillSwitchOn(c.env.DB, 'report_closed')) {
+    await log('kill_switch', 503, { reason: 'report_closed' });
+    return c.json({ error: 'temporarily_closed' }, 503);
+  }
+  if ((await isBlocked(c.env.DB, keys.voterHash)) || (await isBlocked(c.env.DB, keys.ipPrefixHash))) {
+    await log('rejected', 403, { reason: 'blocked_subject' });
+    return c.json({ error: 'forbidden' }, 403);
+  }
+  // rate limit: voter 분당 5, 일 30 (스팸 방지). IP 분당 30.
+  const limits = await checkLimits(c.env.DB, [
+    { key: `report:voter:${keys.voterHash}`, windowSeconds: 60, limit: 5 },
+    { key: `report:voter:${keys.voterHash}:day`, windowSeconds: 86400, limit: 30 },
+    { key: `report:ip:${keys.ipPrefixHash}`, windowSeconds: 60, limit: 30 },
+  ]);
+  if (!limits.ok) {
+    await log('rate_limited', 429, { reason: limits.failedKey });
+    return c.json({ error: 'too_many_requests' }, 429);
+  }
+
+  // place 존재 확인 — ghost id로 신고 들어오면 reject.
+  const exists = await c.env.DB.prepare('SELECT id FROM places WHERE id = ?').bind(placeId).first<{ id: string }>();
+  if (!exists) return c.json({ error: 'not_found' }, 404);
+
+  const reportId = `rpt:${shortHexId(8)}`;
+  const now = Date.now();
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO place_reports (id, place_id, reason, note, voter_hash, created_at, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+    )
+      .bind(reportId, placeId, body.reason, body.note ?? null, c.get('voterId'), now)
+      .run();
+  } catch (e) {
+    const msg = (e as Error).message ?? '';
+    if (msg.includes('UNIQUE') || msg.includes('unique')) {
+      await log('rejected', 409, { reason: 'duplicate_report' });
+      return c.json({ error: 'duplicate_report' }, 409);
+    }
+    throw e;
+  }
+
+  await log('place_report', 201, { placeId, meta: { reason: body.reason } });
+  return c.json({ id: reportId, status: 'pending' }, 201);
 });

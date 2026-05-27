@@ -129,6 +129,7 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
   const [showCorrection, setShowCorrection] = useState(false);
   const [, setFavTick] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const correctionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -451,11 +452,25 @@ export function VoteScreen({ placeId, onBack, onLogin, onChangePlace, arrivedVia
         <LoginPromptCard onLogin={onLogin} />
 
         <div style={{ textAlign: 'center', marginTop: 18 }}>
-          <button style={{ fontSize: 12, color: TOKEN.text3, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: FONT }}>
-            장소 정보가 잘못됐나요?
+          <button
+            onClick={() => setReportOpen(true)}
+            style={{ fontSize: 12, color: TOKEN.text3, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: FONT }}
+          >
+            오류가 있나요?
           </button>
         </div>
       </div>
+
+      {reportOpen && (
+        <ReportSheet
+          placeId={detail.place.id}
+          placeName={detail.place.name}
+          placeDistrict={detail.place.district}
+          placeType={detail.place.type}
+          onClose={() => setReportOpen(false)}
+          onChangePlace={onChangePlace}
+        />
+      )}
     </div>
   );
 }
@@ -721,5 +736,403 @@ function LinkIcon({ size = 20, color = '#1A1A1F' }: { size?: number; color?: str
       <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+// ── ReportSheet — 4-step 신고 흐름 (Vote Share Redesign v4, 2026-05-27) ─────
+//
+// Step 1 entry: 4가지 reason 선택 (primary 'not-here'는 inline CTA로 즉시 장소 다시).
+// Step 2 edit:  wrong-name 선택 시 → 수정 제안 input + note + submit.
+// Step 3 delete: duplicate 선택 시 → warning + 이유 select + 두 버튼 (delete/cancel).
+// Step 4 done:  submit 성공 후 success 화면.
+
+type ReportReasonId = 'not-here' | 'wrong-name' | 'duplicate' | 'delete' | 'other';
+type ReportPhase = 'entry' | 'edit' | 'delete' | 'done';
+
+function ReportSheet({
+  placeId, placeName, placeDistrict, placeType, onClose, onChangePlace,
+}: {
+  placeId: string;
+  placeName: string;
+  placeDistrict?: string | null;
+  placeType: string;
+  onClose: () => void;
+  onChangePlace?: () => void;
+}) {
+  const [phase, setPhase] = useState<ReportPhase>('entry');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (reason: ReportReasonId, note?: string) => {
+    setSubmitting(true); setError(null);
+    try {
+      await api.reportPlace(placeId, { reason, note: note ?? null });
+      setPhase('done');
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (msg.includes('duplicate_report')) {
+        setError('이미 같은 신고가 접수됐어요.');
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', flexDirection: 'column' }}>
+      {/* dim backdrop */}
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', cursor: 'pointer' }} aria-label="닫기" />
+      {/* sheet — full screen modal */}
+      <div
+        style={{
+          position: 'relative', flex: 1, background: TOKEN.bg,
+          marginTop: 50, // 상단 backdrop 살짝
+          borderRadius: '20px 20px 0 0',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          fontFamily: FONT,
+        }}
+      >
+        {/* sticky header */}
+        <div style={{ background: TOKEN.surface, borderBottom: `1px solid ${TOKEN.border}`, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '14px 16px 12px' }}>
+            <button
+              onClick={() => (phase === 'entry' ? onClose() : setPhase('entry'))}
+              aria-label="뒤로"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', display: 'flex' }}
+            >
+              <BackArrowIcon />
+            </button>
+            <span style={{ fontSize: 16, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.3px', flex: 1 }}>
+              {phase === 'edit' ? '정보 수정 제안' : phase === 'delete' ? '장소 삭제 요청' : phase === 'done' ? '신고 완료' : '오류 신고'}
+            </span>
+            <button onClick={onClose} aria-label="닫기" style={{ background: TOKEN.bg, border: 'none', borderRadius: '50%', width: 30, height: 30, cursor: 'pointer', fontSize: 17, color: TOKEN.text2, fontFamily: FONT }}>
+              ×
+            </button>
+          </div>
+          {phase !== 'done' && (
+            <div style={{ padding: '0 16px 13px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: TOKEN.border }} aria-hidden />
+              <span style={{ fontSize: 12, color: TOKEN.text3 }}>{placeName}</span>
+            </div>
+          )}
+        </div>
+
+        {/* body */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {phase === 'entry' && (
+            <ReportEntry
+              onPick={(id) => {
+                if (id === 'not-here') {
+                  // primary CTA — 신고 + 장소 다시 선택. note 없이.
+                  void submit('not-here').then(() => {
+                    setTimeout(() => { onClose(); onChangePlace?.(); }, 300);
+                  });
+                } else if (id === 'wrong-name') {
+                  setPhase('edit');
+                } else if (id === 'duplicate') {
+                  setPhase('delete');
+                } else if (id === 'other') {
+                  setPhase('edit'); // 'other'도 free-form note input
+                }
+              }}
+              disabled={submitting}
+            />
+          )}
+          {phase === 'edit' && (
+            <ReportEdit
+              placeName={placeName}
+              placeType={placeType}
+              placeDistrict={placeDistrict}
+              onSubmit={(note) => submit('wrong-name', note)}
+              submitting={submitting}
+            />
+          )}
+          {phase === 'delete' && (
+            <ReportDelete
+              placeName={placeName}
+              placeDistrict={placeDistrict}
+              placeType={placeType}
+              onSubmit={(noteOption) => submit('delete', noteOption)}
+              onCancel={() => setPhase('entry')}
+              submitting={submitting}
+            />
+          )}
+          {phase === 'done' && <ReportDone onClose={onClose} />}
+
+          {error && phase !== 'done' && (
+            <div style={{ margin: '14px 16px', padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: 8, fontSize: 12 }}>
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BackArrowIcon() {
+  return (
+    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M15 18l-6-6 6-6" stroke={TOKEN.text1} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ReportEntry({ onPick, disabled }: { onPick: (id: ReportReasonId) => void; disabled: boolean }) {
+  const reasons: { id: ReportReasonId; label: string; sub: string; accent: string; iconBg: string; primary?: boolean; cta?: string }[] = [
+    { id: 'not-here', label: '저 여기 없어요', sub: '잘못된 QR 또는 GPS 오류 — 장소를 다시 선택할게요', accent: TOKEN.hot, iconBg: TOKEN.hotBg, primary: true, cta: '장소 다시 선택' },
+    { id: 'wrong-name', label: '이름 또는 정보가 틀렸어요', sub: '장소 이름, 위치, 유형 등이 잘못됐어요', accent: TOKEN.cold, iconBg: TOKEN.coldBg },
+    { id: 'duplicate', label: '같은 장소가 이미 있어요', sub: '중복 등록된 것 같아요', accent: TOKEN.text2, iconBg: TOKEN.bg },
+    { id: 'other', label: '기타', sub: '직접 설명할게요', accent: TOKEN.text3, iconBg: TOKEN.bg },
+  ];
+  return (
+    <div style={{ padding: '24px 16px 48px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: TOKEN.text1, marginBottom: 4 }}>어떤 문제가 있나요?</div>
+      <div style={{ fontSize: 13, color: TOKEN.text2, marginBottom: 10, lineHeight: 1.6 }}>가장 가까운 상황을 골라주세요</div>
+      {reasons.map((r) => (
+        <div
+          key={r.id}
+          style={{
+            background: TOKEN.surface, borderRadius: 16,
+            border: `1.5px solid ${r.primary ? r.accent + '30' : TOKEN.border}`,
+            boxShadow: r.primary ? `0 4px 18px ${r.accent}12` : '0 1px 5px rgba(0,0,0,0.05)',
+            overflow: 'hidden',
+          }}
+        >
+          <button
+            onClick={() => !disabled && onPick(r.id)}
+            disabled={disabled}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 13,
+              padding: '15px 16px', background: 'none', border: 'none', cursor: disabled ? 'default' : 'pointer',
+              textAlign: 'left', fontFamily: FONT,
+            }}
+          >
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: r.iconBg, flexShrink: 0 }} aria-hidden />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: r.primary ? r.accent : TOKEN.text1, letterSpacing: '-0.2px', marginBottom: 3 }}>
+                {r.label}
+              </div>
+              <div style={{ fontSize: 12, color: TOKEN.text3, lineHeight: 1.4 }}>{r.sub}</div>
+            </div>
+            <span style={{ fontSize: 14, color: r.primary ? r.accent : TOKEN.text3, fontWeight: 600 }}>›</span>
+          </button>
+          {r.primary && r.cta && (
+            <div style={{ padding: '0 16px 14px' }}>
+              <button
+                onClick={() => !disabled && onPick(r.id)}
+                disabled={disabled}
+                style={{
+                  width: '100%', padding: '12px 0', background: r.accent, color: '#fff',
+                  border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
+                  cursor: disabled ? 'default' : 'pointer', fontFamily: FONT,
+                  boxShadow: `0 4px 14px ${r.accent}35`,
+                }}
+              >
+                {r.cta} →
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReportEdit({
+  placeName, placeType, placeDistrict, onSubmit, submitting,
+}: {
+  placeName: string; placeType: string; placeDistrict?: string | null;
+  onSubmit: (note: string) => void; submitting: boolean;
+}) {
+  const [note, setNote] = useState('');
+  const typeKo: Record<string, string> = {
+    subway: '지하철', bus: '버스', train: '기차', classroom: '강의실',
+    cafe: '카페·음식점', office: '사무실', library: '도서관', other: '기타',
+  };
+  const canSubmit = note.trim().length >= 2 && !submitting;
+  return (
+    <div style={{ padding: '24px 16px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: TOKEN.text1, marginBottom: 4 }}>무엇이 잘못됐나요?</div>
+        <div style={{ fontSize: 13, color: TOKEN.text2 }}>수정될 내용을 자유롭게 적어주세요</div>
+      </div>
+      <div style={{ background: TOKEN.surface, borderRadius: 14, padding: '14px 16px', border: `1px solid ${TOKEN.border}` }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: TOKEN.text3, letterSpacing: '0.5px', marginBottom: 10 }}>현재 등록된 정보</div>
+        {[
+          { label: '장소 이름', val: placeName },
+          { label: '유형', val: typeKo[placeType] ?? placeType },
+          ...(placeDistrict ? [{ label: '위치', val: placeDistrict }] : []),
+        ].map((row, i) => (
+          <div key={i} style={{ display: 'flex', gap: 10, padding: '6px 0', borderTop: i > 0 ? `1px solid ${TOKEN.border}` : 'none' }}>
+            <span style={{ fontSize: 12, color: TOKEN.text3, width: 68, flexShrink: 0 }}>{row.label}</span>
+            <span style={{ fontSize: 12, color: TOKEN.text1, fontWeight: 600 }}>{row.val}</span>
+          </div>
+        ))}
+      </div>
+      <div>
+        <label style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, display: 'block', marginBottom: 7 }}>수정 제안 *</label>
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="어떻게 수정되면 좋을지 알려주세요 (예: '서울대입구역 4번 출구'로 수정 부탁)"
+          maxLength={300}
+          rows={4}
+          style={{
+            width: '100%', background: TOKEN.surface, borderRadius: 12, padding: '12px 14px',
+            border: `1.5px solid ${TOKEN.border}`, fontSize: 14, color: TOKEN.text1,
+            fontFamily: FONT, outline: 'none', resize: 'vertical', minHeight: 90,
+          }}
+        />
+        <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 4 }}>{note.length}/300</div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 14px', background: TOKEN.surface, borderRadius: 12 }}>
+        <span style={{ fontSize: 12, color: TOKEN.text3, lineHeight: 1.6 }}>제안은 익명으로 전달되고, 검토 후 반영돼요.</span>
+      </div>
+      <button
+        onClick={() => canSubmit && onSubmit(note.trim())}
+        disabled={!canSubmit}
+        style={{
+          width: '100%', padding: '15px 0',
+          background: canSubmit ? TOKEN.cold : '#CDD2DA',
+          color: canSubmit ? '#fff' : '#A0A8B3',
+          border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 700,
+          cursor: canSubmit ? 'pointer' : 'default', fontFamily: FONT,
+          boxShadow: canSubmit ? `0 6px 20px ${TOKEN.cold}38` : 'none',
+        }}
+      >
+        {submitting ? '보내는 중…' : '수정 제안 보내기'}
+      </button>
+    </div>
+  );
+}
+
+function ReportDelete({
+  placeName, placeDistrict, placeType, onSubmit, onCancel, submitting,
+}: {
+  placeName: string; placeDistrict?: string | null; placeType: string;
+  onSubmit: (reasonOption: string) => void; onCancel: () => void; submitting: boolean;
+}) {
+  const options = [
+    '같은 장소가 이미 있어요',
+    '실제로 존재하지 않는 장소예요',
+    '이름이 너무 잘못 등록됐어요',
+    '기타',
+  ];
+  const [picked, setPicked] = useState(options[0]);
+  const typeKo: Record<string, string> = {
+    subway: '지하철', bus: '버스', train: '기차', classroom: '강의실',
+    cafe: '카페·음식점', office: '사무실', library: '도서관', other: '기타',
+  };
+  return (
+    <div style={{ padding: '24px 16px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* warning */}
+      <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 16, padding: '16px 18px' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>삭제 요청 전에 확인해주세요</div>
+        <div style={{ fontSize: 12, color: '#B45309', lineHeight: 1.6 }}>
+          삭제는 즉시 처리되지 않고 관리자 검토 후 반영돼요. 기존 투표 기록은 보존돼요.
+        </div>
+      </div>
+      <div style={{ background: TOKEN.surface, borderRadius: 14, padding: '14px 16px', border: `1px solid ${TOKEN.border}` }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: TOKEN.text3, letterSpacing: '0.5px', marginBottom: 8 }}>삭제 요청 대상</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: TOKEN.text1 }}>{placeName}</div>
+        <div style={{ fontSize: 12, color: TOKEN.text3, marginTop: 3 }}>
+          {[placeDistrict, typeKo[placeType] ?? placeType].filter(Boolean).join(' · ')}
+        </div>
+      </div>
+      <div>
+        <label style={{ fontSize: 12, fontWeight: 700, color: TOKEN.text2, display: 'block', marginBottom: 8 }}>삭제 이유</label>
+        <div style={{ background: TOKEN.surface, borderRadius: 12, overflow: 'hidden', border: `1px solid ${TOKEN.border}` }}>
+          {options.map((opt, i) => {
+            const sel = picked === opt;
+            return (
+              <button
+                key={opt}
+                onClick={() => setPicked(opt)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px',
+                  borderTop: i > 0 ? `1px solid ${TOKEN.border}` : 'none',
+                  background: sel ? TOKEN.hotBg : 'transparent', border: 'none', cursor: 'pointer',
+                  textAlign: 'left', fontFamily: FONT,
+                }}
+              >
+                <div
+                  style={{
+                    width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                    border: `2px solid ${sel ? TOKEN.hot : TOKEN.border}`,
+                    background: sel ? TOKEN.hot : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                  aria-hidden
+                >
+                  {sel && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />}
+                </div>
+                <span style={{ fontSize: 14, color: sel ? TOKEN.hot : TOKEN.text1, fontWeight: sel ? 700 : 400 }}>{opt}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button
+          onClick={() => onSubmit(picked)}
+          disabled={submitting}
+          style={{
+            width: '100%', padding: '14px 0', background: TOKEN.hot, color: '#fff',
+            border: 'none', borderRadius: 14, fontSize: 15, fontWeight: 700,
+            cursor: submitting ? 'default' : 'pointer', fontFamily: FONT,
+            boxShadow: `0 6px 20px ${TOKEN.hot}35`,
+          }}
+        >
+          {submitting ? '보내는 중…' : '삭제 요청 보내기'}
+        </button>
+        <button
+          onClick={onCancel}
+          style={{
+            width: '100%', padding: '13px 0', background: 'none', color: TOKEN.text2,
+            border: `1px solid ${TOKEN.border}`, borderRadius: 14, fontSize: 14,
+            cursor: 'pointer', fontFamily: FONT,
+          }}
+        >
+          취소
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReportDone({ onClose }: { onClose: () => void }) {
+  return (
+    <div style={{ padding: '60px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+      <div
+        style={{
+          width: 64, height: 64, borderRadius: '50%', background: TOKEN.okBg ?? '#F0FDF4',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 30,
+        }}
+        aria-hidden
+      >✓</div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 20, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.4px', marginBottom: 8 }}>
+          제안을 보냈어요
+        </div>
+        <div style={{ fontSize: 13, color: TOKEN.text2, lineHeight: 1.6 }}>
+          관리자가 검토 후 반영해드릴게요.<br />
+          익명으로 전달되어 본인 정보는 남지 않아요.
+        </div>
+      </div>
+      <button
+        onClick={onClose}
+        style={{
+          marginTop: 12, padding: '14px 32px', background: TOKEN.cold, color: '#fff',
+          border: 'none', borderRadius: 14, fontSize: 14, fontWeight: 700,
+          cursor: 'pointer', fontFamily: FONT,
+          boxShadow: `0 6px 20px ${TOKEN.cold}38`,
+        }}
+      >
+        투표 페이지로 돌아가기
+      </button>
+    </div>
   );
 }

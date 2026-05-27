@@ -33,12 +33,17 @@ export {
   BusRouteStationsQuerySchema,
   BusRegionByCoordsQuerySchema,
   UserPlaceCreateBodySchema,
+  PlaceReportBodySchema,
+  ReportReasonSchema,
+  REPORT_REASONS,
   parseBody,
 } from './validation';
 export type {
   CreatePlaceBody,
   UpsertPlaceBody,
   UserPlaceCreateBody,
+  PlaceReportBody,
+  ReportReason,
 } from './validation';
 
 export * as snu from './snu';

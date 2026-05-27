@@ -92,6 +92,18 @@ export const UserPlaceCreateBodySchema = z.object({
 });
 export type UserPlaceCreateBody = z.infer<typeof UserPlaceCreateBodySchema>;
 
+// 장소 정보 신고 — anonymous (voter cookie 기반).
+// 5 reason 중 하나 + 선택 note (수정 제안 / 삭제 이유 등).
+export const REPORT_REASONS = ['not-here', 'wrong-name', 'duplicate', 'delete', 'other'] as const;
+export const ReportReasonSchema = z.enum(REPORT_REASONS);
+export type ReportReason = z.infer<typeof ReportReasonSchema>;
+
+export const PlaceReportBodySchema = z.object({
+  reason: ReportReasonSchema,
+  note: z.string().trim().max(300, 'invalid_note').optional().nullable(),
+});
+export type PlaceReportBody = z.infer<typeof PlaceReportBodySchema>;
+
 // Vote
 export const PostVoteBodySchema = z.object({
   vote: VoteTypeSchema,

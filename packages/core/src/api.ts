@@ -158,6 +158,13 @@ export function createApiClient(options: ApiClientOptions = {}) {
     searchPublicPlaces: (q: string) =>
       request<{ places: PlaceWithCounts[] }>(`/api/places/search?q=${encodeURIComponent(q)}`),
 
+    // 장소 정보 신고 (anonymous). 같은 voter + place + reason 중복 시 409.
+    reportPlace: (placeId: string, input: { reason: string; note?: string | null }) =>
+      request<{ id: string; status: 'pending' }>(
+        `/api/places/${encodeURIComponent(placeId)}/report`,
+        { method: 'POST', body: JSON.stringify(input) },
+      ),
+
     // ── Auth ─────────────────────────────────────────────────────────
     me: () => request<{ user: User | null }>('/api/me'),
     logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
