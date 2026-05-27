@@ -21,7 +21,6 @@ export default function HomeRoute({ initialPlaces }: Props) {
         onWizard={() => router.push('/wizard')}
         onSearch={() => router.push('/wizard')}
         onQR={() => router.push('/qr')}
-        onRegister={() => router.push('/register')}
         onLogin={() => router.push('/login')}
         initialPlaces={initialPlaces}
       />

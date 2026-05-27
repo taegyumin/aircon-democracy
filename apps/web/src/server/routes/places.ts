@@ -74,6 +74,33 @@ placesRoutes.get('/places', async (c) => {
   return c.json({ places: results });
 });
 
+// GET /api/places/search?q=... — 공개(is_public=1) 장소 이름 LIKE 검색.
+// 로그인 불요 — '다른 장소 찾기' 흐름의 첫 단계 (사적 공간은 노출 X).
+placesRoutes.get('/places/search', async (c) => {
+  const q = (c.req.query('q') ?? '').trim();
+  if (q.length < 1) return c.json({ places: [] });
+  const now = Date.now();
+  // 길이 제한 — name 컬럼 최대 ~60자, query 20자면 충분.
+  const safeQ = q.slice(0, 20);
+  const like = `%${safeQ}%`;
+  const { results } = await c.env.DB.prepare(
+    `SELECT
+       p.id, p.name, p.type, p.district, p.detail, p.created_at,
+       COALESCE(SUM(CASE WHEN v.vote='cold' AND v.expires_at > ?1 THEN 1 ELSE 0 END), 0) AS cold,
+       COALESCE(SUM(CASE WHEN v.vote='ok'   AND v.expires_at > ?1 THEN 1 ELSE 0 END), 0) AS ok,
+       COALESCE(SUM(CASE WHEN v.vote='hot'  AND v.expires_at > ?1 THEN 1 ELSE 0 END), 0) AS hot
+     FROM places p
+     LEFT JOIN votes v ON v.place_id = p.id
+     WHERE COALESCE(p.is_public, 1) = 1 AND p.name LIKE ?2
+     GROUP BY p.id
+     ORDER BY (cold + ok + hot) DESC, p.created_at DESC
+     LIMIT 30`,
+  )
+    .bind(now, like)
+    .all<PlaceWithCounts>();
+  return c.json({ places: results });
+});
+
 // GET /api/places/:id — one place + my vote
 placesRoutes.get('/places/:id', async (c) => {
   const id = c.req.param('id');

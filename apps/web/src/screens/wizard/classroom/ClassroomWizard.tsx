@@ -1,22 +1,21 @@
 'use client';
 
 // Classroom wizard — SNUClassroomWizard에 onBack을 전달하는 얇은 wrap.
-// SNUClassroomWizard 자체가 내부 sub-component 구조라 별도 파일 유지.
-// (얇긴 하지만 LocationWizardScreen에 inline 두면 wizard 모듈 패턴이 깨짐 — 유지.)
+// onFreeform은 RegisterScreen으로 가던 옛 흐름 (삭제됨, 2026-05-27). 임시 no-op.
+// 강의실 못 찾으면 사용자가 wizard back → '다른 장소 찾기'로 가야 함.
 
 import { SNUClassroomWizard } from './snu/SNUClassroomWizard';
 
 interface Props {
   onBack: () => void;
   onPicked: (placeId: string) => void;
-  onFreeform: () => void;
 }
 
-export function ClassroomWizard({ onBack, onPicked, onFreeform }: Props) {
+export function ClassroomWizard({ onBack, onPicked }: Props) {
   return (
     <SNUClassroomWizard
       onPicked={onPicked}
-      onFreeform={onFreeform}
+      onFreeform={onBack}
       onBack={onBack}
     />
   );

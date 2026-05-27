@@ -4,7 +4,6 @@
 // 각 wizard는 wizard/<category>/ 디렉토리에 자체 state/UI/pure builder로 분리됨.
 
 import { useState } from 'react';
-import type { PlaceType } from '@aircon/core';
 import { WizardLanding } from './wizard/WizardLanding';
 import { type Category } from './wizard/categories';
 import { BusWizard } from './wizard/bus/BusWizard';
@@ -17,18 +16,18 @@ import { CustomPlaceWizard } from './wizard/custom/CustomPlaceWizard';
 interface Props {
   onBack: () => void;
   onPicked: (placeId: string) => void;
-  onRegisterFreeform: (initialType: PlaceType) => void;
 }
 
-export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: Props) {
+export function LocationWizardScreen({ onBack, onPicked }: Props) {
   const [category, setCategory] = useState<Category | null>(null);
 
   if (!category) {
     return (
       <WizardLanding
         onPickCategory={(k) => {
-          if (k === 'subway' || k === 'bus' || k === 'train' || k === 'classroom' || k === 'other' || k === 'custom') setCategory(k);
-          else onRegisterFreeform(k as PlaceType);
+          if (k === 'subway' || k === 'bus' || k === 'train' || k === 'classroom' || k === 'other' || k === 'custom') {
+            setCategory(k);
+          }
         }}
         onBack={onBack}
       />
@@ -39,7 +38,7 @@ export function LocationWizardScreen({ onBack, onPicked, onRegisterFreeform }: P
   switch (category) {
     case 'other':     return <CafeWizard onBack={back} onPicked={onPicked} />;
     case 'subway':    return <SubwayWizard onBack={back} onPicked={onPicked} />;
-    case 'classroom': return <ClassroomWizard onBack={back} onPicked={onPicked} onFreeform={() => onRegisterFreeform('classroom')} />;
+    case 'classroom': return <ClassroomWizard onBack={back} onPicked={onPicked} />;
     case 'train':     return <TrainWizard onBack={back} onPicked={onPicked} />;
     case 'bus':       return <BusWizard onBack={back} onPicked={onPicked} />;
     case 'custom':    return <CustomPlaceWizard onBack={back} onPicked={onPicked} />;

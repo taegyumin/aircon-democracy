@@ -1,19 +1,24 @@
 'use client';
 
-// 사용자 직접 등록 wizard. 로그인 필수.
-//   Step 1: 등록 폼 (name + type + description).
-//   Step 2: 성공 화면 (link copy / QR 다운로드 / 인쇄 페이지 link).
-// 등록한 공간은 is_public=0 default → 검색에 안 나오고 link/QR로만 접근.
+// '다른 장소 찾기' wizard — 2-step (사용자 결정 2026-05-27):
+//   Step 1: 검색 (로그인 불요) — 공개(is_public=1) 장소 list/검색.
+//   Step 2: 직접 등록 (로그인 가드) — Step 1에서 못 찾으면 'eee직접 등록' 버튼으로 진입.
+//   Step 3: 등록 성공 → 공유 화면 (link/QR/인쇄).
+//
+// 사적 공간(is_public=0)은 검색 안 보이고, 등록 직후 owner의 link/QR로만 공유.
 
 import { useEffect, useState } from 'react';
 import { TOKEN, FONT, type PlaceType } from '@aircon/core';
-import { api } from '../../../lib/apiClient';
+import { api, type PlaceWithCounts } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
+import { PlaceCard } from '../../../components/PlaceCard';
 
 interface Props {
   onBack: () => void;
   onPicked: (placeId: string) => void;
 }
+
+type Phase = 'search' | 'register' | 'success';
 
 const PLACE_TYPE_OPTIONS: { value: PlaceType; label: string }[] = [
   { value: 'office', label: '사무실·매장' },
@@ -23,9 +28,168 @@ const PLACE_TYPE_OPTIONS: { value: PlaceType; label: string }[] = [
   { value: 'other', label: '기타' },
 ];
 
+export function CustomPlaceWizard({ onBack, onPicked }: Props) {
+  const [phase, setPhase] = useState<Phase>('search');
+  const [created, setCreated] = useState<{ id: string; name: string } | null>(null);
+
+  if (phase === 'success' && created) {
+    return <SuccessScreen placeId={created.id} placeName={created.name} onGoVote={() => onPicked(created.id)} onBack={onBack} />;
+  }
+
+  if (phase === 'register') {
+    return (
+      <RegisterStep
+        onBack={() => setPhase('search')}
+        onCreated={(c) => { setCreated(c); setPhase('success'); }}
+      />
+    );
+  }
+
+  return (
+    <SearchStep
+      onBack={onBack}
+      onPickPlace={onPicked}
+      onGoRegister={() => setPhase('register')}
+    />
+  );
+}
+
+// ── Step 1: 검색 (로그인 불요) ─────────────────────────────────────
+
+function SearchStep({
+  onBack, onPickPlace, onGoRegister,
+}: {
+  onBack: () => void;
+  onPickPlace: (placeId: string) => void;
+  onGoRegister: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<PlaceWithCounts[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  // 검색 debounce 250ms.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 1) { setResults([]); setLoading(false); return; }
+    setLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await api.searchPublicPlaces(q);
+        setResults(res.places ?? []);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+        setTouched(true);
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
+      <WizardHeader title="다른 장소 찾기" onBack={onBack} />
+      <div style={{ flex: 1, overflowY: 'auto', padding: '22px 16px 24px' }}>
+        <div style={{ fontSize: 22, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.5px', lineHeight: 1.3, marginBottom: 8 }}>
+          어디서 투표할까요?
+        </div>
+        <div style={{ fontSize: 13, color: TOKEN.text2, lineHeight: 1.6, marginBottom: 20 }}>
+          공개된 장소만 보여요. 못 찾으면 아래에서 직접 등록하실 수 있어요.
+        </div>
+
+        {/* 검색 input */}
+        <div
+          style={{
+            background: TOKEN.surface, borderRadius: 12, padding: '13px 14px',
+            display: 'flex', alignItems: 'center', gap: 9,
+            border: `1.5px solid ${TOKEN.border}`, marginBottom: 14,
+          }}
+        >
+          <SearchIcon size={17} color={TOKEN.text3} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="장소 이름 검색 (예: 삼성전자, 스타벅스 강남점)"
+            autoFocus
+            style={{
+              flex: 1, border: 'none', outline: 'none', background: 'transparent',
+              fontSize: 14, color: TOKEN.text1, fontFamily: FONT, padding: 0,
+            }}
+          />
+        </div>
+
+        {/* 결과 list */}
+        {loading && (
+          <div style={{ padding: '20px 0', fontSize: 13, color: TOKEN.text3, textAlign: 'center' }}>
+            검색 중…
+          </div>
+        )}
+
+        {!loading && results.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+            {results.map((p) => (
+              <PlaceCard key={p.id} place={p} onTap={() => onPickPlace(p.id)} />
+            ))}
+          </div>
+        )}
+
+        {!loading && touched && query.trim() !== '' && results.length === 0 && (
+          <div
+            style={{
+              padding: '24px 16px', background: TOKEN.surface,
+              borderRadius: 12, border: `1px solid ${TOKEN.border}`,
+              textAlign: 'center', marginBottom: 18,
+            }}
+          >
+            <div style={{ fontSize: 13, color: TOKEN.text2, lineHeight: 1.6 }}>
+              "{query}" 검색 결과가 없어요.<br />
+              아직 등록 안 된 장소면 직접 만들 수 있어요.
+            </div>
+          </div>
+        )}
+
+        {/* 직접 등록 row — 검색과 무관하게 항상 노출 (등록 안 된 공간 발견용). */}
+        <button
+          onClick={onGoRegister}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+            background: TOKEN.coldBg,
+            border: `1.5px dashed ${TOKEN.cold}55`,
+            borderRadius: 12, padding: '14px 16px',
+            cursor: 'pointer', fontFamily: FONT, textAlign: 'left',
+          }}
+        >
+          <div
+            style={{
+              width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+              background: TOKEN.cold,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: TOKEN.cold, marginBottom: 2 }}>
+              내 공간 직접 등록
+            </div>
+            <div style={{ fontSize: 11, color: TOKEN.text2, lineHeight: 1.4 }}>
+              사무실·회의실 등 — link·QR로만 공유돼요 (로그인 필요)
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 2: 등록 (로그인 가드) ────────────────────────────────────
+
 type AuthState = 'unknown' | 'logged-in' | 'logged-out';
 
-export function CustomPlaceWizard({ onBack, onPicked }: Props) {
+function RegisterStep({ onBack, onCreated }: { onBack: () => void; onCreated: (c: { id: string; name: string }) => void }) {
   const [authState, setAuthState] = useState<AuthState>('unknown');
 
   useEffect(() => {
@@ -37,7 +201,7 @@ export function CustomPlaceWizard({ onBack, onPicked }: Props) {
   if (authState === 'unknown') {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-        <WizardHeader title="직접 등록" onBack={onBack} />
+        <WizardHeader title="장소 등록" onBack={onBack} />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: TOKEN.text3, fontSize: 13 }}>
           로그인 상태 확인 중…
         </div>
@@ -49,17 +213,15 @@ export function CustomPlaceWizard({ onBack, onPicked }: Props) {
     return <LoginGate onBack={onBack} />;
   }
 
-  return <RegisterForm onBack={onBack} onPicked={onPicked} />;
+  return <RegisterForm onBack={onBack} onCreated={onCreated} />;
 }
-
-// ── 로그인 안 됐을 때 안내 + 로그인 페이지 link ──────────────────────
 
 function LoginGate({ onBack }: { onBack: () => void }) {
   const here = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/wizard';
   const loginUrl = `/login?next=${encodeURIComponent(here)}`;
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-      <WizardHeader title="직접 등록" onBack={onBack} />
+      <WizardHeader title="장소 등록" onBack={onBack} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center', gap: 18 }}>
         <div
           style={{
@@ -92,15 +254,12 @@ function LoginGate({ onBack }: { onBack: () => void }) {
   );
 }
 
-// ── 등록 폼 ───────────────────────────────────────────────────────
-
-function RegisterForm({ onBack, onPicked }: { onBack: () => void; onPicked: (placeId: string) => void }) {
+function RegisterForm({ onBack, onCreated }: { onBack: () => void; onCreated: (c: { id: string; name: string }) => void }) {
   const [name, setName] = useState('');
   const [type, setType] = useState<PlaceType>('office');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [created, setCreated] = useState<{ id: string; name: string } | null>(null);
 
   const canSubmit = name.trim().length >= 2 && !submitting;
 
@@ -113,19 +272,15 @@ function RegisterForm({ onBack, onPicked }: { onBack: () => void; onPicked: (pla
         type,
         description: description.trim() || null,
       });
-      setCreated({ id: res.id, name: res.name });
+      onCreated({ id: res.id, name: res.name });
     } catch (e) {
       setError((e as Error).message);
     } finally { setSubmitting(false); }
   };
 
-  if (created) {
-    return <SuccessScreen placeId={created.id} placeName={created.name} onGoVote={() => onPicked(created.id)} onBack={onBack} />;
-  }
-
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-      <WizardHeader title="직접 등록" onBack={onBack} />
+      <WizardHeader title="장소 등록" onBack={onBack} />
       <div style={{ flex: 1, overflowY: 'auto', padding: '22px 16px 16px' }}>
         <div style={{ fontSize: 22, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.5px', lineHeight: 1.3, marginBottom: 8 }}>
           어떤 공간인가요?
@@ -194,7 +349,7 @@ function RegisterForm({ onBack, onPicked }: { onBack: () => void; onPicked: (pla
   );
 }
 
-// ── 성공 화면 — link + QR + 인쇄 ───────────────────────────────────
+// ── Step 3: 성공 (link/QR/인쇄) ────────────────────────────────────
 
 function SuccessScreen({
   placeId, placeName, onGoVote, onBack,
@@ -208,8 +363,6 @@ function SuccessScreen({
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://aircondemocracy.com';
   const placeUrl = `${origin}/p/${encodeURIComponent(placeId)}`;
   const printUrl = `${origin}/print/${encodeURIComponent(placeId)}`;
-  // QR을 외부 의존 없이 SVG로 즉시 생성 — quickchart API 무의존 + offline safe.
-  // Web `qrcode.react`는 ESM import 필요. 이미 deps에 있음.
   const [QRCode, setQRCode] = useState<typeof import('qrcode.react') | null>(null);
   useEffect(() => {
     import('qrcode.react').then(setQRCode).catch(() => {/* skip */});
@@ -238,13 +391,12 @@ function SuccessScreen({
           url: placeUrl,
         });
         return;
-      } catch { /* user cancelled or error → fallback to copy */ }
+      } catch { /* fallback */ }
     }
     void copyLink();
   };
 
   const downloadQR = () => {
-    // SVG → PNG canvas 변환 + download.
     const svg = document.querySelector('#user-place-qr svg') as SVGElement | null;
     if (!svg) return;
     const xml = new XMLSerializer().serializeToString(svg);
@@ -270,11 +422,10 @@ function SuccessScreen({
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
       <WizardHeader title="등록 완료" onBack={onBack} />
       <div style={{ flex: 1, overflowY: 'auto', padding: '22px 16px 16px' }}>
-        {/* hero */}
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <div
             style={{
-              width: 56, height: 56, borderRadius: '50%', background: TOKEN.okBg ?? '#F0FDF4',
+              width: 56, height: 56, borderRadius: '50%', background: '#F0FDF4',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 28, marginBottom: 10,
             }}
@@ -286,7 +437,6 @@ function SuccessScreen({
           <div style={{ fontSize: 13, color: TOKEN.text2 }}>{placeName}</div>
         </div>
 
-        {/* QR */}
         <div style={{ background: TOKEN.surface, borderRadius: 16, padding: 18, marginBottom: 14, textAlign: 'center', boxShadow: '0 1px 5px rgba(0,0,0,0.06)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: TOKEN.text3, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>
             QR 코드
@@ -306,7 +456,6 @@ function SuccessScreen({
           </div>
         </div>
 
-        {/* Link */}
         <div style={{ background: TOKEN.surface, borderRadius: 16, padding: 16, marginBottom: 14, boxShadow: '0 1px 5px rgba(0,0,0,0.06)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: TOKEN.text3, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 10 }}>
             공유 link
@@ -328,7 +477,6 @@ function SuccessScreen({
           </button>
         </div>
 
-        {/* tip */}
         <div style={{ fontSize: 12, color: TOKEN.text3, lineHeight: 1.6, padding: '0 4px' }}>
           📌 검색에 노출되지 않아요. link 또는 QR로만 접근 가능.<br />
           📌 인쇄 페이지를 출력해 카페·식당에 비치하면 손님이 QR 스캔으로 바로 투표.
@@ -343,7 +491,16 @@ function SuccessScreen({
   );
 }
 
-// ── 작은 UI 헬퍼 ────────────────────────────────────────────────────
+// ── UI 헬퍼 ──────────────────────────────────────────────────────
+
+function SearchIcon({ size = 17, color = '#A0A0AE' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="11" cy="11" r="8" stroke={color} strokeWidth="2" />
+      <path d="M21 21l-4.35-4.35" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '13px 14px',

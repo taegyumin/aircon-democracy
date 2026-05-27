@@ -15,7 +15,6 @@ interface Props {
   onWizard: () => void;
   onSearch: () => void;
   onQR: () => void;
-  onRegister: () => void;
   onLogin?: () => void;
   // Server-fetched 인기 장소 list. RSC가 D1에서 가져와서 첫 HTML에 박음 (SEO + LCP).
   // 없으면 client에서 fetch (fallback — D1 binding 없는 환경 등).
@@ -47,7 +46,7 @@ function SectionHeader({ icon, label }: { icon: 'location' | 'clock'; label: str
 // window 지나면 background refetch로 갱신.
 const STALE_WINDOW_MS = 30_000;
 
-export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR, onRegister, onLogin, initialPlaces }: Props) {
+export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR, onLogin, initialPlaces }: Props) {
   const [places, setPlaces] = useState<PlaceWithCounts[] | null>(initialPlaces ?? null);
   const [error, setError] = useState<string | null>(null);
   const { user, logout } = useUser();
@@ -310,42 +309,9 @@ export function HomeScreen({ onSelectPlace, onWizard, onSearch: _onSearch, onQR,
           </>
         )}
 
-        <button
-          onClick={onRegister}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            width: '100%',
-            padding: '14px 16px',
-            background: TOKEN.coldBg,
-            border: `1.5px dashed ${TOKEN.cold}55`,
-            borderRadius: TOKEN.r.lg,
-            cursor: 'pointer',
-            fontFamily: FONT,
-          }}
-        >
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: TOKEN.r.md,
-              background: TOKEN.cold,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-          </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: TOKEN.cold }}>장소가 없나요? 직접 등록하기</div>
-            <div style={{ fontSize: 11, color: TOKEN.text2, marginTop: 2 }}>등록하면 QR 코드도 바로 받을 수 있어요</div>
-          </div>
-        </button>
+        {/* 2026-05-27: '장소가 없나요? 직접 등록하기' CTA 제거. 사용자 피드백: 메인에서
+            아직 탐색도 안 했는데 '없냐'고 묻는 게 어색. 등록은 wizard → 다른 장소 찾기
+            (custom)로 흐름 통합. */}
       </div>
     </div>
   );

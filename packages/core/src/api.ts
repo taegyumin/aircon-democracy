@@ -153,6 +153,11 @@ export function createApiClient(options: ApiClientOptions = {}) {
         { method: 'POST', body: JSON.stringify(input) },
       ),
 
+    // 공개(is_public=1) 장소 이름 LIKE 검색. 로그인 불요.
+    // '다른 장소 찾기' 첫 단계 — 사적 공간(is_public=0)은 노출 X.
+    searchPublicPlaces: (q: string) =>
+      request<{ places: PlaceWithCounts[] }>(`/api/places/search?q=${encodeURIComponent(q)}`),
+
     // ── Auth ─────────────────────────────────────────────────────────
     me: () => request<{ user: User | null }>('/api/me'),
     logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
