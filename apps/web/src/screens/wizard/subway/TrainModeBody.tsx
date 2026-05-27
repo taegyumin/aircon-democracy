@@ -471,12 +471,14 @@ function MiniProgressBar({ prev, next, progress, color }: { prev: string; next: 
         />
         <div
           style={{
-            position: 'absolute', left: `${pct}%`, top: -5,
+            position: 'absolute', left: `${pct}%`, top: -7,
             transform: 'translateX(-50%)',
             pointerEvents: 'none',
+            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.18))',
           }}
         >
-          <MiniTrainIcon color={color} />
+          {/* prod RouteViz와 동일한 MiniTrain 컴포넌트 재사용 — 시각 일관성. */}
+          <MiniTrain color={color} w={28} h={12} />
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
@@ -487,20 +489,6 @@ function MiniProgressBar({ prev, next, progress, color }: { prev: string; next: 
   );
 }
 
-// 작은 SVG 열차 — body + 2 분리선 + 앞 윈도우 (오른쪽 진행 방향 시각화).
-function MiniTrainIcon({ color }: { color: string }) {
-  return (
-    <svg width={30} height={16} viewBox="0 0 30 16" style={{ display: 'block', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.18))' }} aria-hidden>
-      {/* 차량 body — 뒤쪽은 직각, 앞쪽(우측)은 둥글게 → 진행 방향 hint */}
-      <path d="M2 3 H22 Q28 3 28 8 Q28 13 22 13 H2 Q1 13 1 12 V4 Q1 3 2 3 Z" fill={color} />
-      {/* 차량 칸 분리선 — 3-car 표현 */}
-      <line x1="10" y1="4" x2="10" y2="12" stroke="rgba(255,255,255,0.75)" strokeWidth="1" />
-      <line x1="19" y1="4" x2="19" y2="12" stroke="rgba(255,255,255,0.75)" strokeWidth="1" />
-      {/* 앞 윈도우 — 운전석. 오른쪽 = 진행 방향. */}
-      <rect x="23" y="5" width="3.5" height="6" rx="1" fill="rgba(255,255,255,0.55)" />
-    </svg>
-  );
-}
 
 function sttusToLabel(sttus: string): string {
   switch (sttus) {
