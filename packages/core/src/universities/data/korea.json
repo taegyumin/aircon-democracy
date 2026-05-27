@@ -618,15 +618,29 @@
       "id": "ulsan", "name": "울산대학교", "shortName": "울산대",
       "aliases": ["Ulsan Univ", "무거"], "badge": "울산 (무거)", "placeIdPrefix": "ulsan",
       "notes": "무거캠퍼스 30+ 호관 체계",
-      "sources": ["https://www.ulsan.ac.kr/kor/CMS/CampusMgr/list.do?mCode=MN057", "https://namu.wiki/w/%EC%9A%B8%EC%82%B0%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.ulsan.ac.kr/kor/CMS/CampusMgr/list.do?mCode=MN057", "https://ncms.ulsan.ac.kr/support/6380", "https://readonly.wiki/w/%EC%9A%B8%EC%82%B0%EB%8C%80%ED%95%99%EA%B5%90/%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "mugeo", "name": "무거캠퍼스", "district": "울산 남구 울산대학교",
         "buildings": [
+          { "code": "1호관", "name": "화학공학관 (1호관)", "aliases": [], "college": "공과대학" },
+          { "code": "2호관", "name": "기계항공관 (2호관)", "aliases": [], "college": "공과대학" },
+          { "code": "3호관", "name": "공학행정관 (3호관)", "aliases": [], "college": "공과대학" },
+          { "code": "5호관", "name": "산학협력리더스홀 (5호관)", "aliases": [], "college": "산학협력" },
+          { "code": "7호관", "name": "전기컴퓨터공학관 (7호관)", "aliases": [], "college": "공과대학" },
           { "code": "8호관", "name": "자연과학관 (8호관)", "aliases": [], "college": "자연과학대학" },
+          { "code": "9호관", "name": "대학회관 (9호관)", "aliases": ["해송홀"], "college": "공용시설" },
           { "code": "11호관", "name": "교수연구동 (11호관)", "aliases": [], "college": "공용시설" },
+          { "code": "14호관", "name": "인문관 (14호관)", "aliases": [], "college": "인문대학" },
+          { "code": "15호관", "name": "사회과학관 (15호관)", "aliases": [], "college": "사회과학대학" },
+          { "code": "16호관", "name": "아산도서관 (16호관)", "aliases": ["중앙도서관"], "college": "도서관" },
           { "code": "22호관", "name": "학생회관 (22호관)", "aliases": [], "college": "학생복지" },
+          { "code": "23호관", "name": "건설환경공학관 (23호관)", "aliases": [], "college": "공과대학" },
+          { "code": "24호관", "name": "경영관 (24호관)", "aliases": [], "college": "경영대학" },
           { "code": "25호관", "name": "청운학사 무거관 (25호관)", "aliases": ["기숙사"], "college": "기숙사" },
-          { "code": "26호관", "name": "행정본관 (26호관)", "aliases": ["본관"], "college": "본부" }
+          { "code": "26호관", "name": "행정본관 (26호관)", "aliases": ["본관"], "college": "본부" },
+          { "code": "28호관", "name": "예술관 (28호관)", "aliases": [], "college": "예술대학" },
+          { "code": "35호관", "name": "산학협동관 (35호관)", "aliases": [], "college": "산학협력" },
+          { "code": "37호관", "name": "생활과학관 (37호관)", "aliases": [], "college": "생활과학대학" }
         ]
       }]
     },
