@@ -353,6 +353,9 @@ function NoMatchCard({ onResetBoth, onSwap }: { onResetBoth: () => void; onSwap:
 //
 // 출퇴근 시간 헤드웨이 2~3분이면 prev/next 사이 차량 여러 대 동시에 잡힘. 우리 매칭
 // 로직이 1대로 좁히기 애매한 경우 후보 list 노출 → 사용자가 본인 탑승 차량 직접 tap.
+//
+// 디자인: 사용자 시안 + 우리 LineCard 패턴 결합. 각 카드에 mini progress bar로 차량
+// 위치 시각화 (backend가 estimateProgress 미리 계산해서 보냄).
 
 function CandidatePicker({
   line, prev, next, candidates, onPick,
@@ -364,63 +367,123 @@ function CandidatePicker({
   onPick: (c: import('@aircon/core').SubwayMatchCandidate | null) => void;
 }) {
   const color = lineColor(line);
-  const lineNum = line.replace(/호선|선/g, '').trim() || '?';
   return (
     <div style={{ marginBottom: 12 }}>
+      {/* 헤더 라벨 — LineCard와 동일 패턴 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
         <span style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '0.3px' }}>
           어느 열차에 타고 계세요?
         </span>
       </div>
+
+      {/* 안내 메시지 카드 — light blue 배경 (TOKEN.coldBg) */}
       <div
         style={{
-          background: TOKEN.surface, borderRadius: TOKEN.r.lg,
-          border: `1.5px solid ${color}33`,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-          overflow: 'hidden',
+          background: TOKEN.coldBg, borderRadius: TOKEN.r.md,
+          padding: '12px 14px', marginBottom: 10,
+          display: 'flex', alignItems: 'flex-start', gap: 8,
         }}
       >
-        <div style={{ padding: '12px 16px 4px', fontSize: 11, color: TOKEN.text2, lineHeight: 1.5 }}>
-          {prev} → {next} 구간에 {candidates.length}대 운행 중이에요. 본인 탑승 차량을 선택해주세요.
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: TOKEN.cold, marginTop: 6, flexShrink: 0 }} aria-hidden />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.2px', marginBottom: 2 }}>
+            구간에 열차가 {candidates.length}대 운행 중이에요
+          </div>
+          <div style={{ fontSize: 11, color: TOKEN.text2, lineHeight: 1.5 }}>
+            내가 탄 열차의 위치와 가장 비슷한 걸 탭해주세요
+          </div>
         </div>
-        <div>
-          {candidates.map((c) => {
-            const sttusLabel = sttusToLabel(c.trainSttus);
-            return (
-              <button
-                key={c.trainNo}
-                onClick={() => onPick(c)}
-                style={{
-                  width: '100%', textAlign: 'left', background: 'none', border: 'none',
-                  borderTop: `1px solid ${TOKEN.border}`,
-                  padding: '14px 16px', cursor: 'pointer', fontFamily: FONT,
-                  display: 'flex', alignItems: 'center', gap: 12,
-                }}
-              >
-                <div
-                  style={{
-                    width: 36, height: 36, borderRadius: '50%', background: color, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  <span style={{ fontSize: 13, fontWeight: 900, color: '#fff' }}>{lineNum}</span>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.2px' }}>
-                    {c.trainNo}호 · {c.currentStation} {sttusLabel}
-                  </div>
-                  {c.destination && (
-                    <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>
-                      {c.destination}행
-                    </div>
-                  )}
-                </div>
-                <ArrowRight color={TOKEN.text3} size={16} />
-              </button>
-            );
-          })}
+      </div>
+
+      {/* 후보 카드 list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {candidates.map((c) => (
+          <CandidateCard key={c.trainNo} line={line} prev={prev} next={next} cand={c} onPick={() => onPick(c)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CandidateCard({
+  line, prev, next, cand, onPick,
+}: {
+  line: string;
+  prev: string;
+  next: string;
+  cand: import('@aircon/core').SubwayMatchCandidate;
+  onPick: () => void;
+}) {
+  const color = lineColor(line);
+  const sttusLabel = sttusToLabel(cand.trainSttus);
+  return (
+    <button
+      onClick={onPick}
+      style={{
+        width: '100%', textAlign: 'left', background: TOKEN.surface,
+        border: `1px solid ${TOKEN.border}`, borderRadius: TOKEN.r.md,
+        padding: '12px 14px', cursor: 'pointer', fontFamily: FONT,
+        boxShadow: '0 1px 5px rgba(0,0,0,0.04)',
+      }}
+    >
+      {/* 헤더 — 차량번호 뱃지 + 호수 + 상태 라벨 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <span
+          style={{
+            fontSize: 10, fontWeight: 700, color: '#fff',
+            background: color, padding: '2px 8px', borderRadius: 6,
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {cand.trainNo.slice(0, 2)}
+        </span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.2px' }}>
+          {cand.trainNo}호
+        </span>
+        <span style={{ fontSize: 11, color: TOKEN.text3 }}>·</span>
+        <span style={{ fontSize: 12, color: TOKEN.text2 }}>{sttusLabel}</span>
+        <div style={{ flex: 1 }} />
+        {cand.destination && (
+          <span style={{ fontSize: 10, color: TOKEN.text3 }}>{cand.destination}행</span>
+        )}
+      </div>
+
+      {/* mini progress bar — prev ━━●━━ next */}
+      <MiniProgressBar prev={prev} next={next} progress={cand.progress ?? null} color={color} />
+    </button>
+  );
+}
+
+// 카드용 미니 진행도 바 — RouteViz보다 compact. progress 0~1 (estimateProgress 결과).
+function MiniProgressBar({ prev, next, progress, color }: { prev: string; next: string; progress: number | null; color: string }) {
+  const pct = progress != null ? Math.max(0, Math.min(1, progress)) * 100 : 0;
+  return (
+    <div>
+      <div style={{ position: 'relative', height: 6, background: TOKEN.bg, borderRadius: 3, overflow: 'visible' }}>
+        <div
+          style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0,
+            width: `${pct}%`, background: color, borderRadius: 3,
+            transition: 'width 240ms',
+          }}
+        />
+        {/* 위치 marker — 3개 블럭 (시안 풍) */}
+        <div
+          style={{
+            position: 'absolute', left: `${pct}%`, top: -3, height: 12,
+            transform: 'translateX(-50%)',
+            display: 'flex', gap: 2, alignItems: 'center',
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ width: 4, height: 12, background: color, borderRadius: 1 }} />
+          ))}
         </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+        <span style={{ fontSize: 10, color: TOKEN.text3 }}>{prev}</span>
+        <span style={{ fontSize: 10, color: TOKEN.text3 }}>{next}</span>
       </div>
     </div>
   );
@@ -431,7 +494,7 @@ function sttusToLabel(sttus: string): string {
     case '0': return '진입 중';
     case '1': return '도착';
     case '2': return '출발';
-    case '3': return '전역 출발';
+    case '3': return '이동 중';
     default: return '운행 중';
   }
 }

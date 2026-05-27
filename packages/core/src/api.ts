@@ -194,6 +194,9 @@ export interface SubwayMatchCandidate {
   trainSttus: string;
   direction: 'up' | 'down';
   destination?: string;
+  // mini progress bar 표시용 — backend가 estimateProgress로 미리 계산.
+  progress?: number;
+  progressLabel?: string;
 }
 
 export interface SubwayMatchResult {

@@ -121,16 +121,27 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
       if (tier.length >= 2) { multiCandidates = tier; break; }
     }
     if (multiCandidates) {
+      // 각 후보의 progress 계산 — 카드별 mini bar 표시용.
       return c.json({
         matched: false,
         reason: 'multi_candidate',
-        candidates: multiCandidates.map((r) => ({
-          trainNo: r.trainNo,
-          currentStation: r.statnNm,
-          trainSttus: r.trainSttus,
-          direction: r.updnLine === '0' ? 'up' : 'down',
-          destination: r.statnTnm,
-        })),
+        candidates: multiCandidates.map((r) => {
+          const { progress, progressLabel } = estimateProgress({
+            prev: body.prev,
+            next: body.next,
+            statnNm: r.statnNm,
+            trainSttus: r.trainSttus,
+          });
+          return {
+            trainNo: r.trainNo,
+            currentStation: r.statnNm,
+            trainSttus: r.trainSttus,
+            direction: r.updnLine === '0' ? 'up' : 'down',
+            destination: r.statnTnm,
+            progress,
+            progressLabel,
+          };
+        }),
       });
     }
 

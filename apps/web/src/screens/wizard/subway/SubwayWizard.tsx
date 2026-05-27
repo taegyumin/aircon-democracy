@@ -9,6 +9,7 @@ import {
   TOKEN, FONT, searchStations, neighborNames, STATIONS,
   type Station, findSegments,
   type SubwayMatchCandidate, type SubwayMatchResult,
+  estimateProgress,
 } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { recordLine } from '../../../lib/recentPlaces';
@@ -72,13 +73,18 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
     if (typeof window === 'undefined') return null;
     const mock = new URLSearchParams(window.location.search).get('mock');
     if (mock !== 'multi-candidate' || !resolvedSegment) return null;
+    const { prev, next } = resolvedSegment;
+    const make = (trainNo: string, statnNm: string, sttus: string) => {
+      const { progress, progressLabel } = estimateProgress({ prev, next, statnNm, trainSttus: sttus });
+      return { trainNo, currentStation: statnNm, trainSttus: sttus, direction: 'down' as const, destination: '성수', progress, progressLabel };
+    };
     return {
       matched: false,
       reason: 'multi_candidate',
       candidates: [
-        { trainNo: '2449', currentStation: resolvedSegment.prev, trainSttus: '2', direction: 'down', destination: '성수' },
-        { trainNo: '2451', currentStation: resolvedSegment.next, trainSttus: '0', direction: 'down', destination: '성수' },
-        { trainNo: '2453', currentStation: resolvedSegment.prev, trainSttus: '1', direction: 'down', destination: '성수' },
+        make('2449', prev, '2'), // 막 출발 — 시안의 '발' 카드
+        make('2451', next, '0'), // 진입 중 — '이동 중' 카드
+        make('2453', next, '1'), // 도착 — '거의 도착' 카드
       ],
     };
   }, [resolvedSegment]);
