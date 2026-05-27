@@ -44,6 +44,10 @@ export function GenericUniversityWizard({ university, onPicked, onFreeform, onEx
   const [room, setRoom] = useState('');
   const [submitting, setSubmitting] = useState<string | null>(null);
 
+  // 2026-05-27 머지 fix: 이전엔 useMemo가 'campus' early return 아래에서 호출되어
+  // React Rules of Hooks 위반 (build 실패). 컴포넌트 최상단으로 hoist.
+  const hits = useMemo(() => searchUniversity(university, query, 20), [university, query]);
+
   const back = () => {
     if (view.mode === 'building') setView({ mode: 'search', campus: view.campus });
     else if (view.mode === 'college') setView({ mode: 'search', campus: view.campus });
@@ -126,7 +130,6 @@ export function GenericUniversityWizard({ university, onPicked, onFreeform, onEx
   }
 
   const currentCampus = view.campus;
-  const hits = useMemo(() => searchUniversity(university, query, 20), [university, query]);
   const visibleHits = hits.filter((h) =>
     h.type === 'building' ? h.campus.id === currentCampus.id : h.matches.some((m) => m.campus.id === currentCampus.id)
   );
