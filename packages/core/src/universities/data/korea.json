@@ -532,16 +532,36 @@
     {
       "id": "pusan", "name": "부산대학교", "shortName": "부산대",
       "aliases": ["PNU", "Pusan Nat'l", "부산"], "badge": "부산 (장전)", "placeIdPrefix": "pnu",
-      "sources": ["https://www.pusan.ac.kr/kor/CMS/Contents/Contents.do?mCode=MN212", "https://namu.wiki/w/%EB%B6%80%EC%82%B0%EB%8C%80%ED%95%99%EA%B5%90/%EB%B6%80%EC%82%B0%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
+      "sources": ["https://www.pusan.ac.kr/kor/CMS/Contents/Contents.do?mCode=MN212", "https://sisul.pusan.ac.kr/sisul/42285/subview.do", "https://chemeng.pusan.ac.kr/chemeng/6413/subview.do", "https://namu.wiki/w/%EB%B6%80%EC%82%B0%EB%8C%80%ED%95%99%EA%B5%90/%EB%B6%80%EC%82%B0%EC%BA%A0%ED%8D%BC%EC%8A%A4"],
       "campuses": [{
         "id": "busan", "name": "부산캠퍼스 (장전)", "district": "부산 금정구 부산대학교",
         "buildings": [
-          { "code": "205", "name": "본관", "aliases": [], "college": "본부" },
+          { "code": "103", "name": "제12공학관", "aliases": [], "college": "공과대학" },
+          { "code": "105", "name": "제3공학관(융합기계관)", "aliases": ["융합기계관"], "college": "공과대학" },
+          { "code": "107", "name": "제8공학관(항공관)", "aliases": ["항공관"], "college": "공과대학" },
+          { "code": "108", "name": "제9공학관(기전관)", "aliases": ["기전관"], "college": "공과대학" },
+          { "code": "201", "name": "제6공학관(컴퓨터공학관)", "aliases": ["컴퓨터공학관"], "college": "공과대학" },
+          { "code": "205", "name": "대학본부", "aliases": ["본관"], "college": "본부" },
+          { "code": "206", "name": "제11공학관(조선해양공학관)", "aliases": ["조선해양공학관"], "college": "공과대학" },
+          { "code": "207", "name": "제10공학관(특성화공학관)", "aliases": ["특성화공학관"], "college": "공과대학" },
+          { "code": "303", "name": "기계관", "aliases": [], "college": "공과대학" },
           { "code": "306", "name": "인문관", "aliases": ["김중업 설계", "1959"], "college": "인문대학" },
+          { "code": "308", "name": "제1물리관", "aliases": [], "college": "자연과학대학" },
+          { "code": "309", "name": "제2물리관", "aliases": [], "college": "자연과학대학" },
           { "code": "313", "name": "자연대 연구동", "aliases": [], "college": "자연과학대학" },
-          { "code": "물리관", "name": "물리관", "aliases": [], "college": "자연과학대학" },
-          { "code": "생물관", "name": "생물관", "aliases": [], "college": "자연과학대학" },
-          { "code": "제1공학관", "name": "제1공학관", "aliases": [], "college": "공과대학" }
+          { "code": "405", "name": "제2공학관(재료관)", "aliases": ["재료관"], "college": "공과대학" },
+          { "code": "406", "name": "제7공학관(화공관)", "aliases": ["화공관"], "college": "공과대학" },
+          { "code": "408", "name": "제5공학관(유기소재관)", "aliases": ["유기소재관"], "college": "공과대학" },
+          { "code": "416", "name": "생물관", "aliases": [], "college": "자연과학대학" },
+          { "code": "420", "name": "새벽벌도서관", "aliases": [], "college": "도서관" },
+          { "code": "421", "name": "사회관", "aliases": [], "college": "사회과학대학" },
+          { "code": "503", "name": "약학관", "aliases": [], "college": "약학대학" },
+          { "code": "510", "name": "중앙도서관", "aliases": [], "college": "도서관" },
+          { "code": "514", "name": "경영관", "aliases": [], "college": "경영대학" },
+          { "code": "601", "name": "예술관", "aliases": [], "college": "예술대학" },
+          { "code": "606", "name": "화학관", "aliases": [], "college": "자연과학대학" },
+          { "code": "607", "name": "수학관·공동연구소동", "aliases": ["수학관"], "college": "자연과학대학" },
+          { "code": "708", "name": "학생회관", "aliases": [], "college": "학생복지" }
         ]
       }]
     },
