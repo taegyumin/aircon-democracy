@@ -171,6 +171,29 @@ export function carCountFor(line: string): number {
   return LINE_CAR_COUNT[line] ?? 8;
 }
 
+// LineMeta: 노선 단위 메타데이터 통합 view (color + carCount + sequence).
+// LLM P2 — 이전엔 LINE_COLORS / LINE_CAR_COUNT / LINE_SEQUENCES 세 곳 분산이라
+// 새 노선 추가 시 한 곳만 갱신하기 쉬워 drift 위험. lineMeta() helper로 lookup 통일.
+// sequence는 subwayDirection.ts의 LINE_SEQUENCES에 hard-coded 큰 array라 lookup만
+// (직접 inline은 가독성 해침).
+export interface LineMeta {
+  color: string;
+  carCount: number;
+  // sequence는 단방향 노선만 (1·3·4·5·6·7·8·9호선). 2호선은 순환선이라 정의 X.
+  sequence: string[] | undefined;
+}
+
+// subwayDirection은 import 없는 leaf module — cycle 없음.
+import { LINE_SEQUENCES } from './subwayDirection';
+
+export function lineMeta(line: string): LineMeta {
+  return {
+    color: lineColor(line),
+    carCount: carCountFor(line),
+    sequence: LINE_SEQUENCES[line],
+  };
+}
+
 // STATIONS의 name이 이미 '...역'으로 끝나는 경우 많음 (서울대입구역, 신림역, 봉천역 등).
 // UI에서 "${name}역"으로 박으면 "서울대입구역역" 이중 표기. 끝 '역' 한 번만.
 export function stationDisplay(name: string): string {
