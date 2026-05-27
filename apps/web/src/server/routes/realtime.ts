@@ -107,12 +107,32 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
     }
     const p = normStation(body.prev);
     const n = normStation(body.next);
-    // 1차: 정확 매칭 (next 진입/도착 > prev 출발 > prev 정차 > next 정차)
+    // 1차: 정확 매칭 tier (next 진입/도착 > prev 출발 > prev 정차 > next 정차)
     const atNextEntering = rows.filter((r) => normStation(r.statnNm) === n && (r.trainSttus === '0' || r.trainSttus === '1'));
     const justLeftPrev   = rows.filter((r) => normStation(r.statnNm) === p && r.trainSttus === '2');
     const atPrev         = rows.filter((r) => normStation(r.statnNm) === p && (r.trainSttus === '0' || r.trainSttus === '1'));
     const atNextAny      = rows.filter((r) => normStation(r.statnNm) === n);
-    let picked: typeof rows[0] | undefined = atNextEntering[0] ?? justLeftPrev[0] ?? atPrev[0] ?? atNextAny[0];
+    // 출퇴근 시간에는 같은 tier에 차량 2+대 가능 (헤드웨이 2~3분). 그때는 사용자에게
+    // picker 노출. tier 안 1대만 있으면 자동.
+    let picked: typeof rows[0] | undefined;
+    let multiCandidates: typeof rows | null = null;
+    for (const tier of [atNextEntering, justLeftPrev, atPrev, atNextAny]) {
+      if (tier.length === 1) { picked = tier[0]; break; }
+      if (tier.length >= 2) { multiCandidates = tier; break; }
+    }
+    if (multiCandidates) {
+      return c.json({
+        matched: false,
+        reason: 'multi_candidate',
+        candidates: multiCandidates.map((r) => ({
+          trainNo: r.trainNo,
+          currentStation: r.statnNm,
+          trainSttus: r.trainSttus,
+          direction: r.updnLine === '0' ? 'up' : 'down',
+          destination: r.statnTnm,
+        })),
+      });
+    }
 
     // 2차 (fallback): 정확 매칭 실패 시 sequence 거리 기반 ±3 정거장 내 가장 가까운 차량.
     // 차량 헤드웨이가 길어 prev/next에 차량 없을 때 사용. 같은 방향(이미 필터됨) 보장.

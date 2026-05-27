@@ -187,6 +187,15 @@ export type ApiClient = ReturnType<typeof createApiClient>;
 // Default client — web (same-origin, cookie credentials). 기존 import 경로 호환.
 export const api = createApiClient();
 
+export interface SubwayMatchCandidate {
+  trainNo: string;
+  currentStation: string;
+  // swopenAPI sttus: 0=진입, 1=도착, 2=출발, 3=전역출발
+  trainSttus: string;
+  direction: 'up' | 'down';
+  destination?: string;
+}
+
 export interface SubwayMatchResult {
   matched: boolean;
   trainNo?: string;
@@ -194,6 +203,8 @@ export interface SubwayMatchResult {
   currentStation?: string;
   destination?: string;
   reason?: string;
+  // 같은 tier에 차량 2+대일 때 사용자에게 선택 받기 위해. reason='multi_candidate'와 짝.
+  candidates?: SubwayMatchCandidate[];
   // 0~1 사이 prev → next 진행도. swopenAPI의 statnNm + trainSttus 조합으로 추정.
   // 정확한 위치(GPS)는 못 줘서 5단계 discrete: 정차/막 출발/이동/거의 도착/도착.
   // UI에서 mini-train slider 표시용.

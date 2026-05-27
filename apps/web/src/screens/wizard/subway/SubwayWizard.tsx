@@ -3,11 +3,12 @@
 // 지하철 wizard — 두 mode (열차 안 / 열차 기다리는 중) 토글.
 // 가장 복잡한 wizard라서 sub-component + hook + pure builder로 잘게 쪼갬.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Hourglass, TramFront } from 'lucide-react';
 import {
   TOKEN, FONT, searchStations, neighborNames, STATIONS,
   type Station, findSegments,
+  type SubwayMatchCandidate, type SubwayMatchResult,
 } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { recordLine } from '../../../lib/recentPlaces';
@@ -56,7 +57,24 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
     return pickedLine ? segments.find((s) => s.line === pickedLine) ?? null : null;
   }, [segments, pickedLine]);
 
-  const { trainMatch, matchLoading, bumpNonce } = useSubwayTrainMatch(resolvedSegment);
+  const { trainMatch: rawTrainMatch, matchLoading, bumpNonce } = useSubwayTrainMatch(resolvedSegment);
+
+  // 출퇴근 시간에 같은 tier에 차량 2+대 발견 시 사용자가 picker로 선택. 선택된 차량 정보로
+  // trainMatch 결과 override. 구간 바뀌면 reset.
+  const [pickedCandidate, setPickedCandidate] = useState<SubwayMatchCandidate | null>(null);
+  useEffect(() => {
+    setPickedCandidate(null);
+  }, [resolvedSegment?.line, resolvedSegment?.prev, resolvedSegment?.next]);
+
+  const trainMatch: SubwayMatchResult | null = pickedCandidate
+    ? {
+        matched: true,
+        trainNo: pickedCandidate.trainNo,
+        direction: pickedCandidate.direction,
+        currentStation: pickedCandidate.currentStation,
+        destination: pickedCandidate.destination,
+      }
+    : rawTrainMatch;
 
   const submitTrain = async () => {
     if (!resolvedSegment || car === null || submitting) return;
@@ -189,6 +207,8 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
             onSubmit={submitTrain}
             trainMatch={trainMatch}
             matchLoading={matchLoading}
+            pickedCandidate={pickedCandidate}
+            onPickCandidate={setPickedCandidate}
           />
         ) : (
           <PlatformModeBody

@@ -33,6 +33,8 @@ export interface TrainModeBodyProps {
   onSubmit: () => void;
   trainMatch: SubwayMatchResult | null;
   matchLoading: boolean;
+  pickedCandidate: import('@aircon/core').SubwayMatchCandidate | null;
+  onPickCandidate: (c: import('@aircon/core').SubwayMatchCandidate | null) => void;
 }
 
 // 와이어프레임 SVG 아이콘 (lucide-react 안 쓰고 inline — 디자인 의도 그대로).
@@ -99,7 +101,16 @@ export function TrainModeBody(p: TrainModeBodyProps) {
           onPick={p.setPickedLine}
         />
       )}
-      {segReady && (
+      {segReady && p.trainMatch?.reason === 'multi_candidate' && (p.trainMatch.candidates?.length ?? 0) >= 2 && (
+        <CandidatePicker
+          line={p.resolvedSegment!.line}
+          prev={p.resolvedSegment!.prev}
+          next={p.resolvedSegment!.next}
+          candidates={p.trainMatch.candidates!}
+          onPick={p.onPickCandidate}
+        />
+      )}
+      {segReady && p.trainMatch?.reason !== 'multi_candidate' && (
         <LineCard
           line={p.resolvedSegment!.line}
           prev={p.resolvedSegment!.prev}
@@ -337,6 +348,93 @@ function NoMatchCard({ onResetBoth, onSwap }: { onResetBoth: () => void; onSwap:
 }
 
 // ── Multi-line picker (여러 노선 중 선택) ─────────────────────────
+
+// ── CandidatePicker — 같은 tier에 차량 2+대일 때 사용자 선택 ─────────
+//
+// 출퇴근 시간 헤드웨이 2~3분이면 prev/next 사이 차량 여러 대 동시에 잡힘. 우리 매칭
+// 로직이 1대로 좁히기 애매한 경우 후보 list 노출 → 사용자가 본인 탑승 차량 직접 tap.
+
+function CandidatePicker({
+  line, prev, next, candidates, onPick,
+}: {
+  line: string;
+  prev: string;
+  next: string;
+  candidates: import('@aircon/core').SubwayMatchCandidate[];
+  onPick: (c: import('@aircon/core').SubwayMatchCandidate | null) => void;
+}) {
+  const color = lineColor(line);
+  const lineNum = line.replace(/호선|선/g, '').trim() || '?';
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '0.3px' }}>
+          어느 열차에 타고 계세요?
+        </span>
+      </div>
+      <div
+        style={{
+          background: TOKEN.surface, borderRadius: TOKEN.r.lg,
+          border: `1.5px solid ${color}33`,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ padding: '12px 16px 4px', fontSize: 11, color: TOKEN.text2, lineHeight: 1.5 }}>
+          {prev} → {next} 구간에 {candidates.length}대 운행 중이에요. 본인 탑승 차량을 선택해주세요.
+        </div>
+        <div>
+          {candidates.map((c) => {
+            const sttusLabel = sttusToLabel(c.trainSttus);
+            return (
+              <button
+                key={c.trainNo}
+                onClick={() => onPick(c)}
+                style={{
+                  width: '100%', textAlign: 'left', background: 'none', border: 'none',
+                  borderTop: `1px solid ${TOKEN.border}`,
+                  padding: '14px 16px', cursor: 'pointer', fontFamily: FONT,
+                  display: 'flex', alignItems: 'center', gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    width: 36, height: 36, borderRadius: '50%', background: color, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 900, color: '#fff' }}>{lineNum}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.2px' }}>
+                    {c.trainNo}호 · {c.currentStation} {sttusLabel}
+                  </div>
+                  {c.destination && (
+                    <div style={{ fontSize: 11, color: TOKEN.text3, marginTop: 2 }}>
+                      {c.destination}행
+                    </div>
+                  )}
+                </div>
+                <ArrowRight color={TOKEN.text3} size={16} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function sttusToLabel(sttus: string): string {
+  switch (sttus) {
+    case '0': return '진입 중';
+    case '1': return '도착';
+    case '2': return '출발';
+    case '3': return '전역 출발';
+    default: return '운행 중';
+  }
+}
 
 function LinePickerCard({
   segments, pickedLine, onPick,
