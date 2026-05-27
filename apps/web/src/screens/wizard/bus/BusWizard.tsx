@@ -9,11 +9,12 @@
 // 백엔드: /api/realtime/bus/route-search + /route-stations (data.go.kr 래핑).
 // 차량 매칭은 정류장 확정 후 기존 /bus/match로 호출.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   TOKEN, FONT, distanceM, formatDistance,
   CITY_CODES, SEOUL_REGION,
   type BusRouteCandidate, type BusRouteStation, type Coords,
+  type BusMatchCandidate,
 } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
@@ -97,7 +98,47 @@ export function BusWizard({ onBack, onPicked }: Props) {
   // 정류장 확정 후 차량 매칭 (기존 hook 그대로).
   const { match: rawMatch, loading: matchLoading, tryMatch, reset: resetMatch } = useBusMatch();
   const selectedStopName = stopSel && 'name' in stopSel ? stopSel.name : '';
-  const vehicleMatch = freshenBusMatch(rawMatch, selectedRoute?.name ?? '', selectedStopName, region, selectedRoute?.id);
+  const freshMatch = freshenBusMatch(rawMatch, selectedRoute?.name ?? '', selectedStopName, region, selectedRoute?.id);
+
+  // 다중 차량 후보 picker — 출퇴근 시 같은 stop 근처 차량 2+ 발견 시. 사용자가
+  // 카드 탭하면 그 vehId로 vote bucket 확정. 정류장 바뀌면 reset.
+  const [pickedCandidate, setPickedCandidate] = useState<BusMatchCandidate | null>(null);
+  useEffect(() => { setPickedCandidate(null); }, [selectedStopName, selectedRoute?.id]);
+
+  // dev/prod에서 picker UI 즉시 테스트용 — URL ?mock=multi-candidate-bus.
+  const mockMatch = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const mock = new URLSearchParams(window.location.search).get('mock');
+    if (mock !== 'multi-candidate-bus' || !selectedRoute || !selectedStopName) return null;
+    return {
+      matched: false as const,
+      reason: 'multi_candidate',
+      routeId: selectedRoute.id, routeName: selectedRoute.name,
+      currentStop: selectedStopName,
+      candidates: [
+        { vehId: 'V1', plainNo: '서울74사1234', stOrd: 10, stopFlag: '0', progress: 0.2, progressLabel: 'just-left' as const },
+        { vehId: 'V2', plainNo: '서울74사5678', stOrd: 11, stopFlag: '0', progress: 0.85, progressLabel: 'approaching' as const },
+        { vehId: 'V3', plainNo: '서울74사9012', stOrd: 11, stopFlag: '1', progress: 1, progressLabel: 'at-stop' as const },
+      ],
+      input: { routeName: selectedRoute.name, stopName: selectedStopName, region, routeId: selectedRoute.id },
+    };
+  }, [selectedRoute, selectedStopName, region]);
+
+  // Effective match — picker로 사용자가 선택했으면 그 차량으로 confirmed match override.
+  // mock query 있으면 raw 대신 mock 사용.
+  const baseMatch = mockMatch ?? freshMatch;
+  const vehicleMatch = pickedCandidate && baseMatch
+    ? {
+        ...baseMatch,
+        matched: true,
+        vehId: pickedCandidate.vehId,
+        plainNo: pickedCandidate.plainNo,
+        progress: pickedCandidate.progress,
+        progressLabel: pickedCandidate.progressLabel,
+        reason: undefined,
+        candidates: undefined,
+      }
+    : baseMatch;
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -268,8 +309,27 @@ export function BusWizard({ onBack, onPicked }: Props) {
               typeColor={typeColor}
               stopName={stopSel && 'name' in stopSel ? stopSel.name : null}
               confirmed={!!vehicleMatch?.matched}
+              progress={vehicleMatch?.matched ? vehicleMatch.progress : null}
+              vehPlainNo={vehicleMatch?.matched ? vehicleMatch.plainNo : null}
             />
-            <div style={{ height: 18 }} />
+            <div style={{ height: 12 }} />
+
+            {/* 다중 후보 picker — backend에서 multi_candidate 반환 시 */}
+            {vehicleMatch?.reason === 'multi_candidate' && (vehicleMatch.candidates?.length ?? 0) >= 2 && (
+              <BusCandidatePicker
+                typeColor={typeColor}
+                currentStop={vehicleMatch.currentStop ?? selectedStopName}
+                candidates={vehicleMatch.candidates!}
+                onPick={setPickedCandidate}
+              />
+            )}
+
+            {/* reason 분기 메시지 — 사용자에게 명확한 안내 */}
+            {vehicleMatch && !vehicleMatch.matched && vehicleMatch.reason && vehicleMatch.reason !== 'multi_candidate' && (
+              <BusReasonNote reason={vehicleMatch.reason} typeColor={typeColor} />
+            )}
+
+            <div style={{ height: 8 }} />
 
             {phase === 'route-confirmed' && (
               <GpsRequestCard
@@ -713,12 +773,14 @@ function ConfirmedBusChip({
 }
 
 function BusConfirmCard({
-  route, typeColor, stopName, confirmed,
+  route, typeColor, stopName, confirmed, progress, vehPlainNo,
 }: {
   route: BusRouteCandidate;
   typeColor: string;
   stopName: string | null;
   confirmed: boolean;
+  progress?: number | null;
+  vehPlainNo?: string | null;
 }) {
   return (
     <div style={{ margin: '0 16px' }}>
@@ -786,12 +848,153 @@ function BusConfirmCard({
           </div>
 
           {confirmed && (
-            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckIcon color={TOKEN.ok} size={14} />
-              <span style={{ fontSize: 12, color: TOKEN.ok, fontWeight: 600 }}>버스가 확인됐어요</span>
-            </div>
+            <>
+              <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckIcon color={TOKEN.ok} size={14} />
+                <span style={{ fontSize: 12, color: TOKEN.ok, fontWeight: 600 }}>버스가 확인됐어요</span>
+                {vehPlainNo && (
+                  <>
+                    <span style={{ color: TOKEN.border }}>·</span>
+                    <span style={{ fontSize: 12, color: TOKEN.text2 }}>{vehPlainNo}</span>
+                  </>
+                )}
+              </div>
+              {/* 차량 진행도 mini bar — progress 있을 때만 */}
+              {typeof progress === 'number' && (
+                <BusProgressInline color={typeColor} progress={progress} stopName={stopName} />
+              )}
+            </>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// BusConfirmCard 내부 진행도 bar — 막 출발 → 진입 → 도착 표시.
+function BusProgressInline({ color, progress, stopName }: { color: string; progress: number; stopName: string | null }) {
+  const pct = Math.max(0, Math.min(1, progress)) * 100;
+  const label = progress >= 0.95 ? '도착' : progress >= 0.6 ? '진입 중' : progress >= 0.3 ? '접근 중' : '막 출발';
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ position: 'relative', height: 6, background: TOKEN.bg, borderRadius: 3 }}>
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 240ms' }} />
+        <div
+          style={{
+            position: 'absolute', left: `${pct}%`, top: -5,
+            transform: 'translateX(-50%)',
+            pointerEvents: 'none', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.18))',
+          }}
+        >
+          <MiniBusIcon color={color} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+        <span style={{ fontSize: 10, color: TOKEN.text3 }}>이전 정류장</span>
+        <span style={{ fontSize: 10, color, fontWeight: 700 }}>{label}</span>
+        <span style={{ fontSize: 10, color: TOKEN.text3, maxWidth: '40%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stopName ?? '정류장'}</span>
+      </div>
+    </div>
+  );
+}
+
+// 작은 SVG 버스 — MiniTrain 같은 시각 weight, 버스는 가로형 + 두 바퀴 + 윈도우.
+function MiniBusIcon({ color }: { color: string }) {
+  return (
+    <svg width={28} height={14} viewBox="0 0 28 14" style={{ display: 'block' }} aria-hidden>
+      <rect x="1" y="2" width="22" height="9" rx="2" fill={color} />
+      <rect x="3" y="3.5" width="4" height="4" rx="0.6" fill="rgba(255,255,255,0.55)" />
+      <rect x="8.5" y="3.5" width="4" height="4" rx="0.6" fill="rgba(255,255,255,0.55)" />
+      <rect x="14" y="3.5" width="4" height="4" rx="0.6" fill="rgba(255,255,255,0.55)" />
+      <rect x="19.5" y="3" width="3" height="6" rx="0.8" fill="rgba(255,255,255,0.3)" />
+      <circle cx="6" cy="12" r="1.5" fill={color} />
+      <circle cx="18" cy="12" r="1.5" fill={color} />
+    </svg>
+  );
+}
+
+// 다중 차량 후보 picker — 지하철 CandidatePicker와 같은 패턴. 시안 디자인 적용.
+function BusCandidatePicker({
+  typeColor, currentStop, candidates, onPick,
+}: {
+  typeColor: string;
+  currentStop: string;
+  candidates: BusMatchCandidate[];
+  onPick: (c: BusMatchCandidate) => void;
+}) {
+  return (
+    <div style={{ margin: '0 16px 12px' }}>
+      {/* 헤더 라벨 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: typeColor }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: typeColor, letterSpacing: '0.3px' }}>
+          어느 차량에 타고 계세요?
+        </span>
+      </div>
+      {/* 안내 카드 */}
+      <div style={{ background: TOKEN.coldBg, borderRadius: TOKEN.r.md, padding: '12px 14px', marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: TOKEN.cold, marginTop: 6, flexShrink: 0 }} aria-hidden />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.2px', marginBottom: 2 }}>
+            {currentStop} 근처에 차량 {candidates.length}대 운행 중이에요
+          </div>
+          <div style={{ fontSize: 11, color: TOKEN.text2, lineHeight: 1.5 }}>
+            내가 탄 차량의 위치와 가장 비슷한 걸 탭해주세요
+          </div>
+        </div>
+      </div>
+      {/* 후보 카드 list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {candidates.map((c) => {
+          const label =
+            c.progressLabel === 'at-stop' ? '도착'
+            : c.progressLabel === 'approaching' ? '진입 중'
+            : c.progressLabel === 'just-left' ? '막 출발'
+            : '접근 중';
+          return (
+            <button
+              key={c.vehId}
+              onClick={() => onPick(c)}
+              style={{
+                width: '100%', textAlign: 'left', background: TOKEN.surface,
+                border: `1px solid ${TOKEN.border}`, borderRadius: TOKEN.r.md,
+                padding: '12px 14px', cursor: 'pointer', fontFamily: FONT,
+                boxShadow: '0 1px 5px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: typeColor, padding: '2px 8px', borderRadius: 6 }}>BUS</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.2px' }}>{c.plainNo}</span>
+                <span style={{ fontSize: 11, color: TOKEN.text3 }}>·</span>
+                <span style={{ fontSize: 12, color: TOKEN.text2 }}>{label}</span>
+              </div>
+              <BusProgressInline color={typeColor} progress={c.progress ?? 0.5} stopName={currentStop} />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// 단일 매칭 실패 reason 분기 메시지.
+function BusReasonNote({ reason, typeColor }: { reason: string; typeColor: string }) {
+  const text =
+    reason === 'no_vehicle_at_stop' ? '지금 이 정류장 근처에 운행 중인 차량이 없어요. 잠시 후 다시 확인하거나 정류장 단위로 투표하세요.'
+    : reason === 'route_or_stop_not_found' ? '노선 또는 정류장 매칭에 실패했어요. 정류장 이름이 정확한지 확인해주세요.'
+    : reason === 'no_api_key' ? '실시간 차량 정보를 가져올 수 없어요 (서버 설정).'
+    : `매칭 실패: ${reason}`;
+  return (
+    <div style={{ margin: '0 16px 12px' }}>
+      <div
+        style={{
+          background: TOKEN.surface, borderRadius: TOKEN.r.md, padding: '12px 14px',
+          border: `1px solid ${TOKEN.border}`,
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+        }}
+      >
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: typeColor, marginTop: 6, flexShrink: 0 }} aria-hidden />
+        <div style={{ flex: 1, fontSize: 12, color: TOKEN.text2, lineHeight: 1.5 }}>{text}</div>
       </div>
     </div>
   );
