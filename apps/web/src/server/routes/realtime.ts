@@ -7,9 +7,11 @@ import { estimateProgress } from '@aircon/core';
 import {
   SubwayMatchBodySchema, BusMatchBodySchema,
   BusRouteSearchQuerySchema, BusRouteStationsQuerySchema, BusRegionByCoordsQuerySchema,
+  PoiSearchQuerySchema,
 } from '@aircon/core/validation';
 import { regionByName, SEOUL_REGION } from '@aircon/core';
 import { parseBusRegion, providerFor } from '../busProviders';
+import { naverProvider, kakaoProvider, searchPoiCombined } from '../poiProviders';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
 import type { Env } from '../types';
@@ -239,5 +241,39 @@ realtimeRoutes.post('/realtime/bus/match', async (c) => {
     return c.json(result);
   } catch (e) {
     return c.json({ matched: false, reason: (e as Error).message });
+  }
+});
+
+// POI (카페·음식점) 검색 — NAVER Search Local + Kakao Local 동시 호출, dedup된 결과 반환.
+// 한쪽 키 없으면 그쪽 skip. 둘 다 실패해도 5xx 안 띄움 (UI에서 빈 결과 처리).
+realtimeRoutes.get('/realtime/poi/search', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const parsed = PoiSearchQuerySchema.safeParse({
+    q: c.req.query('q'),
+    lat: c.req.query('lat'),
+    lng: c.req.query('lng'),
+  });
+  if (!parsed.success) return c.json({ error: 'invalid_query' }, 400);
+  const env = c.env as unknown as {
+    NAVER_SEARCH_CLIENT_ID?: string;
+    NAVER_SEARCH_CLIENT_SECRET?: string;
+    KAKAO_REST_API_KEY?: string;
+  };
+  const providers: { naver?: ReturnType<typeof naverProvider>; kakao?: ReturnType<typeof kakaoProvider> } = {};
+  if (env.NAVER_SEARCH_CLIENT_ID && env.NAVER_SEARCH_CLIENT_SECRET) {
+    providers.naver = naverProvider(env.NAVER_SEARCH_CLIENT_ID, env.NAVER_SEARCH_CLIENT_SECRET);
+  }
+  if (env.KAKAO_REST_API_KEY) {
+    providers.kakao = kakaoProvider(env.KAKAO_REST_API_KEY);
+  }
+  if (!providers.naver && !providers.kakao) {
+    return c.json({ results: [], reason: 'no_api_key' });
+  }
+  try {
+    const results = await searchPoiCombined(parsed.data.q, { lat: parsed.data.lat, lng: parsed.data.lng }, providers);
+    return c.json({ results });
+  } catch (e) {
+    return c.json({ results: [], reason: (e as Error).message });
   }
 });

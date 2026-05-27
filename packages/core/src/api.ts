@@ -145,6 +145,17 @@ export function createApiClient(options: ApiClientOptions = {}) {
         `/api/realtime/bus/region-by-coords?lat=${lat}&lng=${lng}`,
       ),
 
+    // POI (카페·음식점) 검색 — NAVER Local + Kakao Local 합쳐서 dedup된 결과.
+    // lat/lng 있으면 Kakao는 위치 기반 검색 (NAVER는 query만, 좌표 미반영).
+    searchPoi: (q: string, opts?: { lat?: number; lng?: number }) => {
+      const params = new URLSearchParams({ q });
+      if (opts?.lat != null) params.set('lat', String(opts.lat));
+      if (opts?.lng != null) params.set('lng', String(opts.lng));
+      return request<{ results: PoiResult[]; reason?: string }>(
+        `/api/realtime/poi/search?${params.toString()}`,
+      );
+    },
+
     // 로그인 사용자가 사적 공간 직접 등록. 비로그인 → 401.
     // placeId 받아 /p/<id> 공유 + QR + 인쇄 페이지로 연결.
     createUserPlace: (input: { name: string; type: string; description?: string | null }) =>
@@ -213,6 +224,16 @@ export interface BusRouteCandidate {
 }
 
 // 노선 정류장 sequence — GPS 기반 nearby pick + 전체 list 둘 다.
+export interface PoiResult {
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  category?: string;
+  source: 'naver' | 'kakao';
+  externalId?: string;
+}
+
 export interface BusRouteStation {
   seq: number;            // 1부터 시작하는 정차 순서
   name: string;

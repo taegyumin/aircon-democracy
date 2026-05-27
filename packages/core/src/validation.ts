@@ -167,6 +167,14 @@ export const BusRegionByCoordsQuerySchema = z.object({
   lng: z.coerce.number().min(-180).max(180),
 });
 
+// POI (카페·음식점) 검색 — NAVER Search Local + Kakao Local 동시 호출 wrapper.
+// lat/lng는 optional (Kakao는 위치 기반 검색 가능, NAVER는 query만).
+export const PoiSearchQuerySchema = z.object({
+  q: z.string().trim().min(1).max(40),
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+});
+
 // Helper for hono routes
 export function parseBody<T>(schema: z.ZodType<T>, raw: unknown): { ok: true; data: T } | { ok: false; error: string } {
   const r = schema.safeParse(raw);

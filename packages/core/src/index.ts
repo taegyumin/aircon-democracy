@@ -33,6 +33,7 @@ export {
   BusRouteSearchQuerySchema,
   BusRouteStationsQuerySchema,
   BusRegionByCoordsQuerySchema,
+  PoiSearchQuerySchema,
   UserPlaceCreateBodySchema,
   PlaceReportBodySchema,
   ReportReasonSchema,
