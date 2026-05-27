@@ -24,6 +24,7 @@ import { listFavorites, type FavoritePlace } from '../lib/favorites';
 import { QuickVoteCard } from '../components/QuickVoteCard';
 import { CategoryPicker } from './wizard/CategoryPicker';
 import type { Category } from './wizard/categories';
+import { SiteFooter } from '../components/Footer';
 
 interface Props {
   onSelectPlace: (id: string) => void;
@@ -175,6 +176,12 @@ export function HomeScreen({ onSelectPlace, onWizard, onQR, onLogin }: Props) {
 
         {/* 카테고리 picker — 탭 시 wizard로 cat 파라미터 전달 */}
         <CategoryPicker onPick={(k) => onWizard(k)} />
+
+        {/* 사업자 정보 footer (전자상거래법 + Kakao 비즈 인증 표시 의무).
+            메인 페이지 scroll 끝에 노출 — vote/wizard 등 다른 화면 UX 영향 X. */}
+        <div style={{ marginTop: 32 }}>
+          <SiteFooter />
+        </div>
       </div>
     </div>
   );

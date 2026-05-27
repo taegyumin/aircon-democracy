@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SiteFooter } from '../../components/Footer';
 
 export const metadata: Metadata = {
   title: '개인정보 처리방침 — 에어컨 민주주의',
@@ -95,6 +96,21 @@ export default function PrivacyPage() {
 
       <h2 style={styles.h2}>8. 문의</h2>
       <p>개인정보 관련 문의: <code style={styles.code}>mtg821@gmail.com</code></p>
+
+      <h2 style={styles.h2}>9. 사업자 정보</h2>
+      <ul style={styles.ul}>
+        <li>상호: 미나리 (Minari)</li>
+        <li>대표자: 민태규</li>
+        <li>사업자등록번호: 147-33-01631</li>
+        <li>사업장 소재지: 충청남도 천안시 서북구 1공단4길 25, 4층 416호 (두정동, 팰리스타워2)</li>
+        <li>업태: 정보통신업 / 도매 및 소매업</li>
+        <li>종목: 응용 소프트웨어 개발 및 공급업 / 전자상거래 소매업</li>
+        <li>문의: <code style={styles.code}>mtg821@gmail.com</code></li>
+      </ul>
+
+      <div style={{ marginTop: 40, marginLeft: -20, marginRight: -20 }}>
+        <SiteFooter />
+      </div>
     </main>
   );
 }
