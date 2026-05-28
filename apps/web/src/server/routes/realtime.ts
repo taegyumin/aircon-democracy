@@ -6,7 +6,7 @@ import { expectedUpdnLine, LINE_SEQUENCES, stripStation } from '@aircon/core/sub
 import { estimateProgress } from '@aircon/core';
 import {
   SubwayMatchBodySchema, BusMatchBodySchema,
-  BusRouteSearchQuerySchema, BusRouteStationsQuerySchema, BusRegionByCoordsQuerySchema,
+  BusRouteSearchQuerySchema, BusRouteStationsQuerySchema, BusRouteVehiclesQuerySchema, BusRegionByCoordsQuerySchema,
   PoiSearchQuerySchema,
   TrainVerifyBodySchema, TrainStationsQuerySchema, RegionalSubwaySearchQuerySchema,
   IntercityBusKindSchema, IntercityBusTerminalsQuerySchema, IntercityBusVerifyBodySchema,
@@ -274,6 +274,22 @@ realtimeRoutes.get('/realtime/bus/route-stations', async (c) => {
     return c.json({ stations });
   } catch (e) {
     return c.json({ stations: [], reason: (e as Error).message });
+  }
+});
+
+// Timeline picker — 노선의 모든 vehicle 위치 list. stopName 입력 없이 노선 ID만으로 호출.
+realtimeRoutes.get('/realtime/bus/route-vehicles', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const parsed = BusRouteVehiclesQuerySchema.safeParse({ routeId: c.req.query('routeId'), region: c.req.query('region') });
+  if (!parsed.success) return c.json({ vehicles: [], reason: 'invalid_query' }, 400);
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ vehicles: [], reason: 'no_api_key' });
+  try {
+    const vehicles = await providerFor(parseBusRegion(parsed.data.region)).listVehicles(parsed.data.routeId, key);
+    return c.json({ vehicles });
+  } catch (e) {
+    return c.json({ vehicles: [], reason: (e as Error).message });
   }
 });
 

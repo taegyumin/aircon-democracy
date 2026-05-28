@@ -170,6 +170,13 @@ export const BusRouteStationsQuerySchema = z.object({
   region: RegionSchema,
 });
 
+// Timeline picker — 노선의 모든 vehicle 위치 한 번에. matchVehicle은 정류장 텍스트
+// 필요해 fail-prone, listVehicles는 stopName 없이 노선 ID만으로 호출.
+export const BusRouteVehiclesQuerySchema = z.object({
+  routeId: z.string().trim().min(1).max(40),
+  region: RegionSchema,
+});
+
 // GPS 좌표 → cityCode (또는 'seoul'). NCP reverse-geocode 래핑용.
 export const BusRegionByCoordsQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90),

@@ -131,6 +131,16 @@ export function createApiClient(options: ApiClientOptions = {}) {
       );
     },
 
+    // Timeline picker용 — 노선의 모든 vehicle 위치 한 번에.
+    // BusWizard 3-step (region·route·vehicle) 마지막 단계에서 시각적 선택.
+    listBusRouteVehicles: (routeId: string, region?: string) => {
+      const params = new URLSearchParams({ routeId });
+      if (region) params.set('region', region);
+      return request<{ vehicles: BusVehiclePosition[]; reason?: string }>(
+        `/api/realtime/bus/route-vehicles?${params.toString()}`,
+      );
+    },
+
     listBusRouteStations: (routeId: string, region?: string) => {
       const params = new URLSearchParams({ routeId });
       if (region) params.set('region', region);
@@ -326,6 +336,16 @@ export interface PoiResult {
   category?: string;
   source: 'naver' | 'kakao';
   externalId?: string;
+}
+
+// Route timeline picker용 — 노선의 모든 vehicle 위치 list (한 시점).
+// 사용자가 시각적 timeline에서 자기 탑승 차량 직접 선택.
+export interface BusVehiclePosition {
+  vehId: string;
+  plainNo: string;          // 차량번호판 (사용자에게 노출)
+  stOrd: number;            // 1-based sequence
+  stopFlag?: string;        // '1' = 도착, 그 외 = 진입/통과
+  busType?: string;         // 일반/저상 등 (선택)
 }
 
 export interface BusRouteStation {

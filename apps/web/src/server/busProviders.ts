@@ -2,13 +2,16 @@
 // LLM P2: routes/realtime.ts에 인라인이었던 700+ 라인 분기를 별도 모듈로.
 // minimal 3-method interface — over-engineering(전반적 ApiAdapter<T>) 회피.
 
-import type { BusMatchResult, BusRouteCandidate, BusRouteStation } from '@aircon/core';
+import type { BusMatchResult, BusRouteCandidate, BusRouteStation, BusVehiclePosition } from '@aircon/core';
 
 // 응답 정규화 형식 — frontend가 받는 것과 동일.
 export interface BusProvider {
   searchRoutes(q: string, key: string): Promise<BusRouteCandidate[]>;
   listStations(routeId: string, key: string): Promise<BusRouteStation[]>;
   matchVehicle(routeName: string, stopName: string, key: string, passedRouteId?: string): Promise<BusMatchResult>;
+  // Timeline picker — 노선 전체 vehicle 한 번에. matchVehicle은 stopName 필요해서
+  // 텍스트 입력 fail prone. listVehicles는 시각적 picker용으로 stopName 없이 노선 vehicle 전체.
+  listVehicles(routeId: string, key: string): Promise<BusVehiclePosition[]>;
 }
 
 // TAGO 응답이 평소엔 ~1s지만 가끔 3-5s까지 늘어남. 2초는 false-negative timeout 잦아
@@ -141,6 +144,19 @@ export const seoulProvider: BusProvider = {
     }
     return { matched: false, reason: 'route_or_stop_not_found' };
   },
+
+  async listVehicles(routeId, key) {
+    const positions = await fetchSeoulJson<SeoulPosItem>(
+      `${SEOUL_HOST}/buspos/getBusPosByRtid?serviceKey=${encodeURIComponent(key)}&busRouteId=${encodeURIComponent(routeId)}&resultType=json`,
+    );
+    return positions.map((p) => ({
+      vehId: p.vehId,
+      plainNo: p.plainNo,
+      stOrd: parseInt(p.stOrd, 10),
+      stopFlag: p.stopFlag,
+      busType: p.busType,
+    }));
+  },
 };
 
 // 정류장 sequence 기반 진행도 — vehStOrd 가 stopSeq 대비 어디 있는지.
@@ -271,6 +287,19 @@ export function tagoProvider(cityCode: number): BusProvider {
         nextStop: nextStation?.nodenm,
         progress, progressLabel,
       };
+    },
+
+    async listVehicles(routeId, key) {
+      interface TagoPos { vehicleno: string; nodenm?: string; nodeord: number }
+      const positions = await fetchTagoJson<TagoPos>(
+        `${TAGO_HOST}/BusLcInfoInqireService/getRouteAcctoBusLcList?serviceKey=${encodeURIComponent(key)}&cityCode=${cityCode}&routeId=${encodeURIComponent(routeId)}&_type=json&numOfRows=200`,
+      );
+      return positions.map((p) => ({
+        vehId: p.vehicleno,
+        plainNo: p.vehicleno, // TAGO는 vehicleno가 차량번호판 자체.
+        stOrd: typeof p.nodeord === 'number' ? p.nodeord : parseInt(String(p.nodeord), 10),
+        // TAGO는 stopFlag 정보 없음. 진입/도착 구분 불가 — picker에서 시각 표현은 같은 icon.
+      }));
     },
   };
 }
