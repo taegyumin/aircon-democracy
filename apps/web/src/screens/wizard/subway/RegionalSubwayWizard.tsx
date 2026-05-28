@@ -77,8 +77,8 @@ export function RegionalSubwayBody({ onPicked }: Props) {
 
   return (
     <div style={{ fontFamily: FONT }}>
-        <div style={{ marginBottom: 14, padding: 12, background: '#FEF3C7', borderRadius: TOKEN.r.md, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
-          이 지역은 차량 단위 식별이 어려워 역 단위로 투표합니다.
+        <div style={{ marginBottom: 14, padding: 10, background: '#EFF6FF', borderRadius: TOKEN.r.sm, fontSize: 11.5, color: '#1E40AF', lineHeight: 1.5 }}>
+          역 단위로 투표해요. 전국 도시철도 역 모두 검색돼요.
         </div>
 
         <Label>지역</Label>

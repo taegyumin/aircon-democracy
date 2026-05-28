@@ -15,7 +15,7 @@ import { api } from '../../../lib/apiClient';
 import { recordLine } from '../../../lib/recentPlaces';
 import { WizardHeader } from '../WizardHeader';
 import { TrainModeBody } from './TrainModeBody';
-import { PlatformModeBody } from './PlatformModeBody';
+import { RegionalSubwayBody } from './RegionalSubwayWizard';
 import { useSubwayTrainMatch } from './useSubwayTrainMatch';
 import { buildSubwayTrainPlace, buildSubwayPlatformPlace } from './buildSubwayPlace';
 
@@ -209,10 +209,12 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
           </button>
         </div>
 
-        {/* 수도권 only 안내 — 편애가 아니라 공공 API 지원 범위 한계. */}
-        <div style={{ marginBottom: 14, padding: 10, background: '#EFF6FF', borderRadius: TOKEN.r.sm, fontSize: 11.5, color: '#1E40AF', lineHeight: 1.5 }}>
-          현재는 <b>수도권 지하철</b>만 지원해요. 부산·대구·광주·대전·인천2호선 등 지방 도시철도는 차량 식별 공공 API가 없어 추후 지원 예정.
-        </div>
+        {/* 안내는 mode='train' 에만. platform 모드는 전국 역 단위 cover. */}
+        {mode === 'train' && (
+          <div style={{ marginBottom: 14, padding: 10, background: '#EFF6FF', borderRadius: TOKEN.r.sm, fontSize: 11.5, color: '#1E40AF', lineHeight: 1.5 }}>
+            <b>열차 안</b> 모드는 차량 단위 식별이 가능한 <b>수도권 지하철</b>만 지원해요. 부산·대구·광주·대전·인천2호선은 <b>'열차 기다리는 중'</b>으로.
+          </div>
+        )}
 
         {mode === 'train' ? (
           <TrainModeBody
@@ -239,15 +241,7 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
             onPickCandidate={setPickedCandidate}
           />
         ) : (
-          <PlatformModeBody
-            query={platQuery} setQuery={setPlatQuery}
-            station={platStation} setStation={setPlatStation}
-            suggestions={platSuggestions}
-            error={error}
-            submitting={submitting}
-            canSubmit={platformCanSubmit}
-            onSubmit={submitPlatform}
-          />
+          <RegionalSubwayBody onPicked={onPicked} />
         )}
       </div>
     </div>
