@@ -40,7 +40,7 @@ export function useSubwayTrainMatch(resolvedSegment: ResolvedSegment | null): Us
       next: resolvedSegment.next,
     })
       .then((res) => { if (!cancelled) setTrainMatch(res); })
-      .catch(() => { if (!cancelled) setTrainMatch({ matched: false, reason: 'network' }); })
+      .catch(() => { if (!cancelled) setTrainMatch({ matched: false, reason: 'upstream_error' }); })
       .finally(() => { if (!cancelled) setMatchLoading(false); });
     return () => { cancelled = true; };
   }, [resolvedSegment?.line, resolvedSegment?.prev, resolvedSegment?.next, matchNonce]);

@@ -16,6 +16,7 @@ import { parseBusRegion, providerFor } from '../busProviders';
 import { naverProvider, kakaoProvider, searchPoiCombined } from '../poiProviders';
 import { trainInfoProvider, subwayInfoProvider, intercityBusProvider } from '../tagoProviders';
 import { everlineProvider, EVERLINE_STATIONS } from '../everlineProvider';
+import { fetchSwopenApiPositions } from '../swopenApiProvider';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
 import type { Env } from '../types';
@@ -127,8 +128,8 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
         progress: picked.stCode === nextS.stCode ? 0.95 : 0.2,
         progressLabel: picked.stCode === nextS.stCode ? 'approaching-next' : 'just-left-prev',
       });
-    } catch (e) {
-      return c.json({ matched: false, reason: (e as Error).message });
+    } catch {
+      return c.json({ matched: false, reason: 'upstream_error' });
     }
   }
 
@@ -136,30 +137,12 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
   if (!key) return c.json({ matched: false, reason: 'no_api_key' });
   // prev→next가 어느 updnLine 방향인지 결정 (반대 방향 차량 거름).
   const expectedDir = expectedUpdnLine(body.line, body.prev, body.next);
+  const swopen = await fetchSwopenApiPositions(body.line, key);
+  if (swopen.kind === 'unsupported') return c.json({ matched: false, reason: 'realtime_unsupported' });
+  if (swopen.kind === 'service_closed') return c.json({ matched: false, reason: 'service_closed' });
+  if (swopen.kind === 'upstream_error') return c.json({ matched: false, reason: 'upstream_error' });
+  const allRows = swopen.rows;
   try {
-    const url = `http://swopenAPI.seoul.go.kr/api/subway/${encodeURIComponent(key)}/json/realtimePosition/0/200/${encodeURIComponent(body.line)}`;
-    const res = await timedFetch(url);
-    if (!res.ok) throw new Error(`upstream_${res.status}`);
-    const data = (await res.json()) as {
-      errorMessage?: { code?: string };
-      status?: number;
-      code?: string;
-      realtimePositionList?: Array<{ subwayId: string; statnNm: string; trainSttus: string; updnLine: string; trainNo: string; statnTnm?: string }>;
-    };
-    // swopenAPI는 응답 envelope에 code를 errorMessage.code (일반 응답) 또는 root code
-    // (status=500 + INFO-200 같은 special 응답) 둘 다로 줌. 양쪽 다 체크.
-    const apiCode = data.errorMessage?.code ?? data.code;
-    const allRows = data.realtimePositionList ?? [];
-    // INFO-200 "해당하는 데이터가 없습니다" — swopenAPI가 이 노선 데이터 자체를 안 가짐
-    // (김포골드라인/의정부경전철/용인경전철 등). 운행 시간 무관.
-    if (apiCode === 'INFO-200') {
-      return c.json({ matched: false, reason: 'realtime_unsupported' });
-    }
-    // INFO-000 + 0건 = 운행 종료. 서울 도시철도 헤드웨이 5~8분이라 운행 시간대엔 항상
-    // 노선당 최소 10대+ 운행 (2호선 한 바퀴 100분 / 5분 = 20대 등). 0대는 사실상 운행 외.
-    if (apiCode === 'INFO-000' && allRows.length === 0) {
-      return c.json({ matched: false, reason: 'service_closed' });
-    }
     let rows = allRows;
     if (expectedDir !== null) {
       rows = rows.filter((r) => r.updnLine === expectedDir);
@@ -240,8 +223,8 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
       progress,
       progressLabel,
     });
-  } catch (e) {
-    return c.json({ matched: false, reason: (e as Error).message });
+  } catch {
+    return c.json({ matched: false, reason: 'upstream_error' });
   }
 });
 

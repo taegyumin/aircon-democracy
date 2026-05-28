@@ -283,13 +283,29 @@ export interface SubwayMatchCandidate {
   progressLabel?: string;
 }
 
+// Subway match failure reasons — 표준 enum.
+// 서버는 이 외 임의 string 반환 안 함 (catch error는 'upstream_error'로 normalize).
+// client는 이 union으로 매칭 안내 UI 분기.
+export const SUBWAY_MATCH_REASONS = [
+  'no_train_at_segment',     // 해당 구간에 차량 없음 (운행 시간 무관)
+  'multi_candidate',         // 같은 tier에 2+대 — 사용자 picker 필요
+  'no_api_key',              // 서버에 SEOUL_REALTIME_KEY 없음
+  'realtime_unsupported',    // swopenAPI가 이 노선 데이터 자체를 안 가짐 (지방 경전철 등)
+  'service_closed',          // 운행 종료 (헤드웨이 기준 0대)
+  'temporarily_closed',      // kill switch
+  'forbidden',               // blocked subject
+  'too_many_requests',       // rate limit
+  'upstream_error',          // swopenAPI/에버라인 호출 실패
+] as const;
+export type SubwayMatchReason = typeof SUBWAY_MATCH_REASONS[number];
+
 export interface SubwayMatchResult {
   matched: boolean;
   trainNo?: string;
   direction?: 'up' | 'down';
   currentStation?: string;
   destination?: string;
-  reason?: string;
+  reason?: SubwayMatchReason;
   // 같은 tier에 차량 2+대일 때 사용자에게 선택 받기 위해. reason='multi_candidate'와 짝.
   candidates?: SubwayMatchCandidate[];
   // 0~1 사이 prev → next 진행도. swopenAPI의 statnNm + trainSttus 조합으로 추정.
