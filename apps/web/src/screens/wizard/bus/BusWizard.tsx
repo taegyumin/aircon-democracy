@@ -20,6 +20,8 @@ import { api } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
 import { useBusMatch, freshenBusMatch } from './useBusMatch';
 import { buildBusPlace } from './buildBusPlace';
+import { RouteTimeline } from './RouteTimeline';
+import type { BusVehiclePosition } from '@aircon/core';
 
 // region: 'seoul' (ws.bus.go.kr) 또는 cityCode 숫자 문자열 (TAGO 1613000).
 // 사용자 변경 가능. GPS로 자동 추론 후 사용자가 dropdown으로 override.
@@ -105,6 +107,39 @@ export function BusWizard({ onBack, onPicked }: Props) {
   const [pickedCandidate, setPickedCandidate] = useState<BusMatchCandidate | null>(null);
   useEffect(() => { setPickedCandidate(null); }, [selectedStopName, selectedRoute?.id]);
 
+  // ── Timeline picker — 노선의 vehicle 전체를 시각적으로 노출. 정류장 이름 입력 우회 ──
+  // 사용자가 자기 탑승 차량을 직접 클릭. 사용자 정책 (2026-05-28):
+  // "정류장 이름 외우는 사람 없다. 시각적으로 보여주고 선택"
+  const [vehicles, setVehicles] = useState<BusVehiclePosition[]>([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
+  const [pickedTimelineVeh, setPickedTimelineVeh] = useState<BusVehiclePosition | null>(null);
+  const vehiclesSeqRef = useRef(0);
+
+  // 노선 확정 시 vehicles 로드. 노선 바뀌면 reset + refetch.
+  useEffect(() => {
+    if (!selectedRoute) { setVehicles([]); setPickedTimelineVeh(null); return; }
+    const mySeq = ++vehiclesSeqRef.current;
+    setVehiclesLoading(true); setPickedTimelineVeh(null);
+    api.listBusRouteVehicles(selectedRoute.id, region).then((r) => {
+      if (vehiclesSeqRef.current !== mySeq) return;
+      setVehicles(r.vehicles ?? []);
+      setVehiclesLoading(false);
+    }).catch(() => {
+      if (vehiclesSeqRef.current !== mySeq) return;
+      setVehicles([]); setVehiclesLoading(false);
+    });
+  }, [selectedRoute, region]);
+
+  // Timeline pick → phase='stops' + stopSel 자동 set. canSubmit 활성화 위해.
+  useEffect(() => {
+    if (!pickedTimelineVeh) return;
+    const stopAt = stations.find((s) => s.seq === pickedTimelineVeh.stOrd);
+    if (stopAt) {
+      setStopSel(stopAt);
+      setPhase('stops');
+    }
+  }, [pickedTimelineVeh, stations]);
+
   // dev/prod에서 picker UI 즉시 테스트용 — URL ?mock=multi-candidate-bus.
   const mockMatch = useMemo(() => {
     if (typeof window === 'undefined') return null;
@@ -127,7 +162,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
   // Effective match — picker로 사용자가 선택했으면 그 차량으로 confirmed match override.
   // mock query 있으면 raw 대신 mock 사용.
   const baseMatch = mockMatch ?? freshMatch;
-  const vehicleMatch = pickedCandidate && baseMatch
+  const matchAfterCandidate = pickedCandidate && baseMatch
     ? {
         ...baseMatch,
         matched: true,
@@ -139,6 +174,18 @@ export function BusWizard({ onBack, onPicked }: Props) {
         candidates: undefined,
       }
     : baseMatch;
+  // Timeline picker가 가장 우선 — 사용자가 자기 차량 직접 클릭.
+  const vehicleMatch = pickedTimelineVeh
+    ? {
+        matched: true as const,
+        vehId: pickedTimelineVeh.vehId,
+        plainNo: pickedTimelineVeh.plainNo,
+        routeId: selectedRoute?.id,
+        routeName: selectedRoute?.name,
+        currentStop: stations.find((s) => s.seq === pickedTimelineVeh.stOrd)?.name,
+        nextStop: stations.find((s) => s.seq === pickedTimelineVeh.stOrd + 1)?.name,
+      }
+    : matchAfterCandidate;
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -313,6 +360,24 @@ export function BusWizard({ onBack, onPicked }: Props) {
               vehPlainNo={vehicleMatch?.matched ? vehicleMatch.plainNo : null}
             />
             <div style={{ height: 12 }} />
+
+            {/* ★ Timeline picker — 노선 정류장 + vehicle 시각화. 사용자가 자기 버스 직접 클릭.
+                "정류장 이름 외우는 사람 없다" 정책에 따라 정류장 텍스트 입력 우회. */}
+            {stations.length > 0 && (
+              <div style={{ padding: '0 16px', marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: TOKEN.text2, fontWeight: 700, marginBottom: 8, letterSpacing: '0.3px' }}>
+                  내가 탄 버스를 골라주세요
+                  {vehiclesLoading && <span style={{ fontWeight: 400, color: TOKEN.text3, marginLeft: 6 }}>· 위치 갱신 중…</span>}
+                </div>
+                <RouteTimeline
+                  stations={stations}
+                  vehicles={vehicles}
+                  selectedVehId={pickedTimelineVeh?.vehId ?? null}
+                  onPickVehicle={setPickedTimelineVeh}
+                  userLatLng={coords ? { lat: coords.lat, lng: coords.lng } : null}
+                />
+              </div>
+            )}
 
             {/* 다중 후보 picker — backend에서 multi_candidate 반환 시 */}
             {vehicleMatch?.reason === 'multi_candidate' && (vehicleMatch.candidates?.length ?? 0) >= 2 && (
