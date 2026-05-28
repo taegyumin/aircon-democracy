@@ -17,6 +17,7 @@ import { naverProvider, kakaoProvider, searchPoiCombined } from '../poiProviders
 import { trainInfoProvider, subwayInfoProvider, intercityBusProvider } from '../tagoProviders';
 import { everlineProvider, EVERLINE_STATIONS } from '../everlineProvider';
 import { fetchSwopenApiPositions } from '../swopenApiProvider';
+import type { SubwayMatchResult } from '@aircon/core';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
 import type { Env } from '../types';
@@ -79,6 +80,9 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
   if (!parsed.success) return c.json({ error: 'invalid_body' }, 400);
   const body = parsed.data;
 
+  // 모든 정상 응답은 SubwayMatchResult contract 강제. 응답 필드 누락/잘못된 reason을 build-time에 catch.
+  const ok = (r: SubwayMatchResult) => c.json(r);
+
   // ── 에버라인 분기 (비공식 everlinecu.com) ──────────────────────────
   // swopenAPI 미커버 노선 — 운영사 자체 endpoint 사용. 응답 schema를 swopenAPI 형식과
   // 동일하게 변환해 frontend(SubwayWizard)가 분기 없이 그대로 사용 가능.
@@ -89,7 +93,7 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
       const stripStn = (n: string) => n.endsWith('역') ? n.slice(0, -1) : n;
       const prevS = stByName.get(body.prev) ?? stByName.get(stripStn(body.prev));
       const nextS = stByName.get(body.next) ?? stByName.get(stripStn(body.next));
-      if (!prevS || !nextS) return c.json({ matched: false, reason: 'no_train_at_segment' });
+      if (!prevS || !nextS) return ok({ matched: false, reason: 'no_train_at_segment' });
       // prevY < nextY → 에버랜드행(updownCode=2), 반대는 기흥행(1).
       const prevY = parseInt(prevS.stCode.slice(1), 10);
       const nextY = parseInt(nextS.stCode.slice(1), 10);
@@ -105,7 +109,7 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
         if (tier.length >= 2) { multi = tier; break; }
       }
       if (multi) {
-        return c.json({
+        return ok({
           matched: false, reason: 'multi_candidate',
           candidates: multi.map((v) => ({
             trainNo: v.trainNo,
@@ -118,8 +122,8 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
           })),
         });
       }
-      if (!picked) return c.json({ matched: false, reason: 'no_train_at_segment' });
-      return c.json({
+      if (!picked) return ok({ matched: false, reason: 'no_train_at_segment' });
+      return ok({
         matched: true,
         trainNo: picked.trainNo,
         direction: expectedDirection === 'giheung' ? 'up' : 'down',
@@ -129,18 +133,18 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
         progressLabel: picked.stCode === nextS.stCode ? 'approaching-next' : 'just-left-prev',
       });
     } catch {
-      return c.json({ matched: false, reason: 'upstream_error' });
+      return ok({ matched: false, reason: 'upstream_error' });
     }
   }
 
   const key = (c.env as unknown as { SEOUL_REALTIME_KEY?: string }).SEOUL_REALTIME_KEY;
-  if (!key) return c.json({ matched: false, reason: 'no_api_key' });
+  if (!key) return ok({ matched: false, reason: 'no_api_key' });
   // prev→next가 어느 updnLine 방향인지 결정 (반대 방향 차량 거름).
   const expectedDir = expectedUpdnLine(body.line, body.prev, body.next);
   const swopen = await fetchSwopenApiPositions(body.line, key);
-  if (swopen.kind === 'unsupported') return c.json({ matched: false, reason: 'realtime_unsupported' });
-  if (swopen.kind === 'service_closed') return c.json({ matched: false, reason: 'service_closed' });
-  if (swopen.kind === 'upstream_error') return c.json({ matched: false, reason: 'upstream_error' });
+  if (swopen.kind === 'unsupported') return ok({ matched: false, reason: 'realtime_unsupported' });
+  if (swopen.kind === 'service_closed') return ok({ matched: false, reason: 'service_closed' });
+  if (swopen.kind === 'upstream_error') return ok({ matched: false, reason: 'upstream_error' });
   const allRows = swopen.rows;
   try {
     let rows = allRows;
@@ -164,7 +168,7 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
     }
     if (multiCandidates) {
       // 각 후보의 progress 계산 — 카드별 mini bar 표시용.
-      return c.json({
+      return ok({
         matched: false,
         reason: 'multi_candidate',
         candidates: multiCandidates.map((r) => {
@@ -206,7 +210,7 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
       }
     }
 
-    if (!picked) return c.json({ matched: false, reason: 'no_train_at_segment' });
+    if (!picked) return ok({ matched: false, reason: 'no_train_at_segment' });
     // 진행도 추정 — UI의 mini-train slider 표시용 (시안 A).
     const { progress, progressLabel } = estimateProgress({
       prev: body.prev,
@@ -214,7 +218,7 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
       statnNm: picked.statnNm,
       trainSttus: picked.trainSttus,
     });
-    return c.json({
+    return ok({
       matched: true,
       trainNo: picked.trainNo,
       direction: picked.updnLine === '0' ? 'up' : 'down',
@@ -224,7 +228,7 @@ realtimeRoutes.post('/realtime/subway/match', async (c) => {
       progressLabel,
     });
   } catch {
-    return c.json({ matched: false, reason: 'upstream_error' });
+    return ok({ matched: false, reason: 'upstream_error' });
   }
 });
 
