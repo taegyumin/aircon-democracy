@@ -51,7 +51,7 @@ export function HomeScreen({ onSelectPlace, onWizard, onQR, onLogin }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 16px 14px' }}>
           <img src="/icon.png" alt="" style={{ width: 30, height: 30, borderRadius: 8 }} />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.4px', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 17, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.4px', lineHeight: 1.2 }}>
               에어컨 민주주의
             </div>
             <div style={{ fontSize: 9, color: TOKEN.text3, letterSpacing: '1.8px', marginTop: 1 }}>AIRCON DEMOCRACY</div>
@@ -165,11 +165,8 @@ export function HomeScreen({ onSelectPlace, onWizard, onQR, onLogin }: Props) {
         {/* 헤드라인 — 첫 방문이면 강조, 재방문이면 카테고리 그리드 위 가벼운 안내 */}
         {!hasReturning && (
           <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.5px', lineHeight: 1.35, marginBottom: 6 }}>
+            <div style={{ fontSize: 22, fontWeight: 900, color: TOKEN.text1, letterSpacing: '-0.5px', lineHeight: 1.35 }}>
               지금 어디 계세요?
-            </div>
-            <div style={{ fontSize: 13, color: TOKEN.text2, lineHeight: 1.6 }}>
-              장소 유형을 고르면 바로 투표할 수 있어요
             </div>
           </div>
         )}

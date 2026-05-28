@@ -32,8 +32,8 @@ export const CATEGORIES: CategoryDef[] = [
   { key: 'bus',           Icon: Bus,        tint: '#16A34A', label: '전국 시내버스',  sub: '서울·전국 138개 시·군',                  group: 'move', rank: 'secondary' },
   { key: 'intercity-bus', Icon: Bus,        tint: '#0EA5E9', label: '고속·시외버스', sub: '좌석권 기반 (출도착·시각·차종)',         group: 'move', rank: 'secondary' },
   { key: 'train',         Icon: TrainFront, tint: '#DC2626', label: '기차',         sub: 'KTX·SRT·ITX·새마을·무궁화',                group: 'move', rank: 'muted' },
-  { key: 'classroom', Icon: GraduationCap, tint: '#7C3AED', label: '대학교 강의실', sub: '캠퍼스·건물·강의실 단위',  group: 'stay', rank: 'secondary' },
-  { key: 'other',     Icon: MapPin,        tint: '#F97316', label: '카페·음식점', sub: '카페·식당',              group: 'stay', rank: 'secondary' },
+  { key: 'classroom', Icon: GraduationCap, tint: '#7C3AED', label: '대학교 강의실', sub: '',  group: 'stay', rank: 'secondary' },
+  { key: 'other',     Icon: MapPin,        tint: '#F97316', label: '카페·음식점', sub: '',  group: 'stay', rank: 'secondary' },
   // 다른 장소 찾기 — 사무실·회의실 등 검색하거나 직접 등록. CategoryPicker에서 stay grid
   // 와 분리된 footer row로 노출 (Place Select Redesign v2).
   { key: 'custom',    Icon: PencilLine,    tint: '#475569', label: '다른 장소 찾기', sub: '사무실·회의실 등 — 검색하거나 직접 등록',  group: 'stay', rank: 'secondary' },
