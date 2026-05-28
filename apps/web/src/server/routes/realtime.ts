@@ -15,6 +15,7 @@ import { regionByName, SEOUL_REGION } from '@aircon/core';
 import { parseBusRegion, providerFor } from '../busProviders';
 import { naverProvider, kakaoProvider, searchPoiCombined } from '../poiProviders';
 import { trainInfoProvider, subwayInfoProvider, intercityBusProvider } from '../tagoProviders';
+import { everlineProvider, EVERLINE_STATIONS } from '../everlineProvider';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
 import type { Env } from '../types';
@@ -445,6 +446,19 @@ realtimeRoutes.post('/realtime/intercity-bus/:kind/verify', async (c) => {
     return c.json(result);
   } catch (e) {
     return c.json({ matched: false, reason: (e as Error).message });
+  }
+});
+
+// ── 용인에버라인 (비공식 everlinecu.com) ─────────────────────────
+// 실시간 차량 위치 + 정적 역 list. 키 불필요. 운영사가 일방 차단 시 즉시 빈 응답.
+realtimeRoutes.get('/realtime/everline/positions', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  try {
+    const vehicles = await everlineProvider.listVehicles();
+    return c.json({ vehicles, stations: EVERLINE_STATIONS });
+  } catch (e) {
+    return c.json({ vehicles: [], stations: EVERLINE_STATIONS, reason: (e as Error).message });
   }
 });
 

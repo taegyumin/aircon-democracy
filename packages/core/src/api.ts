@@ -244,6 +244,12 @@ export function createApiClient(options: ApiClientOptions = {}) {
         body: JSON.stringify(input),
       }),
 
+    // ── 용인에버라인 (비공식) — 실시간 차량 위치 ─────────────────────
+    listEverlineVehicles: () =>
+      request<{ vehicles: EverlineVehicle[]; stations: EverlineStation[]; reason?: string }>(
+        '/api/realtime/everline/positions',
+      ),
+
     // ── TAGO 지방 도시철도 (SubwayInfo) — station 키워드 검색 ─────────
     // region: 'all' | 'busan' | 'daegu' | 'gwangju' | 'daejeon' | 'incheon2'.
     searchRegionalSubwayStations: (q: string, region?: string) => {
@@ -416,6 +422,25 @@ export interface IntercityBusVerifyResult {
   depPlandTime?: string;
   arrPlandTime?: string;
   reason?: string;
+}
+
+// ── 용인에버라인 (비공식 everlinecu.com) ──────────────────────────
+// 실시간 차량 위치 — Y110~Y124 (기흥~전대·에버랜드 15개 역).
+// 운영사 자체 endpoint라 ToS 회색지대. 사용자 결정에 따라 production 채택.
+export interface EverlineStation {
+  stCode: string;       // "Y110", "Y124"
+  name: string;         // "기흥", "전대·에버랜드"
+}
+
+export interface EverlineVehicle {
+  trainNo: string;
+  stCode: string;
+  stationName: string;          // 역명 (backend가 매핑)
+  destCode: string;
+  destName: string;
+  direction: 'giheung' | 'everland'; // updownCode 1/2 → string
+  status: 'returning' | 'stopped' | 'running'; // StatusCode 1/2/3
+  elapsedSec: number;           // 현 상태 후 경과 초
 }
 
 // ── TAGO 지방 도시철도 (SubwayInfo) types ──────────────────────────
