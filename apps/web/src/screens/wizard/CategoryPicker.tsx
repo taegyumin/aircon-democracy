@@ -56,8 +56,8 @@ function PrimaryRow({ c, onPick }: { c: CategoryDef; onPick: () => void }) {
         <Icon size={22} color={c.tint} strokeWidth={2.1} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.3px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: c.sub ? 3 : 0 }}>
+          <span style={{ fontSize: 19, fontWeight: 800, color: TOKEN.text1, letterSpacing: '-0.3px' }}>
             {c.label}
           </span>
           <span
@@ -69,7 +69,7 @@ function PrimaryRow({ c, onPick }: { c: CategoryDef; onPick: () => void }) {
             자주 선택
           </span>
         </div>
-        <div style={{ fontSize: 12, color: TOKEN.text2 }}>{c.sub}</div>
+        {c.sub && <div style={{ fontSize: 12, color: TOKEN.text2 }}>{c.sub}</div>}
       </div>
       <ArrowRight color={c.tint} />
     </button>
@@ -101,12 +101,14 @@ function SecondaryTile({ c, onPick, muted }: { c: CategoryDef; onPick: () => voi
         <Icon size={20} color={muted ? TOKEN.text2 : c.tint} strokeWidth={2.1} />
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: muted ? TOKEN.text2 : TOKEN.text1, marginBottom: 3, letterSpacing: '-0.2px' }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: muted ? TOKEN.text2 : TOKEN.text1, marginBottom: c.sub ? 3 : 0, letterSpacing: '-0.2px' }}>
           {c.label}
         </div>
-        <div style={{ fontSize: 11, color: TOKEN.text3, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {c.sub}
-        </div>
+        {c.sub && (
+          <div style={{ fontSize: 11, color: TOKEN.text3, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {c.sub}
+          </div>
+        )}
       </div>
     </button>
   );
@@ -143,12 +145,14 @@ function FindOtherRow({ c, onPick }: { c: CategoryDef; onPick: () => void }) {
         <SearchIcon size={18} color={TOKEN.text2} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: TOKEN.text1, letterSpacing: '-0.2px', marginBottom: 2 }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: TOKEN.text1, letterSpacing: '-0.2px' }}>
           다른 장소 찾기
         </div>
-        <div style={{ fontSize: 11, color: TOKEN.text3, lineHeight: 1.4 }}>
-          {c.sub}
-        </div>
+        {c.sub && (
+          <div style={{ fontSize: 11, color: TOKEN.text3, lineHeight: 1.4, marginTop: 2 }}>
+            {c.sub}
+          </div>
+        )}
       </div>
       <ArrowRight color={TOKEN.text3} />
     </button>
