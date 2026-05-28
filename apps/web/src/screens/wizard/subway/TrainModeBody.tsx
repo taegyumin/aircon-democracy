@@ -59,11 +59,22 @@ export function TrainModeBody(p: TrainModeBodyProps) {
   const noMatch = bothFilled && p.segments.length === 0;
   const segReady = !!p.resolvedSegment;
   const trainConfirmed = p.trainMatch?.matched ?? false;
+  // segment 인식됐는데 차량 매칭 실패 — 막차 후, 차량 간격 길거나 운영사 차단.
+  // 'matched'(이 열차 맞으시죠?) 잘못 표시되어 사용자 혼란 회귀 (2026-05-29 보고).
+  const noVehicle = segReady && !p.matchLoading && p.trainMatch !== null && !trainConfirmed
+    && (p.trainMatch.reason === 'no_train_at_segment' || p.trainMatch.reason === 'service_closed'
+        || p.trainMatch.reason === 'realtime_unsupported');
 
   return (
     <>
       {/* 상태별 헤드라인 */}
-      <Headline state={bothFilled ? (segReady ? 'matched' : noMatch ? 'no-match' : 'matching') : 'empty'} />
+      <Headline state={
+        bothFilled
+          ? (segReady
+              ? (noVehicle ? 'no-vehicle' : 'matched')
+              : noMatch ? 'no-match' : 'matching')
+          : 'empty'
+      } />
 
       {/* 두 station chip 가로 배치 + 가운데 원형 swap 버튼 (Claude Design v3 시안 A 채택).
           ArrowRight(정적 →)는 swap이 안 보였음 — 원형 ⇄ 버튼으로 swap 발견성 강화. */}
@@ -173,12 +184,13 @@ export function TrainModeBody(p: TrainModeBodyProps) {
 
 // ── Headline ────────────────────────────────────────────────────────
 
-function Headline({ state }: { state: 'empty' | 'matching' | 'no-match' | 'matched' }) {
+function Headline({ state }: { state: 'empty' | 'matching' | 'no-match' | 'matched' | 'no-vehicle' }) {
   const config = {
-    'empty':    { big: '지나온 역과\n다음 역을 알려주세요', sub: '안내방송에서 들은 역 이름을 입력하면\n열차를 자동으로 찾아드려요' },
-    'matching': { big: '잠시만요',                       sub: '두 역 사이 노선을 찾는 중이에요' },
-    'no-match': { big: '두 역이 인접해 있지 않아요',     sub: '오타가 있거나 다음 역이 아닐 수 있어요' },
-    'matched':  { big: '이 열차 맞으시죠?',              sub: '아래 카드 확인 후 탄 칸을 골라주세요' },
+    'empty':      { big: '지나온 역과\n다음 역을 알려주세요', sub: '안내방송에서 들은 역 이름을 입력하면\n열차를 자동으로 찾아드려요' },
+    'matching':   { big: '잠시만요',                       sub: '두 역 사이 노선을 찾는 중이에요' },
+    'no-match':   { big: '두 역이 인접해 있지 않아요',     sub: '오타가 있거나 다음 역이 아닐 수 있어요' },
+    'matched':    { big: '이 열차 맞으시죠?',              sub: '아래 카드 확인 후 탄 칸을 골라주세요' },
+    'no-vehicle': { big: '지금 이 구간에\n차량이 없어요',  sub: '막차 시간이 지났거나 차량 간격이 긴 시간대예요' },
   }[state];
   return (
     <div style={{ marginBottom: 18 }}>
