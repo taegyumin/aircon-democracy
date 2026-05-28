@@ -25,6 +25,12 @@
 
 ---
 
+## ✅ 추가 자율 처리 (V3 P1 묶음)
+
+- `b0fd585` swopenAPI provider 분리 + SubwayMatchReason enum 표준화 (9 reasons)
+- `1615a17` CSP/security headers SOT 추출 + Naver/CF Insights drift fix
+- `6fb8d7f` /realtime/subway/match 응답 SubwayMatchResult 강제 (ok() helper)
+
 ## ⏸️ 보류 (사용자 의사결정 필요)
 
 ### P0 mobile auth (#139) — release blocker
@@ -32,20 +38,12 @@
 - CSRF/Origin 정책 변경 = prod-affecting
 - 깨면 같이 보기
 
-### P1 CSP/header SOT
-- next.config.ts ↔ public/_headers drift
-- Naver/analytics 도메인 변경 시 deploy 검증 필요
-- 깨면 같이 보기
+### P2 _headers 자동 generator (#146)
+- 현재 SOT 변경 시 수동 sync
+- prebuild script로 자동화
 
-### P1 swopenAPI provider 분리 + reason enum 표준화 (M effort)
-- realtime.ts 호출 한 곳만이라 부분 분리는 가치 작음
-- reason enum 표준화 (`no_train_at_segment / service_closed / realtime_unsupported / multi_candidate / no_api_key / not_found`) 도입
-- type/api.ts 응답 shape도 같이 정의해야
-- 깨면 같이 설계
-
-### P1 response satisfies/Zod (M effort)
-- packages/core/src/api.ts return type에 satisfies 또는 Zod response schema
-- provider error enum과 연결되어 swopenAPI 작업 후
+### P2 bus/train/intercity verify에도 ok() 패턴 적용 (#147)
+- subway/match에 도입한 패턴 횡전개
 
 ### P2 Bus/Subway DU
 - 기능 freeze 후 별도 sprint
