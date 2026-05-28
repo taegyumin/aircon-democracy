@@ -320,7 +320,7 @@ placesRoutes.post('/places/:id/report', async (c) => {
       `INSERT INTO place_reports (id, place_id, reason, note, voter_hash, created_at, status)
        VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
     )
-      .bind(reportId, placeId, body.reason, body.note ?? null, c.get('voterId'), now)
+      .bind(reportId, placeId, body.reason, body.note ?? null, keys.voterHash, now)
       .run();
   } catch (e) {
     const msg = (e as Error).message ?? '';
