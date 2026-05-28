@@ -12,8 +12,9 @@ export interface BusProvider {
 }
 
 // TAGO 응답이 평소엔 ~1s지만 가끔 3-5s까지 늘어남. 2초는 false-negative timeout 잦아
-// 실측에서 인천/부산/울산이 자주 끊겼음 (2026-05-27). 5초로 여유 (CF Workers 30s 한도 내).
-const UPSTREAM_TIMEOUT_MS = 5000;
+// 실측에서 인천/부산/울산이 자주 끊겼음 (2026-05-27).
+// 5초도 부산 BusRouteInfoInqireService에서 timeout 재발 (2026-05-28 q=10 실측). 8초로 여유.
+const UPSTREAM_TIMEOUT_MS = 8000;
 function timedFetch(url: string, init?: RequestInit): Promise<Response> {
   return fetch(url, { ...init, signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
 }
