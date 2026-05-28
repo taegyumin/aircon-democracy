@@ -5,7 +5,7 @@
 import * as React from 'react';
 import Svg, { Path, Rect, Circle, Line } from 'react-native-svg';
 
-export type Category = 'subway' | 'train' | 'bus' | 'classroom' | 'other' | 'custom';
+export type Category = 'subway' | 'train' | 'bus' | 'intercity-bus' | 'classroom' | 'other' | 'custom';
 export type CategoryGroup = 'move' | 'stay';
 
 export interface IconProps {
@@ -90,11 +90,14 @@ export interface CategoryDef {
   rank?: 'primary' | 'secondary' | 'muted';
 }
 
+// 2026-05-28 web 정책 동기화: 'regional-subway' 제거(subway 안에 mode 통합),
+// 'intercity-bus' 추가, train rank='primary' (full-width row), sub 라벨 모두 제거.
 export const CATEGORIES: CategoryDef[] = [
-  { key: 'subway',    Icon: SubwayIcon,    tint: '#1B53E5', label: '지하철',     sub: '수도권·부산·대구·광주 도시철도', group: 'move', rank: 'primary' },
-  { key: 'bus',       Icon: BusIcon,       tint: '#16A34A', label: '버스',       sub: '시내·시외버스',           group: 'move', rank: 'secondary' },
-  { key: 'train',     Icon: TrainIcon,     tint: '#DC2626', label: '기차',       sub: 'KTX·SRT 등',             group: 'move', rank: 'muted' },
-  { key: 'classroom', Icon: ClassroomIcon, tint: '#7C3AED', label: '대학교 강의실', sub: '캠퍼스·건물·강의실 단위',  group: 'stay', rank: 'secondary' },
-  { key: 'other',     Icon: CafeIcon,      tint: '#F97316', label: '카페·음식점', sub: '카페·식당',              group: 'stay', rank: 'secondary' },
-  { key: 'custom',    Icon: CustomIcon,    tint: '#475569', label: '다른 장소 찾기', sub: '사무실·회의실 등 — 검색하거나 직접 등록',  group: 'stay', rank: 'secondary' },
+  { key: 'subway',        Icon: SubwayIcon,    tint: '#1B53E5', label: '지하철',              sub: '', group: 'move', rank: 'primary' },
+  { key: 'train',         Icon: TrainIcon,     tint: '#DC2626', label: '기차 (KTX·SRT 등)',   sub: '', group: 'move', rank: 'primary' },
+  { key: 'bus',           Icon: BusIcon,       tint: '#16A34A', label: '전국 시내버스',        sub: '', group: 'move', rank: 'secondary' },
+  { key: 'intercity-bus', Icon: BusIcon,       tint: '#0EA5E9', label: '고속·시외버스',       sub: '', group: 'move', rank: 'secondary' },
+  { key: 'classroom',     Icon: ClassroomIcon, tint: '#7C3AED', label: '대학교 강의실',        sub: '', group: 'stay', rank: 'secondary' },
+  { key: 'other',         Icon: CafeIcon,      tint: '#F97316', label: '카페·음식점',         sub: '', group: 'stay', rank: 'secondary' },
+  { key: 'custom',        Icon: CustomIcon,    tint: '#475569', label: '다른 장소 찾기',      sub: '', group: 'stay', rank: 'secondary' },
 ];

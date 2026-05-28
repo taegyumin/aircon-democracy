@@ -7,6 +7,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 const ROUTE_BY_CAT: Record<string, string> = {
   subway: '/wizard/subway',
   bus: '/wizard/bus',
+  'intercity-bus': '/wizard/intercity-bus',
   train: '/wizard/train',
   classroom: '/wizard/classroom',
   other: '/wizard/cafe',
