@@ -176,6 +176,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
     : baseMatch;
   // Timeline picker가 가장 우선 — 사용자가 자기 차량 직접 클릭.
   // 사용자가 명시적으로 픽한 거라 항상 'at-stop' 진행도로 표현.
+  // matchAfterCandidate와 동일 shape 유지 (reason/candidates undefined) — TS union narrow.
   const vehicleMatch = pickedTimelineVeh
     ? {
         matched: true as const,
@@ -187,6 +188,8 @@ export function BusWizard({ onBack, onPicked }: Props) {
         nextStop: stations.find((s) => s.seq === pickedTimelineVeh.stOrd + 1)?.name,
         progress: 1 as number,
         progressLabel: 'at-stop' as const,
+        reason: undefined,
+        candidates: undefined,
       }
     : matchAfterCandidate;
 
