@@ -203,13 +203,15 @@ async function fetchTagoJson<T>(url: string): Promise<T[]> {
 export function tagoProvider(cityCode: number): BusProvider {
   return {
     async searchRoutes(q, key) {
-      interface TagoRouteItem { routeid: string; routeno: string; routetp?: string; startnodenm?: string; endnodenm?: string }
+      // routeno는 JSON에서 number로 올 수 있음 (예: "100"이 아니라 100). frontend에서
+      // .trim() 호출 시 fail나므로 항상 string으로 정규화.
+      interface TagoRouteItem { routeid: string; routeno: string | number; routetp?: string; startnodenm?: string; endnodenm?: string }
       const items = await fetchTagoJson<TagoRouteItem>(
         `${TAGO_HOST}/BusRouteInfoInqireService/getRouteNoList?serviceKey=${encodeURIComponent(key)}&cityCode=${cityCode}&routeNo=${encodeURIComponent(q)}&_type=json&numOfRows=20`,
       );
-      items.sort((a, b) => (a.routeno === q ? 0 : 1) - (b.routeno === q ? 0 : 1));
+      items.sort((a, b) => (String(a.routeno) === q ? 0 : 1) - (String(b.routeno) === q ? 0 : 1));
       return items.slice(0, 12).map((r) => ({
-        id: r.routeid, name: r.routeno, type: r.routetp ?? '',
+        id: r.routeid, name: String(r.routeno), type: r.routetp ?? '',
         typeLabel: TAGO_ROUTE_TYPE_LABEL[r.routetp ?? ''] ?? r.routetp ?? '버스',
         startStop: r.startnodenm ?? '', endStop: r.endnodenm ?? '',
       }));
@@ -232,11 +234,11 @@ export function tagoProvider(cityCode: number): BusProvider {
     async matchVehicle(routeName, stopName, key, passedRouteId) {
       let routeId = passedRouteId;
       if (!routeId) {
-        interface TagoRouteItem { routeid: string; routeno: string }
+        interface TagoRouteItem { routeid: string; routeno: string | number }
         const routes = await fetchTagoJson<TagoRouteItem>(
           `${TAGO_HOST}/BusRouteInfoInqireService/getRouteNoList?serviceKey=${encodeURIComponent(key)}&cityCode=${cityCode}&routeNo=${encodeURIComponent(routeName)}&_type=json&numOfRows=5`,
         );
-        const exact = routes.find((r) => r.routeno === routeName) ?? routes[0];
+        const exact = routes.find((r) => String(r.routeno) === routeName) ?? routes[0];
         if (!exact) return { matched: false, reason: 'route_or_stop_not_found' };
         routeId = exact.routeid;
       }
