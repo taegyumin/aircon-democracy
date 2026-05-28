@@ -159,7 +159,9 @@ interface SubwayInfoStationRow {
 // 두 service schema 거의 동일: terminal list / grade list / 출도착 시각표.
 // placeId = intercity-bus:{kind}:{routeId}:{depPlandTime} 예) intercity-bus:exp:NAEK010300:202605281200
 
-interface CityCodeRow { citycode: string | number; cityname: string }
+// ExpBusInfo/SuburbsBusInfo는 가이드 docx의 camelCase 그대로 (cityCode, cityName).
+// TrainInfo는 실측에서 소문자 (citycode, cityname) — 시리즈 간 일관성 없음.
+interface CityCodeRow { cityCode: string | number; cityName: string }
 interface TerminalRow { terminalId: string; terminalNm: string; cityName?: string }
 interface GradeRow { gradeId: string | number; gradeNm: string }
 interface IntercityScheduleRow {
@@ -201,7 +203,7 @@ export const intercityBusProvider = {
     const res = await timedFetch(url);
     if (!res.ok) throw new Error(`upstream_${res.status}`);
     const body = (await res.json()) as TagoEnvelope<CityCodeRow>;
-    return normalizeItems(body).map((r) => ({ cityCode: String(r.citycode), cityName: r.cityname }));
+    return normalizeItems(body).map((r) => ({ cityCode: String(r.cityCode), cityName: r.cityName }));
   },
 
   async listTerminals(kind: IntercityKind, opts: { terminalNm?: string; cityCode?: string }, key: string): Promise<IntercityBusTerminal[]> {
