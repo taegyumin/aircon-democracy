@@ -22,16 +22,22 @@ export default function CafeWizard() {
     setSubmitting(true);
     setError(null);
     try {
-      // 임시 ID: 도로명 주소 normalized + 가게 이름.
+      // 임시 ID: 도로명 주소 + 가게 이름 (PLACE_ID_RE 허용 문자만 사용).
       // 추후 지도 SDK 통합 시 venue:gps:{lat4}:{lng4} 로 교체.
-      const addrSlug = address.trim().replace(/\s+/g, '_').slice(0, 40);
-      const nameSlug = name.trim().replace(/\s+/g, '_').slice(0, 40);
+      // PLACE_ID_RE: /^[a-z][a-z-]*:[\p{L}\p{N}\s,()/:·.\-]{1,180}$/u — 언더스코어 불허.
+      const sanitize = (s: string) => s.trim().replace(/\s+/g, '-').replace(/[^\p{L}\p{N},()/:·.\-]/gu, '').slice(0, 40);
+      const addrSlug = sanitize(address);
+      const nameSlug = sanitize(name);
       const id = `other:freeform:${addrSlug}:${nameSlug}`;
-      await fetch(`${API_BASE}/api/places/upsert`, {
+      const res = await fetch(`${API_BASE}/api/places/upsert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action', Origin: API_BASE },
         body: JSON.stringify({ id, name: name.trim(), type: 'other', district: address.trim() }),
       });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
       router.push(`/p/${encodeURIComponent(id)}`);
     } catch (e) {
       setError((e as Error).message);
