@@ -60,14 +60,16 @@ function PrimaryRow({ c, onPick }: { c: CategoryDef; onPick: () => void }) {
           <span style={{ fontSize: 19, fontWeight: 800, color: TOKEN.text1, letterSpacing: '-0.3px' }}>
             {c.label}
           </span>
-          <span
-            style={{
-              fontSize: 10, fontWeight: 700, color: c.tint,
-              background: c.tint + '15', padding: '2px 8px', borderRadius: 999,
-            }}
-          >
-            자주 선택
-          </span>
+          {c.key === 'subway' && (
+            <span
+              style={{
+                fontSize: 10, fontWeight: 700, color: c.tint,
+                background: c.tint + '15', padding: '2px 8px', borderRadius: 999,
+              }}
+            >
+              자주 선택
+            </span>
+          )}
         </div>
         {c.sub && <div style={{ fontSize: 12, color: TOKEN.text2 }}>{c.sub}</div>}
       </div>
@@ -163,14 +165,20 @@ export function CategoryPicker({ onPick }: Props) {
   const moveCats = CATEGORIES.filter((c) => c.group === 'move');
   const stayCats = CATEGORIES.filter((c) => c.group === 'stay' && c.key !== 'custom');
   const customCat = CATEGORIES.find((c) => c.key === 'custom');
-  const primaryMove = moveCats.find((c) => c.rank === 'primary');
+  const primaryMove = moveCats.filter((c) => c.rank === 'primary');
   const secondaryMove = moveCats.filter((c) => c.rank !== 'primary');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       <div>
         <SectionLabel>이동 중</SectionLabel>
-        {primaryMove && <PrimaryRow c={primaryMove} onPick={() => onPick(primaryMove.key)} />}
+        {primaryMove.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: secondaryMove.length > 0 ? 8 : 0 }}>
+            {primaryMove.map((c) => (
+              <PrimaryRow key={c.key} c={c} onPick={() => onPick(c.key)} />
+            ))}
+          </div>
+        )}
         {secondaryMove.length > 0 && (
           <div style={{ display: 'flex', gap: 8 }}>
             {secondaryMove.map((c) => (
