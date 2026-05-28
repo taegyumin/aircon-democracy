@@ -35,13 +35,15 @@ export function RegionalSubwayBody({ onPicked }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   // 검색어 디바운스 (300ms) — 입력 시 TAGO 호출 과도 방지.
+  // cancelled 플래그를 effect scope에 두어 useEffect cleanup이 실제로 stale fetch 결과를 막게 함.
+  // setTimeout 콜백 안의 return cleanup은 React가 호출 안 하므로 이전 구현은 동작 안 했음.
   useEffect(() => {
     const q = query.trim();
     if (q.length < 1) { setStations([]); setPicked(null); return; }
     setLoading(true);
     setError(null);
+    let cancelled = false;
     const t = setTimeout(() => {
-      let cancelled = false;
       api.searchRegionalSubwayStations(q, region).then((d) => {
         if (cancelled) return;
         setStations(d.stations);
@@ -50,9 +52,8 @@ export function RegionalSubwayBody({ onPicked }: Props) {
         if (cancelled) return;
         setError(e.message); setLoading(false);
       });
-      return () => { cancelled = true; };
     }, 300);
-    return () => clearTimeout(t);
+    return () => { cancelled = true; clearTimeout(t); };
   }, [query, region]);
 
   const confirm = async () => {
