@@ -1,19 +1,21 @@
 // /places/:id/vote — POST(cast or change) / DELETE(withdraw).
 
 import { Hono } from 'hono';
+import { PostVoteBodySchema } from '@aircon/core';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
-import { COOLDOWN_MS, EXPIRY_MS, VOTE_TYPES, type VoteType, type Env } from '../types';
+import { COOLDOWN_MS, EXPIRY_MS, type VoteType, type Env } from '../types';
 
 export const votesRoutes = new Hono<Env>();
 
 // POST /api/places/:id/vote — cast or change vote
 votesRoutes.post('/places/:id/vote', async (c) => {
   const id = c.req.param('id');
-  let body: { vote?: unknown };
-  try { body = await c.req.json(); } catch { return c.json({ error: 'invalid_json' }, 400); }
-  const vote = body.vote as string;
-  if (!VOTE_TYPES.includes(vote as VoteType)) return c.json({ error: 'invalid_vote' }, 400);
+  let raw: unknown;
+  try { raw = await c.req.json(); } catch { return c.json({ error: 'invalid_json' }, 400); }
+  const parsed = PostVoteBodySchema.safeParse(raw);
+  if (!parsed.success) return c.json({ error: 'invalid_vote' }, 400);
+  const vote: VoteType = parsed.data.vote;
 
   const { keys, log } = await abuseFor(c);
 
