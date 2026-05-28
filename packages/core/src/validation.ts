@@ -196,15 +196,21 @@ export const PoiSearchQuerySchema = z.object({
 // 결정적인 점: 사용자가 좌석권에서 직접 보고 입력하므로 차량 단위 일관성 100%
 // (시간표 보간 추정 안 함). swopenAPI의 trainNo와 같은 의미로 작동.
 
+// 2026-05-28 단순화: 사용자가 열차번호 외울 필요 없음. 출도착 역 + 분 단위
+// 출발 시각만으로 unique 매칭 가능 (같은 분에 두 열차 동시 출발 거의 없음).
+// trainNo / depPlandTimeHHMI 둘 중 하나 필수. trainNo 우선.
 export const TrainVerifyBodySchema = z.object({
-  // 5자리 미만이면 backend가 zero-pad 해서 TAGO에 보냄 (예: "123" → "00123").
-  trainNo: z.string().trim().regex(/^\d{1,6}$/, 'invalid_train_no'),
+  trainNo: z.string().trim().regex(/^\d{1,6}$/, 'invalid_train_no').optional(),
+  // YYYYMMDDHHMI 12자리 — 좌석권의 출발 시각.
+  depPlandTimeHHMI: z.string().regex(/^\d{12}$/, 'invalid_dep_plan_time').optional(),
   runDt: z.string().regex(/^\d{8}$/, 'invalid_run_date'), // YYYYMMDD
-  // TrainInfo.GetCtyAcctoTrainSttnList의 nodeid 형식. 예: NAT010000, NATH30000.
   depPlaceId: z.string().regex(/^NAT[A-Z0-9]+$/, 'invalid_dep_place_id'),
   arrPlaceId: z.string().regex(/^NAT[A-Z0-9]+$/, 'invalid_arr_place_id'),
   carOrdr: z.coerce.number().int().min(1).max(20),
-});
+}).refine(
+  (v) => !!v.trainNo || !!v.depPlandTimeHHMI,
+  { message: 'invalid_no_match_key' },
+);
 export type TrainVerifyBody = z.infer<typeof TrainVerifyBodySchema>;
 
 export const TrainStationsQuerySchema = z.object({

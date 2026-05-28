@@ -204,8 +204,11 @@ export function createApiClient(options: ApiClientOptions = {}) {
       request<{ kinds: TrainVehicleKind[]; reason?: string }>('/api/realtime/train/vehicle-kinds'),
 
     // 좌석권 정보 검증 → 운행 중인 차량이면 placeId 발급.
+    // trainNo / depPlandTimeHHMI 둘 중 하나 필수. 사용자 입력 단순화 위해 시각만 받는 경우 多.
     verifyTrain: (input: {
-      trainNo: string; runDt: string;
+      trainNo?: string;
+      depPlandTimeHHMI?: string;       // YYYYMMDDHHMI 12자리
+      runDt: string;
       depPlaceId: string; arrPlaceId: string;
       carOrdr: number;
     }) =>

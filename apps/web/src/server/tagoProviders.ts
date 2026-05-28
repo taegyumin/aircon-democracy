@@ -105,11 +105,11 @@ export const trainInfoProvider = {
   // 좌석권(trainNo + runDt + 출도착)을 받아 TAGO 시각표로 운행 검증.
   // matched=true 시 placeId 발급. 매칭 키 = train:tago:{trainNo}:{runDt}:car{N}
   async verify(input: {
-    trainNo: string; runDt: string;
-    depPlaceId: string; arrPlaceId: string;
+    trainNo?: string; depPlandTimeHHMI?: string;
+    runDt: string; depPlaceId: string; arrPlaceId: string;
     carOrdr: number;
   }, key: string): Promise<TrainVerifyResult> {
-    // TAGO는 trainNo 단건 검색 op가 없음. 출도착지+날짜 list → trainno로 filter.
+    // TAGO는 trainNo 단건 검색 op가 없음. 출도착지+날짜 list → 사용자 입력으로 filter.
     const url = `${TAGO_BASE}/TrainInfo/GetStrtpntAlocFndTrainInfo`
       + `?serviceKey=${key}&_type=json`
       + `&depPlaceId=${encodeURIComponent(input.depPlaceId)}`
@@ -125,16 +125,23 @@ export const trainInfoProvider = {
     const rows = normalizeItems(body);
     if (rows.length === 0) return { matched: false, reason: 'service_closed' };
 
-    // trainNo 비교 — 사용자 입력 "123"과 TAGO 응답 "00123" 둘 다 가능. 숫자로 비교.
-    const userTrainNo = Number(input.trainNo);
-    const hit = rows.find((r) => Number(r.trainno) === userTrainNo);
+    // 매칭 우선: trainNo (구체적) → depPlandTimeHHMI (시각).
+    // trainNo 비교는 zero-pad 차이 무시 위해 Number 변환. 응답 depplandtime은 14자리 (slice(0,12)).
+    const userTrainNo = input.trainNo ? Number(input.trainNo) : null;
+    const userDepTime = input.depPlandTimeHHMI ?? null;
+    const hit = rows.find((r) => {
+      if (userTrainNo !== null) return Number(r.trainno) === userTrainNo;
+      if (userDepTime !== null) return String(r.depplandtime).slice(0, 12) === userDepTime;
+      return false;
+    });
     if (!hit) return { matched: false, reason: 'not_found' };
 
-    const placeId = `train:tago:${input.trainNo}:${input.runDt}:car${input.carOrdr}`;
+    const trainNoOut = String(hit.trainno).replace(/^0+/, '') || '0';
+    const placeId = `train:tago:${trainNoOut}:${input.runDt}:car${input.carOrdr}`;
     return {
       matched: true,
       placeId,
-      trainNo: input.trainNo,
+      trainNo: trainNoOut,
       runDt: input.runDt,
       carOrdr: input.carOrdr,
       vehicleKndNm: hit.traingradename,

@@ -48,14 +48,15 @@ export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
   const [depPlaceId, setDepPlaceId] = useState<string>('');
   const [arrPlaceId, setArrPlaceId] = useState<string>('');
 
-  // 2) 좌석권 입력
-  const [trainNo, setTrainNo] = useState<string>('');
+  // 2) 좌석권 입력 — 시각만 (열차번호 외울 필요 X, backend 자동 매칭)
   const [carOrdr, setCarOrdr] = useState<number | null>(null);
   const todayStr = useMemo(() => formatRunDt(new Date()), []);
   const tomorrowStr = useMemo(() => {
     const t = new Date(); t.setDate(t.getDate() + 1); return formatRunDt(t);
   }, []);
   const [runDt, setRunDt] = useState<string>(todayStr);
+  const [depHour, setDepHour] = useState<string>('');
+  const [depMin, setDepMin] = useState<string>('');
 
   // 3) 검증 결과
   const [verifying, setVerifying] = useState(false);
@@ -92,7 +93,12 @@ export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
     return () => { cancelled = true; };
   }, [arrCity]);
 
-  const canVerify = !!depPlaceId && !!arrPlaceId && /^\d{1,6}$/.test(trainNo.trim()) && !!carOrdr && !verifying;
+  const depPlandTimeHHMI = useMemo(() => {
+    if (!runDt || !depHour || !depMin) return '';
+    return `${runDt}${depHour.padStart(2, '0')}${depMin.padStart(2, '0')}`;
+  }, [runDt, depHour, depMin]);
+
+  const canVerify = !!depPlaceId && !!arrPlaceId && depPlandTimeHHMI.length === 12 && !!carOrdr && !verifying;
 
   const verify = async () => {
     if (!canVerify || !carOrdr) return;
@@ -101,7 +107,7 @@ export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
     setResult(null);
     try {
       const r = await api.verifyTrain({
-        trainNo: trainNo.trim(),
+        depPlandTimeHHMI,
         runDt,
         depPlaceId,
         arrPlaceId,
@@ -186,14 +192,24 @@ export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
           </select>
         </div>
 
-        <Label>열차번호 * <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(좌석권 상단)</span></Label>
-        <input
-          value={trainNo}
-          onChange={(e) => { setTrainNo(e.target.value.replace(/[^0-9]/g, '').slice(0, 6)); setResult(null); }}
-          placeholder="예: 123"
-          inputMode="numeric"
-          style={{ ...fieldStyle(!!trainNo), marginBottom: 22 }}
-        />
+        <Label>출발 시각 * <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(좌석권 상단)</span></Label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 8px 1fr', alignItems: 'center', gap: 4, marginBottom: 22 }}>
+          <input
+            value={depHour}
+            onChange={(e) => { setDepHour(e.target.value.replace(/[^0-9]/g, '').slice(0, 2)); setResult(null); }}
+            placeholder="시 (예: 11)"
+            inputMode="numeric"
+            style={fieldStyle(!!depHour)}
+          />
+          <div style={{ textAlign: 'center', color: TOKEN.text3 }}>:</div>
+          <input
+            value={depMin}
+            onChange={(e) => { setDepMin(e.target.value.replace(/[^0-9]/g, '').slice(0, 2)); setResult(null); }}
+            placeholder="분 (예: 00)"
+            inputMode="numeric"
+            style={fieldStyle(!!depMin)}
+          />
+        </div>
 
         <Label>몇 호차예요? *</Label>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 22 }}>
