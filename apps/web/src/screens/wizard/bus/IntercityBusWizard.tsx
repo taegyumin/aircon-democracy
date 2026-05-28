@@ -4,13 +4,14 @@
 // kind 토글로 ExpBusInfo / SuburbsBusInfo 둘 다 cover.
 // placeId = intercity-bus:{kind}:{routeId}:{depPlandTime}
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { TOKEN, FONT } from '@aircon/core';
-import type { TrainCity, IntercityBusTerminal, IntercityBusVerifyResult } from '@aircon/core';
+import type { IntercityBusTerminal, IntercityBusVerifyResult } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
 import { Label } from '../Label';
 import { fieldStyle, primaryButtonStyle } from '../styles';
+import { SimpleSuggestInput } from '../train/SimpleSuggestInput';
 
 interface Props {
   onBack: () => void;
@@ -33,16 +34,16 @@ function formatPlanTime(s: string | undefined): string {
 export function IntercityBusWizard({ onBack, onPicked }: Props) {
   const [kind, setKind] = useState<Kind>('exp');
 
-  const [cities, setCities] = useState<TrainCity[]>([]);
-  const [depCity, setDepCity] = useState('');
-  const [arrCity, setArrCity] = useState('');
-  const [depTerminals, setDepTerminals] = useState<IntercityBusTerminal[]>([]);
-  const [arrTerminals, setArrTerminals] = useState<IntercityBusTerminal[]>([]);
+  // 자동완성 — 사용자 키워드 → backend terminalNm 검색. 지하철·시내버스 패턴 통일.
+  const [depQuery, setDepQuery] = useState('');
   const [depTerminalId, setDepTerminalId] = useState('');
+  const [depSugg, setDepSugg] = useState<IntercityBusTerminal[]>([]);
+  const [arrQuery, setArrQuery] = useState('');
   const [arrTerminalId, setArrTerminalId] = useState('');
+  const [arrSugg, setArrSugg] = useState<IntercityBusTerminal[]>([]);
+  const depSeq = useRef(0);
+  const arrSeq = useRef(0);
 
-  // 현재 탑승 차량 투표라 runDt = 오늘. 등급은 자동매칭에 거의 불필요 (다중 매칭 시
-  // 사용자 picker로 추후 처리). 입력 부담 줄여 출도착 + 시각만으로 핵심 path.
   const runDt = useMemo(() => todayYmd(), []);
   const [depHour, setDepHour] = useState<string>('');
   const [depMin, setDepMin] = useState<string>('');
@@ -52,33 +53,54 @@ export function IntercityBusWizard({ onBack, onPicked }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // kind 변경 시 cities 다시 로드 (등급 미사용).
+  // kind 변경 시 reset.
   useEffect(() => {
-    setCities([]); setDepCity(''); setArrCity('');
+    setDepQuery(''); setArrQuery('');
+    setDepTerminalId(''); setArrTerminalId('');
+    setDepSugg([]); setArrSugg([]);
     setResult(null); setError(null);
-    let cancelled = false;
-    api.listIntercityBusCities(kind).then((d) => { if (!cancelled) setCities(d.cities); }).catch((e: Error) => { if (!cancelled) setError(e.message); });
-    return () => { cancelled = true; };
   }, [kind]);
 
-  // 출발 도시 → 터미널 list
+  // depQuery 키워드 검색 (debounce 200ms).
   useEffect(() => {
-    if (!depCity) { setDepTerminals([]); setDepTerminalId(''); return; }
-    let cancelled = false;
-    api.listIntercityBusTerminals(kind, { cityCode: depCity }).then((d) => {
-      if (!cancelled) { setDepTerminals(d.terminals); setDepTerminalId(''); }
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [kind, depCity]);
+    const q = depQuery.trim();
+    if (!q || depTerminalId) { setDepSugg([]); return; }
+    const mySeq = ++depSeq.current;
+    const t = setTimeout(async () => {
+      try {
+        const { terminals } = await api.listIntercityBusTerminals(kind, { terminalNm: q });
+        if (depSeq.current === mySeq) setDepSugg(terminals.slice(0, 8));
+      } catch {/* keep */}
+    }, 200);
+    return () => clearTimeout(t);
+  }, [depQuery, kind, depTerminalId]);
 
   useEffect(() => {
-    if (!arrCity) { setArrTerminals([]); setArrTerminalId(''); return; }
-    let cancelled = false;
-    api.listIntercityBusTerminals(kind, { cityCode: arrCity }).then((d) => {
-      if (!cancelled) { setArrTerminals(d.terminals); setArrTerminalId(''); }
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [kind, arrCity]);
+    const q = arrQuery.trim();
+    if (!q || arrTerminalId) { setArrSugg([]); return; }
+    const mySeq = ++arrSeq.current;
+    const t = setTimeout(async () => {
+      try {
+        const { terminals } = await api.listIntercityBusTerminals(kind, { terminalNm: q });
+        if (arrSeq.current === mySeq) setArrSugg(terminals.slice(0, 8));
+      } catch {/* keep */}
+    }, 200);
+    return () => clearTimeout(t);
+  }, [arrQuery, kind, arrTerminalId]);
+
+  // 사용자 suggestion 선택 — label 형식 매칭 후 terminalId 발급.
+  function handleDepChange(v: string) {
+    setDepQuery(v); setResult(null);
+    const hit = depSugg.find((t) => `${t.terminalNm}${t.cityName ? ` (${t.cityName})` : ''}` === v);
+    setDepTerminalId(hit?.terminalId ?? '');
+  }
+  function handleArrChange(v: string) {
+    setArrQuery(v); setResult(null);
+    const hit = arrSugg.find((t) => `${t.terminalNm}${t.cityName ? ` (${t.cityName})` : ''}` === v);
+    setArrTerminalId(hit?.terminalId ?? '');
+  }
+  const depSuggestions = depSugg.map((t) => `${t.terminalNm}${t.cityName ? ` (${t.cityName})` : ''}`);
+  const arrSuggestions = arrSugg.map((t) => `${t.terminalNm}${t.cityName ? ` (${t.cityName})` : ''}`);
 
   const depPlandTime = useMemo(() => {
     if (!runDt || !depHour || !depMin) return '';
@@ -152,27 +174,23 @@ export function IntercityBusWizard({ onBack, onPicked }: Props) {
         </div>
 
         <Label>출발 터미널 *</Label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
-          <select value={depCity} onChange={(e) => setDepCity(e.target.value)} style={fieldStyle(!!depCity)}>
-            <option value="">시·도 선택</option>
-            {cities.map((c) => <option key={c.cityCode} value={c.cityCode}>{c.cityName}</option>)}
-          </select>
-          <select value={depTerminalId} onChange={(e) => setDepTerminalId(e.target.value)} disabled={!depCity} style={fieldStyle(!!depTerminalId)}>
-            <option value="">터미널 선택</option>
-            {depTerminals.map((t) => <option key={t.terminalId} value={t.terminalId}>{t.terminalNm}</option>)}
-          </select>
+        <div style={{ marginBottom: 22 }}>
+          <SimpleSuggestInput
+            value={depQuery}
+            setValue={handleDepChange}
+            placeholder="예: 서울고속, 센트럴, 동서울"
+            suggestions={depSuggestions}
+          />
         </div>
 
         <Label>도착 터미널 *</Label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
-          <select value={arrCity} onChange={(e) => setArrCity(e.target.value)} style={fieldStyle(!!arrCity)}>
-            <option value="">시·도 선택</option>
-            {cities.map((c) => <option key={c.cityCode} value={c.cityCode}>{c.cityName}</option>)}
-          </select>
-          <select value={arrTerminalId} onChange={(e) => setArrTerminalId(e.target.value)} disabled={!arrCity} style={fieldStyle(!!arrTerminalId)}>
-            <option value="">터미널 선택</option>
-            {arrTerminals.map((t) => <option key={t.terminalId} value={t.terminalId}>{t.terminalNm}</option>)}
-          </select>
+        <div style={{ marginBottom: 22 }}>
+          <SimpleSuggestInput
+            value={arrQuery}
+            setValue={handleArrChange}
+            placeholder="예: 부산종합, 대전복합"
+            suggestions={arrSuggestions}
+          />
         </div>
 
         <Label>출발 시각 * <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(승차권 정확히)</span></Label>

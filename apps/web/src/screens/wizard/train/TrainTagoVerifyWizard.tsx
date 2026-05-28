@@ -10,11 +10,20 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { TOKEN, FONT } from '@aircon/core';
-import type { TrainCity, TrainStationApi, TrainVerifyResult } from '@aircon/core';
+import type { TrainVerifyResult } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
 import { Label } from '../Label';
 import { fieldStyle, primaryButtonStyle } from '../styles';
+import { SimpleSuggestInput } from './SimpleSuggestInput';
+
+// 전국 기차역 일괄 cache — TAGO TrainInfo의 cityCode 별 호출을 한꺼번에 fetch.
+// 15개 cityCode × 평균 12개 역 = ~200건. 페이지 마운트 시 한 번. 키워드 검색은 frontend에서.
+interface TrainStationCached {
+  nodeId: string;
+  nodeName: string;
+  cityName: string;
+}
 
 interface Props {
   onBack: () => void;
@@ -39,56 +48,91 @@ function formatPlanTime(s: string | undefined): string {
 }
 
 export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
-  // 1) 도시 → 역 로드 cascade
-  const [cities, setCities] = useState<TrainCity[]>([]);
-  const [depCity, setDepCity] = useState<string>(''); // cityCode
-  const [arrCity, setArrCity] = useState<string>('');
-  const [depStations, setDepStations] = useState<TrainStationApi[]>([]);
-  const [arrStations, setArrStations] = useState<TrainStationApi[]>([]);
+  // 전국 기차역 캐시 (페이지 마운트 시 일괄 fetch)
+  const [allStations, setAllStations] = useState<TrainStationCached[]>([]);
+  const [stationsLoading, setStationsLoading] = useState(true);
+
+  // 출도착 입력 — 키워드 자동완성으로 선택. nodeId 저장하면 확정.
+  const [depQuery, setDepQuery] = useState('');
   const [depPlaceId, setDepPlaceId] = useState<string>('');
+  const [arrQuery, setArrQuery] = useState('');
   const [arrPlaceId, setArrPlaceId] = useState<string>('');
 
-  // 2) 좌석권 입력 — 시각만 (열차번호 외울 필요 X, backend 자동 매칭)
+  // 좌석권 입력
   const [carOrdr, setCarOrdr] = useState<number | null>(null);
-  // 현재 탑승 차량 투표라 runDt = 오늘만. '내일' 옵션 무의미.
   const runDt = useMemo(() => formatRunDt(new Date()), []);
   const [depHour, setDepHour] = useState<string>('');
   const [depMin, setDepMin] = useState<string>('');
 
-  // 3) 검증 결과
+  // 검증 결과
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState<TrainVerifyResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 도시 list 한 번 로드
+  // 마운트 1회: cities 받고 → 각 city의 stations parallel fetch → flat cache.
   useEffect(() => {
     let cancelled = false;
-    api.listTrainCities().then((d) => {
-      if (!cancelled) setCities(d.cities);
-    }).catch((e: Error) => { if (!cancelled) setError(e.message); });
+    (async () => {
+      try {
+        const { cities } = await api.listTrainCities();
+        if (cancelled) return;
+        const perCity = await Promise.all(
+          cities.map(async (c) => {
+            try {
+              const { stations } = await api.listTrainStations(c.cityCode);
+              return stations.map((s) => ({ nodeId: s.nodeId, nodeName: s.nodeName, cityName: c.cityName }));
+            } catch { return []; }
+          }),
+        );
+        if (cancelled) return;
+        setAllStations(perCity.flat());
+        setStationsLoading(false);
+      } catch (e) {
+        if (!cancelled) { setError((e as Error).message); setStationsLoading(false); }
+      }
+    })();
     return () => { cancelled = true; };
   }, []);
 
-  // 출발 도시 변경 시 역 list 로드
-  useEffect(() => {
-    if (!depCity) { setDepStations([]); setDepPlaceId(''); return; }
-    let cancelled = false;
-    api.listTrainStations(depCity).then((d) => {
-      if (!cancelled) { setDepStations(d.stations); setDepPlaceId(''); }
-    }).catch((e: Error) => { if (!cancelled) setError(e.message); });
-    return () => { cancelled = true; };
-  }, [depCity]);
+  // 키워드 → suggestion list. 정확 prefix 우선, includes 후순위. 8건 cap.
+  function suggestStations(q: string): string[] {
+    const t = q.trim();
+    if (!t) return [];
+    const lower = t.toLowerCase();
+    const scored: { label: string; rank: number }[] = [];
+    const seen = new Set<string>();
+    for (const s of allStations) {
+      const name = s.nodeName;
+      const label = `${name} (${s.cityName})`;
+      if (seen.has(label)) continue;
+      const nameLower = name.toLowerCase();
+      let rank = 99;
+      if (name === t) rank = 0;
+      else if (nameLower.startsWith(lower)) rank = 1;
+      else if (nameLower.includes(lower)) rank = 2;
+      if (rank < 99) { scored.push({ label, rank }); seen.add(label); }
+    }
+    scored.sort((a, b) => a.rank - b.rank);
+    return scored.slice(0, 8).map((x) => x.label);
+  }
 
-  // 도착 도시 변경 시 역 list 로드
-  useEffect(() => {
-    if (!arrCity) { setArrStations([]); setArrPlaceId(''); return; }
-    let cancelled = false;
-    api.listTrainStations(arrCity).then((d) => {
-      if (!cancelled) { setArrStations(d.stations); setArrPlaceId(''); }
-    }).catch((e: Error) => { if (!cancelled) setError(e.message); });
-    return () => { cancelled = true; };
-  }, [arrCity]);
+  // setValue wrapper — 사용자가 suggestion 선택 시 label 형식 매칭해 nodeId 발급.
+  // 사용자가 직접 타이핑하면 nodeId clear (정확 매칭 안 됐단 뜻).
+  function handleDepChange(v: string) {
+    setDepQuery(v);
+    setResult(null);
+    const m = /^(.+) \((.+)\)$/.exec(v);
+    const hit = m ? allStations.find((s) => s.nodeName === m[1] && s.cityName === m[2]) : null;
+    setDepPlaceId(hit?.nodeId ?? '');
+  }
+  function handleArrChange(v: string) {
+    setArrQuery(v);
+    setResult(null);
+    const m = /^(.+) \((.+)\)$/.exec(v);
+    const hit = m ? allStations.find((s) => s.nodeName === m[1] && s.cityName === m[2]) : null;
+    setArrPlaceId(hit?.nodeId ?? '');
+  }
 
   const depPlandTimeHHMI = useMemo(() => {
     if (!runDt || !depHour || !depMin) return '';
@@ -145,28 +189,24 @@ export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
           좌석권에 적힌 정보로 차량을 식별합니다. 같은 차량 사용자끼리만 묶여요.
         </div>
 
-        <Label>출발역 *</Label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
-          <select value={depCity} onChange={(e) => setDepCity(e.target.value)} style={fieldStyle(!!depCity)}>
-            <option value="">시·도 선택</option>
-            {cities.map((c) => <option key={c.cityCode} value={c.cityCode}>{c.cityName}</option>)}
-          </select>
-          <select value={depPlaceId} onChange={(e) => setDepPlaceId(e.target.value)} disabled={!depCity} style={fieldStyle(!!depPlaceId)}>
-            <option value="">역 선택</option>
-            {depStations.map((s) => <option key={s.nodeId} value={s.nodeId}>{s.nodeName}</option>)}
-          </select>
+        <Label>출발역 * <span style={{ fontWeight: 400, color: TOKEN.text3 }}>{stationsLoading ? '· 역 정보 로딩 중…' : ''}</span></Label>
+        <div style={{ marginBottom: 22 }}>
+          <SimpleSuggestInput
+            value={depQuery}
+            setValue={handleDepChange}
+            placeholder="예: 서울, 용산, 부산"
+            suggestions={suggestStations(depQuery)}
+          />
         </div>
 
         <Label>도착역 *</Label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
-          <select value={arrCity} onChange={(e) => setArrCity(e.target.value)} style={fieldStyle(!!arrCity)}>
-            <option value="">시·도 선택</option>
-            {cities.map((c) => <option key={c.cityCode} value={c.cityCode}>{c.cityName}</option>)}
-          </select>
-          <select value={arrPlaceId} onChange={(e) => setArrPlaceId(e.target.value)} disabled={!arrCity} style={fieldStyle(!!arrPlaceId)}>
-            <option value="">역 선택</option>
-            {arrStations.map((s) => <option key={s.nodeId} value={s.nodeId}>{s.nodeName}</option>)}
-          </select>
+        <div style={{ marginBottom: 22 }}>
+          <SimpleSuggestInput
+            value={arrQuery}
+            setValue={handleArrChange}
+            placeholder="예: 부산, 광주송정"
+            suggestions={suggestStations(arrQuery)}
+          />
         </div>
 
         <Label>출발 시각 * <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(좌석권 상단)</span></Label>
