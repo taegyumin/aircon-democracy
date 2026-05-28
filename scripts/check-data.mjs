@@ -41,10 +41,12 @@ if (orphans.size > 0) {
   warns.push(`Orphan adjacency ${orphans.size}개: ${Array.from(orphans).slice(0, 3).join(', ')}...`);
 }
 
+// city 포함 — '교대역 1호선'은 서울/대구에 각각 존재(별개), '시청역 1호선'도 서울/대전/부산
+// 모두 별개 노선이므로 (city, name, line) 단위가 진짜 same-city duplicate를 골라낸다.
 const byNameLine = new Map();
 for (const s of stations) {
   for (const line of s.lines) {
-    const k = `${s.name}::${line}`;
+    const k = `${s.city}::${s.name}::${line}`;
     if (!byNameLine.has(k)) byNameLine.set(k, []);
     byNameLine.get(k).push(s);
   }
