@@ -29,7 +29,7 @@ export const EVERLINE_STATIONS: EverlineStation[] = [
   { stCode: 'Y117', name: '시청·용인대' },
   { stCode: 'Y118', name: '명지대' },
   { stCode: 'Y119', name: '김량장' },
-  { stCode: 'Y120', name: '용인중앙시장' },
+  { stCode: 'Y120', name: '운동장·송담대' },
   { stCode: 'Y121', name: '고진' },
   { stCode: 'Y122', name: '보평' },
   { stCode: 'Y123', name: '둔전' },
