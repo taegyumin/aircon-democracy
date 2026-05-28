@@ -212,7 +212,8 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
         {/* 안내는 mode='train' 에만. platform 모드는 전국 역 단위 cover. */}
         {mode === 'train' && (
           <div style={{ marginBottom: 14, padding: 10, background: '#EFF6FF', borderRadius: TOKEN.r.sm, fontSize: 11.5, color: '#1E40AF', lineHeight: 1.5 }}>
-            <b>열차 안</b> 모드는 차량 단위 식별이 가능한 <b>수도권 지하철</b>만 지원해요. 부산·대구·광주·대전·인천2호선은 <b>'열차 기다리는 중'</b>으로.
+            <b>열차 안</b> 모드는 차량 단위 식별이 가능한 <b>수도권 지하철</b>만 지원해요.<br />
+            부산·대구·광주·대전·인천2호선 등 지방 도시철도는 데이터를 구할 수 없어요.
           </div>
         )}
 
