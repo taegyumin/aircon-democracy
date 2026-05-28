@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { TOKEN, FONT } from '@aircon/core';
-import type { TrainCity, IntercityBusTerminal, IntercityBusGrade, IntercityBusVerifyResult } from '@aircon/core';
+import type { TrainCity, IntercityBusTerminal, IntercityBusVerifyResult } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
 import { Label } from '../Label';
@@ -24,10 +24,6 @@ function todayYmd(): string {
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function tomorrowYmd(): string {
-  const d = new Date(); d.setDate(d.getDate() + 1);
-  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function formatPlanTime(s: string | undefined): string {
   if (!s || s.length < 12) return '';
@@ -45,12 +41,9 @@ export function IntercityBusWizard({ onBack, onPicked }: Props) {
   const [depTerminalId, setDepTerminalId] = useState('');
   const [arrTerminalId, setArrTerminalId] = useState('');
 
-  const [grades, setGrades] = useState<IntercityBusGrade[]>([]);
-  const [busGradeId, setBusGradeId] = useState<string>('');
-
-  const today = useMemo(() => todayYmd(), []);
-  const tomorrow = useMemo(() => tomorrowYmd(), []);
-  const [runDt, setRunDt] = useState<string>(today);
+  // 현재 탑승 차량 투표라 runDt = 오늘. 등급은 자동매칭에 거의 불필요 (다중 매칭 시
+  // 사용자 picker로 추후 처리). 입력 부담 줄여 출도착 + 시각만으로 핵심 path.
+  const runDt = useMemo(() => todayYmd(), []);
   const [depHour, setDepHour] = useState<string>('');
   const [depMin, setDepMin] = useState<string>('');
 
@@ -59,13 +52,12 @@ export function IntercityBusWizard({ onBack, onPicked }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // kind 변경 시 cities·grades 다시 로드 (두 service가 서로 다른 city/grade enum).
+  // kind 변경 시 cities 다시 로드 (등급 미사용).
   useEffect(() => {
-    setCities([]); setGrades([]); setDepCity(''); setArrCity(''); setBusGradeId('');
+    setCities([]); setDepCity(''); setArrCity('');
     setResult(null); setError(null);
     let cancelled = false;
     api.listIntercityBusCities(kind).then((d) => { if (!cancelled) setCities(d.cities); }).catch((e: Error) => { if (!cancelled) setError(e.message); });
-    api.listIntercityBusGrades(kind).then((d) => { if (!cancelled) setGrades(d.grades); }).catch(() => {});
     return () => { cancelled = true; };
   }, [kind]);
 
@@ -101,7 +93,6 @@ export function IntercityBusWizard({ onBack, onPicked }: Props) {
     try {
       const r = await api.verifyIntercityBus(kind, {
         depTerminalId, arrTerminalId, depPlandTime,
-        busGradeId: busGradeId || undefined,
       });
       setResult(r);
       if (!r.matched && r.reason) setError(r.reason);
@@ -160,23 +151,6 @@ export function IntercityBusWizard({ onBack, onPicked }: Props) {
           })}
         </div>
 
-        <Label>출발일</Label>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
-          {[{ v: today, l: '오늘' }, { v: tomorrow, l: '내일' }].map(({ v, l }) => {
-            const active = runDt === v;
-            return (
-              <button key={v} onClick={() => setRunDt(v)} style={{
-                flex: 1, padding: '12px',
-                background: active ? TOKEN.cold : TOKEN.surface,
-                color: active ? '#fff' : TOKEN.text1,
-                border: `1.5px solid ${active ? TOKEN.cold : TOKEN.border}`,
-                borderRadius: TOKEN.r.md, fontSize: 14, fontWeight: 700,
-                cursor: 'pointer', fontFamily: FONT,
-              }}>{l}</button>
-            );
-          })}
-        </div>
-
         <Label>출발 터미널 *</Label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
           <select value={depCity} onChange={(e) => setDepCity(e.target.value)} style={fieldStyle(!!depCity)}>
@@ -219,16 +193,6 @@ export function IntercityBusWizard({ onBack, onPicked }: Props) {
             style={fieldStyle(!!depMin)}
           />
         </div>
-
-        {grades.length > 0 && (
-          <>
-            <Label>등급 <span style={{ fontWeight: 400, color: TOKEN.text3 }}>(선택)</span></Label>
-            <select value={busGradeId} onChange={(e) => setBusGradeId(e.target.value)} style={{ ...fieldStyle(!!busGradeId), marginBottom: 22 }}>
-              <option value="">선택 안 함 (모든 등급)</option>
-              {grades.map((g) => <option key={g.gradeId} value={g.gradeId}>{g.gradeNm}</option>)}
-            </select>
-          </>
-        )}
 
         {result?.matched && (
           <div style={{ marginBottom: 14, padding: 14, background: TOKEN.coldBg, border: `1.5px solid ${TOKEN.cold}`, borderRadius: TOKEN.r.md }}>

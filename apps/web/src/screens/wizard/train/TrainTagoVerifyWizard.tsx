@@ -50,11 +50,8 @@ export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
 
   // 2) 좌석권 입력 — 시각만 (열차번호 외울 필요 X, backend 자동 매칭)
   const [carOrdr, setCarOrdr] = useState<number | null>(null);
-  const todayStr = useMemo(() => formatRunDt(new Date()), []);
-  const tomorrowStr = useMemo(() => {
-    const t = new Date(); t.setDate(t.getDate() + 1); return formatRunDt(t);
-  }, []);
-  const [runDt, setRunDt] = useState<string>(todayStr);
+  // 현재 탑승 차량 투표라 runDt = 오늘만. '내일' 옵션 무의미.
+  const runDt = useMemo(() => formatRunDt(new Date()), []);
   const [depHour, setDepHour] = useState<string>('');
   const [depMin, setDepMin] = useState<string>('');
 
@@ -146,26 +143,6 @@ export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 80px' }}>
         <div style={{ marginBottom: 14, padding: 12, background: '#FEF3C7', borderRadius: TOKEN.r.md, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
           좌석권에 적힌 정보로 차량을 식별합니다. 같은 차량 사용자끼리만 묶여요.
-        </div>
-
-        <Label>출발일</Label>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
-          {[
-            { value: todayStr, label: '오늘' },
-            { value: tomorrowStr, label: '내일' },
-          ].map(({ value, label }) => {
-            const active = runDt === value;
-            return (
-              <button key={value} onClick={() => setRunDt(value)} style={{
-                flex: 1, padding: '12px',
-                background: active ? TOKEN.cold : TOKEN.surface,
-                color: active ? '#fff' : TOKEN.text1,
-                border: `1.5px solid ${active ? TOKEN.cold : TOKEN.border}`,
-                borderRadius: TOKEN.r.md, fontSize: 14, fontWeight: 700,
-                cursor: 'pointer', fontFamily: FONT,
-              }}>{label}</button>
-            );
-          })}
         </div>
 
         <Label>출발역 *</Label>
