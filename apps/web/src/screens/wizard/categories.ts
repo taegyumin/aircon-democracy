@@ -28,7 +28,7 @@ export interface CategoryDef {
 }
 
 export const CATEGORIES: CategoryDef[] = [
-  { key: 'subway',        Icon: TramFront,  tint: '#1B53E5', label: '지하철',        sub: '열차 안은 수도권만 · 역 단위는 전국',     group: 'move', rank: 'primary' },
+  { key: 'subway',        Icon: TramFront,  tint: '#1B53E5', label: '지하철',        sub: '수도권 (1~9호선·신분당·인천1·김포골드 등)', group: 'move', rank: 'primary' },
   { key: 'bus',           Icon: Bus,        tint: '#16A34A', label: '전국 시내버스',  sub: '서울·전국 138개 시·군',                  group: 'move', rank: 'secondary' },
   { key: 'intercity-bus', Icon: Bus,        tint: '#0EA5E9', label: '고속·시외버스', sub: '좌석권 기반 (출도착·시각·차종)',         group: 'move', rank: 'secondary' },
   { key: 'train',         Icon: TrainFront, tint: '#DC2626', label: '기차',         sub: 'KTX·SRT·ITX·새마을·무궁화',                group: 'move', rank: 'muted' },
