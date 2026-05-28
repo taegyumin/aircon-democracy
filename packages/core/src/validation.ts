@@ -42,6 +42,10 @@ export const ID_PREFIX_TYPE: Record<string, PlaceType> = {
   'subway-station': 'subway',
   train: 'train',
   bus: 'bus',
+  // 고속·시외버스 — TAGO ExpBusInfo / SuburbsBusInfo로 검증된 차량.
+  // id 형식: intercity-bus:{kind}:{routeId}:{depPlandTime}
+  //   예) intercity-bus:exp:NAEK010300:202605281200
+  'intercity-bus': 'bus',
   snu: 'classroom',
   yonsei: 'classroom',
   classroom: 'classroom',  // 자유 입력 (RegisterScreen)
@@ -207,6 +211,26 @@ export const TrainStationsQuerySchema = z.object({
 export const RegionalSubwayRegions = ['all', 'busan', 'daegu', 'gwangju', 'daejeon', 'incheon2'] as const;
 export const RegionalSubwayRegionSchema = z.enum(RegionalSubwayRegions);
 export type RegionalSubwayRegion = z.infer<typeof RegionalSubwayRegionSchema>;
+
+// ── TAGO 고속·시외버스 (ExpBusInfo, SuburbsBusInfo) ────────────────
+// 좌석권 정보(출도착 터미널 + 정확 출발시각 + 등급)로 당일 배차 검증.
+// trainNo 같은 차량 단위 ID가 없어 매칭 키는 routeId + 분 단위 출발시각.
+
+export const IntercityBusKindSchema = z.enum(['exp', 'suburbs']);
+export type IntercityBusKindZ = z.infer<typeof IntercityBusKindSchema>;
+
+export const IntercityBusTerminalsQuerySchema = z.object({
+  terminalNm: z.string().trim().min(1).max(60).optional(),
+  cityCode: z.string().regex(/^\d{2,5}$/, 'invalid_city_code').optional(),
+});
+
+export const IntercityBusVerifyBodySchema = z.object({
+  depTerminalId: z.string().trim().min(1).max(40),
+  arrTerminalId: z.string().trim().min(1).max(40),
+  depPlandTime: z.string().regex(/^\d{12}$/, 'invalid_dep_plan_time'), // YYYYMMDDHHMI
+  busGradeId: z.string().trim().min(1).max(10).optional(),
+});
+export type IntercityBusVerifyBody = z.infer<typeof IntercityBusVerifyBodySchema>;
 
 export const RegionalSubwaySearchQuerySchema = z.object({
   q: z.string().trim().min(1).max(40),

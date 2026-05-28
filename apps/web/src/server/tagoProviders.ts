@@ -7,6 +7,7 @@
 import type {
   TrainCity, TrainStationApi, TrainVehicleKind,
   TrainVerifyResult, RegionalSubwayStation,
+  IntercityBusTerminal, IntercityBusGrade, IntercityBusVerifyResult,
 } from '@aircon/core';
 
 const TAGO_BASE = 'http://apis.data.go.kr/1613000';
@@ -152,6 +153,129 @@ interface SubwayInfoStationRow {
   subwayStationName: string;
   subwayRouteName: string;
 }
+
+// ── ExpBusInfo / SuburbsBusInfo (고속·시외버스) ───────────────────
+// 좌석권 정보(출도착 터미널 + 출발일+시각 + 등급)를 받아 당일 배차 검증.
+// 두 service schema 거의 동일: terminal list / grade list / 출도착 시각표.
+// placeId = intercity-bus:{kind}:{routeId}:{depPlandTime} 예) intercity-bus:exp:NAEK010300:202605281200
+
+interface CityCodeRow { citycode: string | number; cityname: string }
+interface TerminalRow { terminalId: string; terminalNm: string; cityName?: string }
+interface GradeRow { gradeId: string | number; gradeNm: string }
+interface IntercityScheduleRow {
+  routeId: string;
+  gradeNm: string;
+  depPlandTime: string | number;   // YYYYMMDDHHMI (실측 14자리 가능)
+  arrPlandTime: string | number;
+  depPlaceNm: string;
+  arrPlaceNm: string;
+  charge?: number;
+}
+
+type IntercityKind = 'exp' | 'suburbs';
+
+const KIND_TO_SERVICE: Record<IntercityKind, string> = {
+  exp: 'ExpBusInfo',
+  suburbs: 'SuburbsBusInfo',
+};
+
+const KIND_GRADE_OP: Record<IntercityKind, string> = {
+  exp: 'GetExpBusGradList',
+  suburbs: 'GetSuberbsBusGradList',
+};
+
+const KIND_TERMINAL_OP: Record<IntercityKind, string> = {
+  exp: 'GetExpBusTrminlList',
+  suburbs: 'GetSuberbsBusTrminlList',
+};
+
+const KIND_SCHEDULE_OP: Record<IntercityKind, string> = {
+  exp: 'GetStrtpntAlocFndExpbusInfo',
+  suburbs: 'GetStrtpntAlocFndSuberbsBusInfo',
+};
+
+export const intercityBusProvider = {
+  async listCities(kind: IntercityKind, key: string): Promise<TrainCity[]> {
+    // 두 service 모두 GetCtyCodeList 동일 path.
+    const url = `${TAGO_BASE}/${KIND_TO_SERVICE[kind]}/GetCtyCodeList?serviceKey=${key}&_type=json`;
+    const res = await timedFetch(url);
+    if (!res.ok) throw new Error(`upstream_${res.status}`);
+    const body = (await res.json()) as TagoEnvelope<CityCodeRow>;
+    return normalizeItems(body).map((r) => ({ cityCode: String(r.citycode), cityName: r.cityname }));
+  },
+
+  async listTerminals(kind: IntercityKind, opts: { terminalNm?: string; cityCode?: string }, key: string): Promise<IntercityBusTerminal[]> {
+    const params = new URLSearchParams({ serviceKey: key, _type: 'json', numOfRows: '50', pageNo: '1' });
+    if (opts.terminalNm) params.set('terminalNm', opts.terminalNm);
+    if (opts.cityCode) params.set('cityCode', opts.cityCode);
+    const url = `${TAGO_BASE}/${KIND_TO_SERVICE[kind]}/${KIND_TERMINAL_OP[kind]}?${params.toString()}`;
+    const res = await timedFetch(url);
+    if (!res.ok) throw new Error(`upstream_${res.status}`);
+    const body = (await res.json()) as TagoEnvelope<TerminalRow>;
+    return normalizeItems(body).map((r) => ({
+      terminalId: r.terminalId,
+      terminalNm: r.terminalNm,
+      cityName: r.cityName,
+    }));
+  },
+
+  async listGrades(kind: IntercityKind, key: string): Promise<IntercityBusGrade[]> {
+    const url = `${TAGO_BASE}/${KIND_TO_SERVICE[kind]}/${KIND_GRADE_OP[kind]}?serviceKey=${key}&_type=json`;
+    const res = await timedFetch(url);
+    if (!res.ok) throw new Error(`upstream_${res.status}`);
+    const body = (await res.json()) as TagoEnvelope<GradeRow>;
+    return normalizeItems(body).map((r) => ({ gradeId: String(r.gradeId), gradeNm: r.gradeNm }));
+  },
+
+  async verify(kind: IntercityKind, input: {
+    depTerminalId: string; arrTerminalId: string;
+    depPlandTime: string;        // YYYYMMDDHHMI — 좌석권상 출발 시각
+    busGradeId?: string;
+  }, key: string): Promise<IntercityBusVerifyResult> {
+    // TAGO는 trainNo 같은 차량 단위 ID가 없음. 매칭 키는 routeId + 정확한 depPlandTime.
+    const runDt = input.depPlandTime.slice(0, 8); // YYYYMMDD
+    const params = new URLSearchParams({
+      serviceKey: key,
+      _type: 'json',
+      depTerminalId: input.depTerminalId,
+      arrTerminalId: input.arrTerminalId,
+      depPlandTime: runDt,
+      numOfRows: '200',
+      pageNo: '1',
+    });
+    if (input.busGradeId) params.set('busGradeId', input.busGradeId);
+    const url = `${TAGO_BASE}/${KIND_TO_SERVICE[kind]}/${KIND_SCHEDULE_OP[kind]}?${params.toString()}`;
+    const res = await timedFetch(url);
+    if (!res.ok) return { matched: false, reason: `upstream_${res.status}` };
+    const body = (await res.json()) as TagoEnvelope<IntercityScheduleRow>;
+    if (body.response?.header?.resultCode !== '00') {
+      return { matched: false, reason: body.response?.header?.resultMsg ?? 'upstream_error' };
+    }
+    const rows = normalizeItems(body);
+    if (rows.length === 0) return { matched: false, reason: 'service_closed' };
+
+    // 사용자 입력 depPlandTime(12자리)와 응답 row의 depPlandTime 비교.
+    // 분 단위 정확 일치 필요 (사용자가 좌석권에서 정확한 출발시각 입력 가정).
+    const target = input.depPlandTime.slice(0, 12);
+    const hit = rows.find((r) => String(r.depPlandTime).slice(0, 12) === target);
+    if (!hit) return { matched: false, reason: 'not_found' };
+
+    const placeId = `intercity-bus:${kind}:${hit.routeId}:${target}`;
+    return {
+      matched: true,
+      placeId,
+      kind,
+      routeId: hit.routeId,
+      gradeNm: hit.gradeNm,
+      depPlaceNm: hit.depPlaceNm,
+      arrPlaceNm: hit.arrPlaceNm,
+      depPlandTime: String(hit.depPlandTime),
+      arrPlandTime: String(hit.arrPlandTime),
+    };
+  },
+};
+
+// ── SubwayInfo (지방 도시철도 station 키워드 검색) ─────────────────
 
 export const subwayInfoProvider = {
   async searchStations(q: string, region: RegionalSubwayStation['region'] | 'all', key: string): Promise<RegionalSubwayStation[]> {

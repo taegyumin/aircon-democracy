@@ -9,11 +9,12 @@ import {
   BusRouteSearchQuerySchema, BusRouteStationsQuerySchema, BusRegionByCoordsQuerySchema,
   PoiSearchQuerySchema,
   TrainVerifyBodySchema, TrainStationsQuerySchema, RegionalSubwaySearchQuerySchema,
+  IntercityBusKindSchema, IntercityBusTerminalsQuerySchema, IntercityBusVerifyBodySchema,
 } from '@aircon/core/validation';
 import { regionByName, SEOUL_REGION } from '@aircon/core';
 import { parseBusRegion, providerFor } from '../busProviders';
 import { naverProvider, kakaoProvider, searchPoiCombined } from '../poiProviders';
-import { trainInfoProvider, subwayInfoProvider } from '../tagoProviders';
+import { trainInfoProvider, subwayInfoProvider, intercityBusProvider } from '../tagoProviders';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
 import type { Env } from '../types';
@@ -352,6 +353,79 @@ realtimeRoutes.post('/realtime/train/verify', async (c) => {
   if (!key) return c.json({ matched: false, reason: 'no_api_key' });
   try {
     const result = await trainInfoProvider.verify(parsed.data, key);
+    return c.json(result);
+  } catch (e) {
+    return c.json({ matched: false, reason: (e as Error).message });
+  }
+});
+
+// ── TAGO 고속·시외버스 (ExpBusInfo / SuburbsBusInfo) ─────────────
+// 사용자 좌석권(출도착 터미널 + 정확 출발시각 + 등급)을 받아 당일 배차 검증.
+// kind: 'exp'(고속) | 'suburbs'(시외). placeId = intercity-bus:{kind}:{routeId}:{depPlandTime}
+
+realtimeRoutes.get('/realtime/intercity-bus/:kind/cities', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const kindP = IntercityBusKindSchema.safeParse(c.req.param('kind'));
+  if (!kindP.success) return c.json({ cities: [], reason: 'invalid_kind' }, 400);
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ cities: [], reason: 'no_api_key' });
+  try {
+    const cities = await intercityBusProvider.listCities(kindP.data, key);
+    return c.json({ cities });
+  } catch (e) {
+    return c.json({ cities: [], reason: (e as Error).message });
+  }
+});
+
+realtimeRoutes.get('/realtime/intercity-bus/:kind/terminals', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const kindP = IntercityBusKindSchema.safeParse(c.req.param('kind'));
+  if (!kindP.success) return c.json({ terminals: [], reason: 'invalid_kind' }, 400);
+  const optsP = IntercityBusTerminalsQuerySchema.safeParse({
+    terminalNm: c.req.query('terminalNm'),
+    cityCode: c.req.query('cityCode'),
+  });
+  if (!optsP.success) return c.json({ terminals: [], reason: 'invalid_query' }, 400);
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ terminals: [], reason: 'no_api_key' });
+  try {
+    const terminals = await intercityBusProvider.listTerminals(kindP.data, optsP.data, key);
+    return c.json({ terminals });
+  } catch (e) {
+    return c.json({ terminals: [], reason: (e as Error).message });
+  }
+});
+
+realtimeRoutes.get('/realtime/intercity-bus/:kind/grades', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const kindP = IntercityBusKindSchema.safeParse(c.req.param('kind'));
+  if (!kindP.success) return c.json({ grades: [], reason: 'invalid_kind' }, 400);
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ grades: [], reason: 'no_api_key' });
+  try {
+    const grades = await intercityBusProvider.listGrades(kindP.data, key);
+    return c.json({ grades });
+  } catch (e) {
+    return c.json({ grades: [], reason: (e as Error).message });
+  }
+});
+
+realtimeRoutes.post('/realtime/intercity-bus/:kind/verify', async (c) => {
+  const guard = await realtimeGuard(c);
+  if (!guard.ok) return guard.res;
+  const kindP = IntercityBusKindSchema.safeParse(c.req.param('kind'));
+  if (!kindP.success) return c.json({ matched: false, reason: 'invalid_kind' }, 400);
+  let raw: unknown;
+  try { raw = await c.req.json(); } catch { return c.json({ matched: false, reason: 'invalid_json' }, 400); }
+  const parsed = IntercityBusVerifyBodySchema.safeParse(raw);
+  if (!parsed.success) return c.json({ matched: false, reason: 'invalid_body' }, 400);
+  const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
+  if (!key) return c.json({ matched: false, reason: 'no_api_key' });
+  try {
+    const result = await intercityBusProvider.verify(kindP.data, parsed.data, key);
     return c.json(result);
   } catch (e) {
     return c.json({ matched: false, reason: (e as Error).message });

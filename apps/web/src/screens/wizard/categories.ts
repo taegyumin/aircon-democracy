@@ -8,7 +8,7 @@ import type { LucideIcon } from 'lucide-react';
 // 2026-05-27: '사무실' 카테고리 제거 — 빌딩 구조를 우리가 모르니 wizard 만들기 어려움.
 // 대신 '직접 등록(custom)' — 로그인 사용자가 자기 공간(사무실, 회의실, 매장 등) 직접 등록.
 // 사적 공간이라 is_public=0 default + link/QR로만 접근 (검색 노출 X).
-export type Category = 'subway' | 'regional-subway' | 'train' | 'bus' | 'classroom' | 'other' | 'custom';
+export type Category = 'subway' | 'train' | 'bus' | 'intercity-bus' | 'classroom' | 'other' | 'custom';
 
 // Claude Design 'Place Select Redesign' 추천안: 카테고리를 2그룹으로 분리해 IA 명확.
 //   move = '이동 중' (지하철 / 버스 / 기차)
@@ -28,10 +28,10 @@ export interface CategoryDef {
 }
 
 export const CATEGORIES: CategoryDef[] = [
-  { key: 'subway',          Icon: TramFront,  tint: '#1B53E5', label: '수도권 지하철', sub: '1~9호선·신분당·인천1·김포골드 등',         group: 'move', rank: 'primary' },
-  { key: 'regional-subway', Icon: TramFront,  tint: '#0EA5E9', label: '지방 도시철도', sub: '부산·대구·광주·대전·인천2 (역 단위)',   group: 'move', rank: 'secondary' },
-  { key: 'bus',             Icon: Bus,        tint: '#16A34A', label: '버스',         sub: '시내·시외버스',                            group: 'move', rank: 'secondary' },
-  { key: 'train',           Icon: TrainFront, tint: '#DC2626', label: '기차',         sub: 'KTX·SRT·ITX·새마을·무궁화',                group: 'move', rank: 'muted' },
+  { key: 'subway',        Icon: TramFront,  tint: '#1B53E5', label: '지하철',        sub: '열차 안은 수도권만 · 역 단위는 전국',     group: 'move', rank: 'primary' },
+  { key: 'bus',           Icon: Bus,        tint: '#16A34A', label: '전국 시내버스',  sub: '서울·전국 138개 시·군',                  group: 'move', rank: 'secondary' },
+  { key: 'intercity-bus', Icon: Bus,        tint: '#0EA5E9', label: '고속·시외버스', sub: '좌석권 기반 (출도착·시각·차종)',         group: 'move', rank: 'secondary' },
+  { key: 'train',         Icon: TrainFront, tint: '#DC2626', label: '기차',         sub: 'KTX·SRT·ITX·새마을·무궁화',                group: 'move', rank: 'muted' },
   { key: 'classroom', Icon: GraduationCap, tint: '#7C3AED', label: '대학교 강의실', sub: '캠퍼스·건물·강의실 단위',  group: 'stay', rank: 'secondary' },
   { key: 'other',     Icon: MapPin,        tint: '#F97316', label: '카페·음식점', sub: '카페·식당',              group: 'stay', rank: 'secondary' },
   // 다른 장소 찾기 — 사무실·회의실 등 검색하거나 직접 등록. CategoryPicker에서 stay grid

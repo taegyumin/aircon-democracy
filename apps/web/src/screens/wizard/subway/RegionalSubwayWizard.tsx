@@ -1,19 +1,18 @@
 'use client';
 
-// 지방 도시철도 (부산·대구·광주·대전·인천2) 역 단위 wizard.
-// swopenAPI cover X 노선의 차량 단위 식별 불가 → station-level 투표.
+// 지방 도시철도 (부산·대구·광주·대전·인천2) 역 단위 본문 컴포넌트.
+// SubwayWizard에서 mode='regional' 토글 시 본문에 임베드 — header는 부모가 렌더.
 // placeId = subway-station:{subwayStationId} 예) subway-station:MTRBS1119
+// swopenAPI cover X 노선의 차량 단위 식별 불가 → station-level 투표.
 
 import { useEffect, useState } from 'react';
 import { TOKEN, FONT } from '@aircon/core';
 import type { RegionalSubwayStation } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
-import { WizardHeader } from '../WizardHeader';
 import { Label } from '../Label';
 import { fieldStyle, primaryButtonStyle } from '../styles';
 
 interface Props {
-  onBack: () => void;
   onPicked: (placeId: string) => void;
 }
 
@@ -26,7 +25,7 @@ const REGIONS = [
   { value: 'incheon2', label: '인천2호선' },
 ] as const;
 
-export function RegionalSubwayWizard({ onBack, onPicked }: Props) {
+export function RegionalSubwayBody({ onPicked }: Props) {
   const [query, setQuery] = useState('');
   const [region, setRegion] = useState<typeof REGIONS[number]['value']>('all');
   const [stations, setStations] = useState<RegionalSubwayStation[]>([]);
@@ -77,9 +76,7 @@ export function RegionalSubwayWizard({ onBack, onPicked }: Props) {
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
-      <WizardHeader title="지방 도시철도 · 역 단위" onBack={onBack} />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 80px' }}>
+    <div style={{ fontFamily: FONT }}>
         <div style={{ marginBottom: 14, padding: 12, background: '#FEF3C7', borderRadius: TOKEN.r.md, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
           이 지역은 차량 단위 식별이 어려워 역 단위로 투표합니다.
         </div>
@@ -151,7 +148,6 @@ export function RegionalSubwayWizard({ onBack, onPicked }: Props) {
         <button onClick={confirm} disabled={!picked || submitting} style={primaryButtonStyle(!!picked && !submitting)}>
           {submitting ? '이동 중…' : '투표하러 가기'}
         </button>
-      </div>
     </div>
   );
 }

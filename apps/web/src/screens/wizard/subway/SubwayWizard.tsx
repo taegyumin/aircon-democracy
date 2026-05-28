@@ -4,7 +4,7 @@
 // 가장 복잡한 wizard라서 sub-component + hook + pure builder로 잘게 쪼갬.
 
 import { useEffect, useMemo, useState } from 'react';
-import { Hourglass, TramFront } from 'lucide-react';
+import { Hourglass, TramFront, MapPin } from 'lucide-react';
 import {
   TOKEN, FONT, searchStations, neighborNames, STATIONS,
   type Station, findSegments,
@@ -16,10 +16,11 @@ import { recordLine } from '../../../lib/recentPlaces';
 import { WizardHeader } from '../WizardHeader';
 import { TrainModeBody } from './TrainModeBody';
 import { PlatformModeBody } from './PlatformModeBody';
+import { RegionalSubwayBody } from './RegionalSubwayWizard';
 import { useSubwayTrainMatch } from './useSubwayTrainMatch';
 import { buildSubwayTrainPlace, buildSubwayPlatformPlace } from './buildSubwayPlace';
 
-type SubwayMode = 'train' | 'platform';
+type SubwayMode = 'train' | 'platform' | 'regional';
 
 interface Props {
   onBack: () => void;
@@ -173,41 +174,41 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>
       <WizardHeader title="지하철" onBack={onBack} />
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 80px' }}>
-        {/* Mode toggle */}
-        <div style={{ display: 'flex', background: TOKEN.bg, border: `1px solid ${TOKEN.border}`, borderRadius: TOKEN.r.lg, padding: 4, marginBottom: 20 }}>
-          <button
-            onClick={() => setMode('train')}
-            style={{
-              flex: 1, padding: '10px',
-              background: mode === 'train' ? TOKEN.surface : 'transparent',
-              border: 'none', borderRadius: TOKEN.r.md,
-              fontSize: 13, fontWeight: 700,
-              color: mode === 'train' ? TOKEN.text1 : TOKEN.text3,
-              cursor: 'pointer', fontFamily: FONT,
-              boxShadow: mode === 'train' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}
-          >
-            <TramFront size={16} color={mode === 'train' ? TOKEN.text1 : TOKEN.text3} strokeWidth={2} />
-            열차 안
-          </button>
-          <button
-            onClick={() => setMode('platform')}
-            style={{
-              flex: 1, padding: '10px',
-              background: mode === 'platform' ? TOKEN.surface : 'transparent',
-              border: 'none', borderRadius: TOKEN.r.md,
-              fontSize: 13, fontWeight: 700,
-              color: mode === 'platform' ? TOKEN.text1 : TOKEN.text3,
-              cursor: 'pointer', fontFamily: FONT,
-              boxShadow: mode === 'platform' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}
-          >
-            <Hourglass size={16} color={mode === 'platform' ? TOKEN.text1 : TOKEN.text3} strokeWidth={2} />
-            열차 기다리는 중
-          </button>
+        {/* Mode toggle — 3 modes (train·platform 수도권 / regional 지방 역단위) */}
+        <div style={{ display: 'flex', background: TOKEN.bg, border: `1px solid ${TOKEN.border}`, borderRadius: TOKEN.r.lg, padding: 4, marginBottom: 12 }}>
+          {[
+            { v: 'train' as const, Icon: TramFront, label: '열차 안' },
+            { v: 'platform' as const, Icon: Hourglass, label: '기다리는 중' },
+            { v: 'regional' as const, Icon: MapPin, label: '역 단위' },
+          ].map(({ v, Icon, label }) => {
+            const active = mode === v;
+            return (
+              <button
+                key={v}
+                onClick={() => setMode(v)}
+                style={{
+                  flex: 1, padding: '10px 4px',
+                  background: active ? TOKEN.surface : 'transparent',
+                  border: 'none', borderRadius: TOKEN.r.md,
+                  fontSize: 12, fontWeight: 700,
+                  color: active ? TOKEN.text1 : TOKEN.text3,
+                  cursor: 'pointer', fontFamily: FONT,
+                  boxShadow: active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                }}
+              >
+                <Icon size={15} color={active ? TOKEN.text1 : TOKEN.text3} strokeWidth={2} />
+                {label}
+              </button>
+            );
+          })}
         </div>
+
+        {(mode === 'train' || mode === 'platform') && (
+          <div style={{ marginBottom: 14, padding: 10, background: '#EFF6FF', borderRadius: TOKEN.r.sm, fontSize: 11.5, color: '#1E40AF', lineHeight: 1.5 }}>
+            이 모드는 <b>수도권 지하철</b>만 지원해요. 부산·대구·광주·대전·인천2호선은 <b>'역 단위'</b> 모드로.
+          </div>
+        )}
 
         {mode === 'train' ? (
           <TrainModeBody
@@ -233,7 +234,7 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
             pickedCandidate={pickedCandidate}
             onPickCandidate={setPickedCandidate}
           />
-        ) : (
+        ) : mode === 'platform' ? (
           <PlatformModeBody
             query={platQuery} setQuery={setPlatQuery}
             station={platStation} setStation={setPlatStation}
@@ -243,6 +244,8 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
             canSubmit={platformCanSubmit}
             onSubmit={submitPlatform}
           />
+        ) : (
+          <RegionalSubwayBody onPicked={onPicked} />
         )}
       </div>
     </div>

@@ -10,7 +10,7 @@ import { TrainTagoVerifyWizard } from './wizard/train/TrainTagoVerifyWizard';
 import { CafeWizard } from './wizard/cafe/CafeWizard';
 import { ClassroomWizard } from './wizard/classroom/ClassroomWizard';
 import { SubwayWizard } from './wizard/subway/SubwayWizard';
-import { RegionalSubwayWizard } from './wizard/subway/RegionalSubwayWizard';
+import { IntercityBusWizard } from './wizard/bus/IntercityBusWizard';
 import { CustomPlaceWizard } from './wizard/custom/CustomPlaceWizard';
 
 interface Props {
@@ -26,13 +26,13 @@ export function isValidCategory(s: string | null | undefined): s is Category {
 
 export function LocationWizardScreen({ onBack, onPicked, initialCategory }: Props) {
   switch (initialCategory) {
-    case 'other':     return <CafeWizard onBack={onBack} onPicked={onPicked} />;
-    case 'subway':          return <SubwayWizard onBack={onBack} onPicked={onPicked} />;
-    case 'regional-subway': return <RegionalSubwayWizard onBack={onBack} onPicked={onPicked} />;
-    case 'classroom': return <ClassroomWizard onBack={onBack} onPicked={onPicked} />;
-    case 'train':     return <TrainTagoVerifyWizard onBack={onBack} onPicked={onPicked} />;
-    case 'bus':       return <BusWizard onBack={onBack} onPicked={onPicked} />;
-    case 'custom':    return <CustomPlaceWizard onBack={onBack} onPicked={onPicked} />;
-    default:          return null;
+    case 'other':         return <CafeWizard onBack={onBack} onPicked={onPicked} />;
+    case 'subway':        return <SubwayWizard onBack={onBack} onPicked={onPicked} />;
+    case 'classroom':     return <ClassroomWizard onBack={onBack} onPicked={onPicked} />;
+    case 'train':         return <TrainTagoVerifyWizard onBack={onBack} onPicked={onPicked} />;
+    case 'bus':           return <BusWizard onBack={onBack} onPicked={onPicked} />;
+    case 'intercity-bus': return <IntercityBusWizard onBack={onBack} onPicked={onPicked} />;
+    case 'custom':        return <CustomPlaceWizard onBack={onBack} onPicked={onPicked} />;
+    default:              return null;
   }
 }

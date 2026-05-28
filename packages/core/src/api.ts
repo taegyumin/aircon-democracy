@@ -204,6 +204,33 @@ export function createApiClient(options: ApiClientOptions = {}) {
         body: JSON.stringify(input),
       }),
 
+    // ── TAGO 고속·시외버스 (ExpBusInfo / SuburbsBusInfo) ─────────────
+    listIntercityBusCities: (kind: 'exp' | 'suburbs') =>
+      request<{ cities: TrainCity[]; reason?: string }>(`/api/realtime/intercity-bus/${kind}/cities`),
+
+    listIntercityBusTerminals: (kind: 'exp' | 'suburbs', opts?: { terminalNm?: string; cityCode?: string }) => {
+      const p = new URLSearchParams();
+      if (opts?.terminalNm) p.set('terminalNm', opts.terminalNm);
+      if (opts?.cityCode) p.set('cityCode', opts.cityCode);
+      const qs = p.toString();
+      return request<{ terminals: IntercityBusTerminal[]; reason?: string }>(
+        `/api/realtime/intercity-bus/${kind}/terminals${qs ? '?' + qs : ''}`,
+      );
+    },
+
+    listIntercityBusGrades: (kind: 'exp' | 'suburbs') =>
+      request<{ grades: IntercityBusGrade[]; reason?: string }>(`/api/realtime/intercity-bus/${kind}/grades`),
+
+    verifyIntercityBus: (kind: 'exp' | 'suburbs', input: {
+      depTerminalId: string; arrTerminalId: string;
+      depPlandTime: string;       // YYYYMMDDHHMI 12자리
+      busGradeId?: string;
+    }) =>
+      request<IntercityBusVerifyResult>(`/api/realtime/intercity-bus/${kind}/verify`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+
     // ── TAGO 지방 도시철도 (SubwayInfo) — station 키워드 검색 ─────────
     // region: 'all' | 'busan' | 'daegu' | 'gwangju' | 'daejeon' | 'incheon2'.
     searchRegionalSubwayStations: (q: string, region?: string) => {
@@ -338,6 +365,33 @@ export interface TrainVerifyResult {
   depPlandTime?: string;      // "YYYYMMDDHHMI"
   arrPlandTime?: string;
   // matched=false 시 사유. 'not_found' | 'not_running_today' | 'service_closed' | 'invalid_*'
+  reason?: string;
+}
+
+// ── TAGO 고속·시외버스 (ExpBusInfo / SuburbsBusInfo) types ───────
+export interface IntercityBusTerminal {
+  terminalId: string;     // "NAEK020" (고속) / "NAI0671801" (시외)
+  terminalNm: string;     // "센트럴시티(서울)", "서울남부"
+  cityName?: string;      // 시외버스 응답에만 있음
+}
+
+export interface IntercityBusGrade {
+  gradeId: string;        // "1"(고속 우등) / "IDG"(시외 일반) 등
+  gradeNm: string;        // "우등", "일반", …
+}
+
+export type IntercityBusKind = 'exp' | 'suburbs';
+
+export interface IntercityBusVerifyResult {
+  matched: boolean;
+  placeId?: string;       // intercity-bus:{kind}:{routeId}:{depPlandTime}
+  kind?: IntercityBusKind;
+  routeId?: string;
+  gradeNm?: string;
+  depPlaceNm?: string;
+  arrPlaceNm?: string;
+  depPlandTime?: string;
+  arrPlandTime?: string;
   reason?: string;
 }
 
