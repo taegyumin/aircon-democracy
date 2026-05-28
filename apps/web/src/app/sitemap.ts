@@ -27,7 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const db = (env as { DB?: D1Database }).DB;
     if (!db) return staticEntries;
     const { results } = await db
-      .prepare('SELECT id, created_at FROM places ORDER BY created_at DESC LIMIT 1000')
+      .prepare('SELECT id, created_at FROM places WHERE COALESCE(is_public, 1) = 1 ORDER BY created_at DESC LIMIT 1000')
       .all<PlaceRow>();
     const placeEntries: MetadataRoute.Sitemap = results.map((p) => ({
       url: `${SITE}/p/${encodeURIComponent(p.id)}`,

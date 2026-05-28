@@ -23,6 +23,7 @@ async function fetchPlaces(): Promise<PlaceWithCounts[] | null> {
            COALESCE(SUM(CASE WHEN v.vote='hot'  AND v.expires_at > ?1 THEN 1 ELSE 0 END), 0) AS hot
          FROM places p
          LEFT JOIN votes v ON v.place_id = p.id
+         WHERE COALESCE(p.is_public, 1) = 1
          GROUP BY p.id
          ORDER BY (cold + ok + hot) DESC, p.created_at DESC
          LIMIT 100`,
