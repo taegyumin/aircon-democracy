@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import {
-  TOKEN, FONT, lineColor, carCountFor, stationDisplay, type Station,
+  TOKEN, FONT, lineColor, carCountFor, type Station,
 } from '@aircon/core';
 import type { SubwayMatchResult } from '../../../lib/apiClient';
 import { Label } from '../Label';

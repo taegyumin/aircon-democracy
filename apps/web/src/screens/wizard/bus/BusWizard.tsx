@@ -54,7 +54,6 @@ export function BusWizard({ onBack, onPicked }: Props) {
   // Region — privacy contract: 자동 GPS 요청 X. 사용자가 'GPS로 찾기' 버튼 누를 때만 요청.
   // (이전 회귀: 진입 시 silent geolocation → 사용자 모르게 좌표 NCP/서버 전송. LLM P1.)
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
-  const [regionLabel, setRegionLabel] = useState<string>('서울특별시');
   const [regionDetecting, setRegionDetecting] = useState(false);
 
   // Step 1 — 번호 input + autocomplete
@@ -71,14 +70,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
       async (pos) => {
         try {
           const res = await api.busRegionByCoords(pos.coords.latitude, pos.coords.longitude);
-          if (res.region) {
-            setRegion(res.region);
-            const fromCode = res.region === 'seoul'
-              ? '서울특별시'
-              : CITY_CODES.find((c) => String(c.code) === res.region)?.name
-                ?? res.sigunguName ?? res.sidoName ?? res.region;
-            setRegionLabel(fromCode);
-          }
+          if (res.region) setRegion(res.region);
         } catch { /* keep current */ }
         setRegionDetecting(false);
       },
@@ -282,10 +274,6 @@ export function BusWizard({ onBack, onPicked }: Props) {
   // region 수동 변경 — 진행 중 모든 state 초기화 (이전 region의 routeId가 무효).
   const changeRegion = useCallback((next: Region) => {
     setRegion(next);
-    const label = next === 'seoul'
-      ? '서울특별시'
-      : CITY_CODES.find((c) => String(c.code) === next)?.name ?? next;
-    setRegionLabel(label);
     resetToNumber();
     setRouteQuery(''); setRouteCandidates([]);
   }, [resetToNumber]);
@@ -331,7 +319,6 @@ export function BusWizard({ onBack, onPicked }: Props) {
       {/* Region inline picker — 헤더 바로 아래, Step 1 위. GPS로 자동 추론된 값 + native select. */}
       <RegionPicker
         region={region}
-        label={regionLabel}
         detecting={regionDetecting}
         onChange={changeRegion}
         onUseGps={detectRegionByGps}
@@ -464,10 +451,9 @@ export function BusWizard({ onBack, onPicked }: Props) {
 // ════════════════════════════════════════════════════════════════════
 
 function RegionPicker({
-  region, label, detecting, onChange, onUseGps,
+  region, detecting, onChange, onUseGps,
 }: {
   region: Region;
-  label: string;
   detecting: boolean;
   onChange: (next: Region) => void;
   onUseGps: () => void;

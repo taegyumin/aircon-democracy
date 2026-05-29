@@ -17,7 +17,7 @@ import { WizardHeader } from '../WizardHeader';
 import { TrainModeBody } from './TrainModeBody';
 import { RegionalSubwayBody } from './RegionalSubwayWizard';
 import { useSubwayTrainMatch } from './useSubwayTrainMatch';
-import { buildSubwayTrainPlace, buildSubwayPlatformPlace } from './buildSubwayPlace';
+import { buildSubwayTrainPlace } from './buildSubwayPlace';
 
 type SubwayMode = 'train' | 'platform';
 
@@ -36,9 +36,9 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
   const [nextStationSel, setNextStationSel] = useState<Station | null>(null);
   const [pickedLine, setPickedLine] = useState<string | null>(null);
 
-  // 플랫폼 (platform mode) state
-  const [platQuery, setPlatQuery] = useState('');
-  const [platStation, setPlatStation] = useState<Station | null>(null);
+  // mode === 'platform'은 이제 RegionalSubwayBody로 위임됨 (TAGO SubwayInfo로 전국 station-level).
+  // 옛 platQuery/platStation/submitPlatform/platSuggestions는 dead code였음 — 2026-05-29 제거.
+  // mode name 'platform'은 UI breaking change 피하려 유지. 의미는 'regional-station'.
 
   // Shared
   const [car, setCar] = useState<number | 'unknown' | null>(null);
@@ -121,23 +121,7 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
     }
   };
 
-  const submitPlatform = async () => {
-    if (!platStation || submitting) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const payload = buildSubwayPlatformPlace({ station: platStation });
-      await api.upsertPlace(payload);
-      onPicked(payload.id);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const trainCanSubmit = !!resolvedSegment && car !== null && !submitting;
-  const platformCanSubmit = !!platStation && !submitting;
 
   // suggestions 로직 (2026-05-27 디자인 결정):
   //   - 검색창에 텍스트 있음 → 전체 역 검색 결과 (인접 필터 X — 사용자 직접 typing).
@@ -163,11 +147,6 @@ export function SubwayWizard({ onBack, onPicked }: Props) {
     }
     return [];
   }, [nextQuery, prevStation]);
-
-  const platSuggestions = useMemo(
-    () => platQuery.trim() ? searchStations({ query: platQuery, limit: 8 }) : [],
-    [platQuery],
-  );
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: TOKEN.bg, fontFamily: FONT }}>

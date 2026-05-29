@@ -40,6 +40,8 @@ export interface NaverReverseGeocodeResponse {
   };
 }
 
+// `naver`는 type-only export — declare const는 ambient global 선언이고 export type으로 사용.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const naver: { maps: NaverMapsModule };
 export type { naver };
 
