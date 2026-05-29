@@ -22,6 +22,9 @@ export function QRScreen({ onBack, onSuccess }: Props) {
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
   const stoppedRef = useRef(false);
+  // tick은 start보다 아래에 정의됨 — useCallback dep array에 그대로 넣으면 TDZ.
+  // ref 통해 start가 latest tick 호출 가능하게.
+  const tickRef = useRef<() => void>(() => {});
 
   const stop = useCallback(() => {
     stoppedRef.current = true;
@@ -59,7 +62,7 @@ export function QRScreen({ onBack, onSuccess }: Props) {
         video.srcObject = stream;
         await video.play();
         setPhase('scanning');
-        tick();
+        tickRef.current();
         return;
       } catch (e) {
         lastErr = e as { name?: string; message?: string };
@@ -73,6 +76,7 @@ export function QRScreen({ onBack, onSuccess }: Props) {
     }
     setErrDetail(`${lastErr?.name ?? 'error'}: ${lastErr?.message ?? ''}`);
     setPhase('unavailable');
+    // tick은 ref 통해 호출 — useCallback dep에 forward reference 넣으면 TDZ.
   }, []);
 
   const tick = useCallback(() => {
@@ -106,6 +110,8 @@ export function QRScreen({ onBack, onSuccess }: Props) {
     }
     rafRef.current = requestAnimationFrame(tick);
   }, [stop, onSuccess]);
+  // start가 호출하는 tickRef를 최신 tick으로 sync.
+  useEffect(() => { tickRef.current = tick; }, [tick]);
 
   return (
     <div style={{ height: '100%', background: '#0D0D13', display: 'flex', flexDirection: 'column', fontFamily: FONT, color: '#fff' }}>

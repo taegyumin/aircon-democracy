@@ -271,13 +271,13 @@ export function BusWizard({ onBack, onPicked }: Props) {
     });
   }, [selectedRoute, stopSel, tryMatch, region]);
 
-  const resetToNumber = () => {
+  const resetToNumber = useCallback(() => {
     setPhase('number');
     setSelectedRoute(null);
     setStations([]); setStopSel(null); setStopSearch('');
     setGps('idle'); setCoords(null);
     resetMatch();
-  };
+  }, [resetMatch]);
 
   // region 수동 변경 — 진행 중 모든 state 초기화 (이전 region의 routeId가 무효).
   const changeRegion = useCallback((next: Region) => {
@@ -288,7 +288,7 @@ export function BusWizard({ onBack, onPicked }: Props) {
     setRegionLabel(label);
     resetToNumber();
     setRouteQuery(''); setRouteCandidates([]);
-  }, [resetMatch]);
+  }, [resetToNumber]);
 
   // ── Submit ────────────────────────────────────────────────────────
   const canSubmit = phase === 'stops' && !!selectedRoute && !!stopSel && !submitting && !matchLoading;

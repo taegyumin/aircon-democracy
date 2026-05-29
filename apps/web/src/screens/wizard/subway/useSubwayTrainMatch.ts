@@ -24,26 +24,27 @@ export function useSubwayTrainMatch(resolvedSegment: ResolvedSegment | null): Us
   const [matchLoading, setMatchLoading] = useState(false);
   const [matchNonce, setMatchNonce] = useState(0);
 
+  // 필드만 추출 — resolvedSegment 객체 reference가 매 render 바뀌면 무한 effect 방지.
+  const line = resolvedSegment?.line;
+  const prev = resolvedSegment?.prev;
+  const next = resolvedSegment?.next;
+
   useEffect(() => {
     setTrainMatch(null);
     // early-return 전에도 loading을 반드시 꺼야 한다.
     // 그렇지 않으면 이전 effect의 in-flight 요청이 cleanup으로 cancelled=true 되면서
     // finally의 setMatchLoading(false)가 스킵되고, 새 effect는 early return.
     // → loading이 영원히 true. 사용자가 station 바꿀 때마다 재현.
-    if (!resolvedSegment) { setMatchLoading(false); return; }
-    if (!/^[1-9]호선$/.test(resolvedSegment.line)) { setMatchLoading(false); return; }
+    if (!line || !prev || !next) { setMatchLoading(false); return; }
+    if (!/^[1-9]호선$/.test(line)) { setMatchLoading(false); return; }
     let cancelled = false;
     setMatchLoading(true);
-    api.matchSubwayTrain({
-      line: resolvedSegment.line,
-      prev: resolvedSegment.prev,
-      next: resolvedSegment.next,
-    })
+    api.matchSubwayTrain({ line, prev, next })
       .then((res) => { if (!cancelled) setTrainMatch(res); })
       .catch(() => { if (!cancelled) setTrainMatch({ matched: false, reason: 'upstream_error' }); })
       .finally(() => { if (!cancelled) setMatchLoading(false); });
     return () => { cancelled = true; };
-  }, [resolvedSegment?.line, resolvedSegment?.prev, resolvedSegment?.next, matchNonce]);
+  }, [line, prev, next, matchNonce]);
 
   return {
     trainMatch,
