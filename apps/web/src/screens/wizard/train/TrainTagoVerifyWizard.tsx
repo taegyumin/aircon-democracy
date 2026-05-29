@@ -9,7 +9,7 @@
 // 간선철도는 좌석권에 trainNo + 호차가 명시되어 있어 사용자 입력만으로 안정 매칭.
 
 import { useEffect, useMemo, useState } from 'react';
-import { TOKEN, FONT } from '@aircon/core';
+import { TOKEN, FONT, joinYmdHm, TRAIN_VERIFY_ERROR_COPY } from '@aircon/core';
 import type { TrainVerifyResult } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
@@ -134,10 +134,7 @@ export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
     setArrPlaceId(hit?.nodeId ?? '');
   }
 
-  const depPlandTimeHHMI = useMemo(() => {
-    if (!runDt || !depHour || !depMin) return '';
-    return `${runDt}${depHour.padStart(2, '0')}${depMin.padStart(2, '0')}`;
-  }, [runDt, depHour, depMin]);
+  const depPlandTimeHHMI = useMemo(() => joinYmdHm(runDt, depHour, depMin), [runDt, depHour, depMin]);
 
   const canVerify = !!depPlaceId && !!arrPlaceId && depPlandTimeHHMI.length === 12 && !!carOrdr && !verifying;
 
@@ -256,9 +253,7 @@ export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
 
         {error && (
           <div style={{ marginBottom: 14, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12 }}>
-            {error === 'not_found' && '해당 열차를 찾지 못했어요. 좌석권 다시 확인해주세요.'}
-            {error === 'service_closed' && '해당 일자에 운행 정보가 없어요.'}
-            {error !== 'not_found' && error !== 'service_closed' && error}
+            {TRAIN_VERIFY_ERROR_COPY[error] ?? error}
           </div>
         )}
 

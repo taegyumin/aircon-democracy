@@ -17,6 +17,33 @@ export interface TrainStation {
 
 export const TRAIN_STATIONS: TrainStation[] = rawTrainStations as TrainStation[];
 
+/**
+ * YYYYMMDD + HH + MM 형식 합치기. TAGO TrainInfo / ExpBusInfo / SuburbsBusInfo
+ * verify endpoint가 `depPlandTime` (또는 `depPlandTimeHHMI`)을 12자리 string으로 받음.
+ * web/mobile train wizard + intercity-bus wizard 3곳에서 중복되던 패턴 — core로 통일.
+ */
+export function joinYmdHm(runDt: string, hh: string, mm: string): string {
+  if (!runDt || !hh || !mm) return '';
+  return `${runDt}${hh.padStart(2, '0')}${mm.padStart(2, '0')}`;
+}
+
+/**
+ * 간선철도 verify endpoint reason → 한국어 사용자 copy.
+ * 매핑 안 된 reason은 그대로 표시 (개발자 진단용).
+ */
+export const TRAIN_VERIFY_ERROR_COPY: Record<string, string> = {
+  not_found: '해당 열차를 찾지 못했어요. 좌석권 다시 확인해주세요.',
+  service_closed: '해당 일자에 운행 정보가 없어요.',
+};
+
+/**
+ * 고속·시외버스 verify endpoint reason → 한국어 사용자 copy.
+ */
+export const INTERCITY_BUS_VERIFY_ERROR_COPY: Record<string, string> = {
+  not_found: '해당 시각 출발 버스를 찾지 못했어요. 승차권 다시 확인해주세요.',
+  service_closed: '해당 노선·날짜에 운행 정보가 없어요.',
+};
+
 /** Lightweight name search across train-only stations. */
 export function searchTrainStations(query: string, limit = 12): TrainStation[] {
   const q = query.trim();

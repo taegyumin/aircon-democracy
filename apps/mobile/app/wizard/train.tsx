@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TOKEN } from '@aircon/core';
+import { TOKEN, joinYmdHm, TRAIN_VERIFY_ERROR_COPY } from '@aircon/core';
 import type { TrainVerifyResult } from '@aircon/core';
 import { api } from '../../src/lib/apiClient';
 import { SimpleSuggestInput } from '../../src/components/SimpleSuggestInput';
@@ -109,10 +109,7 @@ export default function TrainWizard() {
     setArrPlaceId(hit?.nodeId ?? '');
   }
 
-  const depPlandTimeHHMI = useMemo(() => {
-    if (!runDt || !depHour || !depMin) return '';
-    return `${runDt}${depHour.padStart(2, '0')}${depMin.padStart(2, '0')}`;
-  }, [runDt, depHour, depMin]);
+  const depPlandTimeHHMI = useMemo(() => joinYmdHm(runDt, depHour, depMin), [runDt, depHour, depMin]);
 
   const canVerify = !!depPlaceId && !!arrPlaceId && depPlandTimeHHMI.length === 12 && !!carOrdr && !verifying;
 
@@ -227,11 +224,7 @@ export default function TrainWizard() {
 
         {error && (
           <View style={styles.error}>
-            <Text style={styles.errorText}>
-              {error === 'not_found' ? '해당 열차를 찾지 못했어요. 좌석권 다시 확인해주세요.'
-                : error === 'service_closed' ? '해당 일자에 운행 정보가 없어요.'
-                : error}
-            </Text>
+            <Text style={styles.errorText}>{TRAIN_VERIFY_ERROR_COPY[error] ?? error}</Text>
           </View>
         )}
 

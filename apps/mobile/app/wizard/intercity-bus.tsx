@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TOKEN } from '@aircon/core';
+import { TOKEN, joinYmdHm, INTERCITY_BUS_VERIFY_ERROR_COPY } from '@aircon/core';
 import type { IntercityBusTerminal, IntercityBusVerifyResult } from '@aircon/core';
 import { api } from '../../src/lib/apiClient';
 import { SimpleSuggestInput } from '../../src/components/SimpleSuggestInput';
@@ -91,10 +91,7 @@ export default function IntercityBusWizard() {
     setArrTerminalId(hit?.terminalId ?? '');
   }
 
-  const depPlandTime = useMemo(() => {
-    if (!runDt || !depHour || !depMin) return '';
-    return `${runDt}${depHour.padStart(2, '0')}${depMin.padStart(2, '0')}`;
-  }, [runDt, depHour, depMin]);
+  const depPlandTime = useMemo(() => joinYmdHm(runDt, depHour, depMin), [runDt, depHour, depMin]);
 
   const canVerify = !!depTerminalId && !!arrTerminalId && depPlandTime.length === 12 && !verifying;
 
@@ -204,11 +201,7 @@ export default function IntercityBusWizard() {
 
         {error && (
           <View style={styles.error}>
-            <Text style={styles.errorText}>
-              {error === 'not_found' ? '해당 시각 출발 버스를 찾지 못했어요. 승차권 다시 확인해주세요.'
-                : error === 'service_closed' ? '해당 노선·날짜에 운행 정보가 없어요.'
-                : error}
-            </Text>
+            <Text style={styles.errorText}>{INTERCITY_BUS_VERIFY_ERROR_COPY[error] ?? error}</Text>
           </View>
         )}
 

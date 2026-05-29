@@ -5,7 +5,7 @@
 // placeId = intercity-bus:{kind}:{routeId}:{depPlandTime}
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { TOKEN, FONT } from '@aircon/core';
+import { TOKEN, FONT, joinYmdHm, INTERCITY_BUS_VERIFY_ERROR_COPY } from '@aircon/core';
 import type { IntercityBusTerminal, IntercityBusVerifyResult } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
@@ -102,10 +102,7 @@ export function IntercityBusWizard({ onBack, onPicked }: Props) {
   const depSuggestions = depSugg.map((t) => `${t.terminalNm}${t.cityName ? ` (${t.cityName})` : ''}`);
   const arrSuggestions = arrSugg.map((t) => `${t.terminalNm}${t.cityName ? ` (${t.cityName})` : ''}`);
 
-  const depPlandTime = useMemo(() => {
-    if (!runDt || !depHour || !depMin) return '';
-    return `${runDt}${depHour.padStart(2, '0')}${depMin.padStart(2, '0')}`;
-  }, [runDt, depHour, depMin]);
+  const depPlandTime = useMemo(() => joinYmdHm(runDt, depHour, depMin), [runDt, depHour, depMin]);
 
   const canVerify = !!depTerminalId && !!arrTerminalId && depPlandTime.length === 12 && !verifying;
 
@@ -225,9 +222,7 @@ export function IntercityBusWizard({ onBack, onPicked }: Props) {
 
         {error && (
           <div style={{ marginBottom: 14, padding: 10, background: TOKEN.hotBg, color: TOKEN.hot, borderRadius: TOKEN.r.md, fontSize: 12 }}>
-            {error === 'not_found' && '해당 시각 출발 버스를 찾지 못했어요. 승차권 다시 확인해주세요.'}
-            {error === 'service_closed' && '해당 노선·날짜에 운행 정보가 없어요.'}
-            {error !== 'not_found' && error !== 'service_closed' && error}
+            {INTERCITY_BUS_VERIFY_ERROR_COPY[error] ?? error}
           </div>
         )}
 
