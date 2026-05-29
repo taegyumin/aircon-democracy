@@ -25,6 +25,15 @@
 
 ---
 
+## ✅ V4 답변 후 자율 처리
+
+- `1f9ba23` react-hooks/exhaustive-deps warning 3건 → 0 (QRScreen tickRef, BusWizard useCallback, useSubwayTrainMatch 필드 추출)
+- `54914b9` dead state + unused vars 제거 (SubwayWizard platQuery 외 5건, PlatformModeBody 파일 삭제, regionLabel chain, RegionPicker label prop)
+- `b413499` joinYmdHm + TRAIN/INTERCITY_BUS_VERIFY_ERROR_COPY 추출 (3곳 중복 제거, JSX inline ternary → 테이블)
+- `bc617ac` CODE_STYLE_GUIDE.md 추가
+
+lint warning 23 → 6 (남은 6은 모두 no-explicit-any, P1 별도).
+
 ## ✅ 추가 자율 처리 (V3 P1 묶음)
 
 - `b0fd585` swopenAPI provider 분리 + SubwayMatchReason enum 표준화 (9 reasons)
