@@ -49,8 +49,8 @@ export const placesRoutes = new Hono<Env>();
 
 // GET /api/places — list places with live vote counts.
 // Cached at the edge for ~30s. Per-place "my vote"는 /places/:id (uncacheable).
-// LIMIT 100 — popularity-sorted feed, keyset pagination은 popularity가
-// 매 vote마다 바뀌어서 의도적으로 미적용.
+// LIMIT 50 + HAVING vote > 0 — popularity feed에 의견 없는 장소(투표 0)는 숨김.
+// 무한 스크롤성 노이즈 + 사용자가 등록만 하고 vote 안 한 dead 장소 제거. 검색으로는 접근 가능.
 placesRoutes.get('/places', async (c) => {
   const now = Date.now();
   // is_public=0인 사용자 직접 등록 공간은 search/list에 노출 안 함. link로만 접근.
@@ -64,8 +64,9 @@ placesRoutes.get('/places', async (c) => {
      LEFT JOIN votes v ON v.place_id = p.id
      WHERE COALESCE(p.is_public, 1) = 1
      GROUP BY p.id
+     HAVING (cold + ok + hot) > 0
      ORDER BY (cold + ok + hot) DESC, p.created_at DESC
-     LIMIT 100`,
+     LIMIT 50`,
   )
     .bind(now)
     .all<PlaceWithCounts>();

@@ -25,8 +25,9 @@ async function fetchPlaces(): Promise<PlaceWithCounts[] | null> {
          LEFT JOIN votes v ON v.place_id = p.id
          WHERE COALESCE(p.is_public, 1) = 1
          GROUP BY p.id
+         HAVING (cold + ok + hot) > 0
          ORDER BY (cold + ok + hot) DESC, p.created_at DESC
-         LIMIT 100`,
+         LIMIT 50`,
       )
       .bind(now)
       .all<PlaceWithCounts>();
