@@ -1,10 +1,9 @@
 // Session state hook for mobile.
-// Native fetch는 web과 cookie 동작이 달라서 currently /api/me 호출 시 voter
-// cookie 자동 동봉이 안 됨. 향후 expo-secure-store + Authorization Bearer
-// 흐름으로 전환 예정. 이 sprint는 placeholder.
+// X-Aircon-Session 헤더는 apiClient.getAuthHeaders가 자동 첨부.
+// /api/me 호출만 하면 session token 기반 인증된 user 반환.
 
-import { useState } from 'react';
-import type { User } from './apiClient';
+import { useCallback, useEffect, useState } from 'react';
+import { api, clearSessionToken, type User } from './apiClient';
 
 interface UseUserResult {
   user: User | null;
@@ -14,14 +13,29 @@ interface UseUserResult {
 }
 
 export function useUser(): UseUserResult {
-  const [user] = useState<User | null>(null);
-  const [loading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const refresh = async () => {
-    // TODO: implement via expo-secure-store + bearer token
-  };
-  const logout = async () => {
-    // TODO
-  };
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.me();
+      setUser(res.user);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    // server endpoint는 cookie deletion만 (mobile은 cookie 없음) — clearSessionToken이 실효.
+    try { await api.logout(); } catch { /* server 실패해도 local clear는 진행 */ }
+    await clearSessionToken();
+    setUser(null);
+  }, []);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+
   return { user, loading, refresh, logout };
 }

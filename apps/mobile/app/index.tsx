@@ -60,9 +60,9 @@ export default function HomeIndex() {
             </Svg>
           </Pressable>
           <Pressable
-            onPress={() => router.push(user ? '/' : '/login')}
+            onPress={() => router.push(user ? '/settings' : '/login')}
             style={styles.userBtn}
-            accessibilityLabel={user ? '계정' : '로그인'}
+            accessibilityLabel={user ? '설정' : '로그인'}
           >
             <Svg width={17} height={17} viewBox="0 0 24 24" fill="none">
               <Circle cx="12" cy="8" r="4" stroke={TOKEN.text3} strokeWidth={1.8} />
