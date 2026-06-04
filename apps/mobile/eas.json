@@ -28,7 +28,7 @@
         "appleTeamId": "RWC9Y2BDAS"
       },
       "android": {
-        "serviceAccountKeyPath": "./google-service-account.json",
+        "serviceAccountKeyPath": "/Users/taegyumin/.aircon-google-play-key.json",
         "track": "production"
       }
     }
