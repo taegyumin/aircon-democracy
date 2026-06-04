@@ -6,7 +6,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet, TextInput, ActivityIndic
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TOKEN, snu, yonsei } from '@aircon/core';
-import { API_BASE } from '../../src/lib/apiClient';
+import { api } from '../../src/lib/apiClient';
 
 type Univ = 'snu' | 'yonsei' | null;
 
@@ -47,11 +47,7 @@ export default function ClassroomWizard() {
       const r = room.trim();
       const id = `classroom:${univ}:${b}:${r}`;
       const name = univ === 'snu' ? `서울대 ${b} ${r}` : `연세대 ${b} ${r}`;
-      await fetch(`${API_BASE}/api/places/upsert`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action', Origin: API_BASE },
-        body: JSON.stringify({ id, name, type: 'classroom', district: univ === 'snu' ? '서울 관악구 서울대학교' : '서울 서대문구 연세대학교' }),
-      });
+      await api.upsertPlace({ id, name, type: 'classroom', district: univ === 'snu' ? '서울 관악구 서울대학교' : '서울 서대문구 연세대학교' });
       router.push(`/p/${encodeURIComponent(id)}`);
     } catch (e) {
       setError((e as Error).message);

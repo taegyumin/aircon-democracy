@@ -7,7 +7,7 @@ import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndic
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TOKEN } from '@aircon/core';
-import { API_BASE } from '../../src/lib/apiClient';
+import { api } from '../../src/lib/apiClient';
 
 export default function CafeWizard() {
   const [name, setName] = useState('');
@@ -29,15 +29,7 @@ export default function CafeWizard() {
       const addrSlug = sanitize(address);
       const nameSlug = sanitize(name);
       const id = `other:freeform:${addrSlug}:${nameSlug}`;
-      const res = await fetch(`${API_BASE}/api/places/upsert`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action', Origin: API_BASE },
-        body: JSON.stringify({ id, name: name.trim(), type: 'other', district: address.trim() }),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
-      }
+      await api.upsertPlace({ id, name: name.trim(), type: 'other', district: address.trim() });
       router.push(`/p/${encodeURIComponent(id)}`);
     } catch (e) {
       setError((e as Error).message);

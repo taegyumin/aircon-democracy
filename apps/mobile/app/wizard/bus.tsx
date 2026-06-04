@@ -6,7 +6,7 @@ import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndic
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TOKEN, SEOUL_REGION, buildBusPlace, type BusMatchResult, type BusRouteStation, type BusVehiclePosition } from '@aircon/core';
-import { api, API_BASE } from '../../src/lib/apiClient';
+import { api } from '../../src/lib/apiClient';
 import { RouteTimeline } from '../../src/components/RouteTimeline';
 
 export default function BusWizard() {
@@ -45,12 +45,8 @@ export default function BusWizard() {
     setPickedVeh(null);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/realtime/bus/match`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action', Origin: API_BASE },
-        body: JSON.stringify({ routeName: route.trim(), stopName: stop.trim() }),
-      });
-      const body = (await res.json()) as BusMatchResult;
+      // api.matchBusVehicle 통해 Bearer + onResponse(token capture) 흐름 유지.
+      const body = await api.matchBusVehicle({ routeName: route.trim(), stopName: stop.trim() });
       setMatch(body);
     } catch (e) {
       setMatch({ matched: false, reason: (e as Error).message });
@@ -69,15 +65,7 @@ export default function BusWizard() {
         ? { ...match, matched: true, vehId: pickedVeh.vehId, plainNo: pickedVeh.plainNo, reason: undefined, candidates: undefined }
         : match;
       const payload = buildBusPlace({ routeName: route, stopName: stop, match: effectiveMatch });
-      const res = await fetch(`${API_BASE}/api/places/upsert`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action', Origin: API_BASE },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
-      }
+      await api.upsertPlace(payload);
       router.push(`/p/${encodeURIComponent(payload.id)}`);
     } catch (e) {
       setError((e as Error).message);

@@ -16,11 +16,12 @@ import {
   findSegments,
   neighborNames,
   lineColor,
+  carCountFor,
   buildSubwayTrainPlace,
   type Station,
   type SubwayMatchResult,
 } from '@aircon/core';
-import { api, API_BASE } from '../../src/lib/apiClient';
+import { api } from '../../src/lib/apiClient';
 
 export default function SubwayWizard() {
   const [prevQ, setPrevQ] = useState('');
@@ -90,7 +91,9 @@ export default function SubwayWizard() {
     (trainMatch.reason === 'no_train_at_segment' || trainMatch.reason === 'service_closed' || trainMatch.reason === 'realtime_unsupported');
   const trainConfirmed = trainMatch?.matched ?? false;
 
-  const canSubmit = !!resolved && car !== null && !submitting;
+  // matchLoading 중에는 disable — 사용자가 빠르게 submit 누르면 segment fallback으로 가버리는
+  // 회귀 방지 (Codex 리뷰 (C) 지적).
+  const canSubmit = !!resolved && car !== null && !submitting && !matchLoading;
 
   const submit = async () => {
     if (!resolved || car === null) return;
@@ -107,15 +110,7 @@ export default function SubwayWizard() {
           ? { matched: trainMatch.matched, trainNo: trainMatch.trainNo, destination: trainMatch.destination }
           : null,
       });
-      const res = await fetch(`${API_BASE}/api/places/upsert`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action', Origin: API_BASE },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? `HTTP ${res.status}`);
-      }
+      await api.upsertPlace(payload);
       router.push(`/p/${encodeURIComponent(payload.id)}`);
     } catch (e) {
       setError((e as Error).message);
@@ -192,7 +187,7 @@ export default function SubwayWizard() {
           <View style={styles.sectionGap}>
             <Text style={styles.fieldLabel}>몇 호차예요?</Text>
             <View style={styles.carGrid}>
-              {[1,2,3,4,5,6,7,8,9,10].map((n) => {
+              {Array.from({ length: carCountFor(resolved.line) }, (_, i) => i + 1).map((n) => {
                 const active = car === n;
                 return (
                   <Pressable key={n} onPress={() => setCar(active ? null : n)} style={[styles.carCell, active && styles.carCellActive]}>
