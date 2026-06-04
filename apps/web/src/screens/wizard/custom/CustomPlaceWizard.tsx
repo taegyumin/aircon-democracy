@@ -12,6 +12,7 @@ import { TOKEN, FONT, type PlaceType } from '@aircon/core';
 import { api, type PlaceWithCounts } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
 import { PlaceCard } from '../../../components/PlaceCard';
+import type * as QRCodeModule from 'qrcode.react';
 
 interface Props {
   onBack: () => void;
@@ -363,7 +364,7 @@ function SuccessScreen({
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://aircondemocracy.com';
   const placeUrl = `${origin}/p/${encodeURIComponent(placeId)}`;
   const printUrl = `${origin}/print/${encodeURIComponent(placeId)}`;
-  const [QRCode, setQRCode] = useState<typeof import('qrcode.react') | null>(null);
+  const [QRCode, setQRCode] = useState<typeof QRCodeModule | null>(null);
   useEffect(() => {
     import('qrcode.react').then(setQRCode).catch(() => {/* skip */});
   }, []);

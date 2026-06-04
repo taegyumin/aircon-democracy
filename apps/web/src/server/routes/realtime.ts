@@ -17,7 +17,7 @@ import { naverProvider, kakaoProvider, searchPoiCombined } from '../poiProviders
 import { trainInfoProvider, subwayInfoProvider, intercityBusProvider } from '../tagoProviders';
 import { everlineProvider, EVERLINE_STATIONS } from '../everlineProvider';
 import { fetchSwopenApiPositions } from '../swopenApiProvider';
-import type { SubwayMatchResult } from '@aircon/core';
+import type { SubwayMatchResult, BusMatchResult, TrainVerifyResult, IntercityBusVerifyResult } from '@aircon/core';
 import { isBlocked, isKillSwitchOn, checkLimits } from '../_abuse';
 import { abuseFor } from '../abuse-adapter';
 import type { Env } from '../types';
@@ -345,14 +345,15 @@ realtimeRoutes.post('/realtime/bus/match', async (c) => {
   const parsed = BusMatchBodySchema.safeParse(raw);
   if (!parsed.success) return c.json({ error: 'invalid_body' }, 400);
   const { routeName, stopName, routeId: passedRouteId } = parsed.data;
+  const ok = (r: BusMatchResult) => c.json(r);
   const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
-  if (!key) return c.json({ matched: false, reason: 'no_api_key' });
+  if (!key) return ok({ matched: false, reason: 'no_api_key' });
   try {
     const result = await providerFor(parseBusRegion(parsed.data.region))
       .matchVehicle(routeName, stopName, key, passedRouteId);
-    return c.json(result);
-  } catch (e) {
-    return c.json({ matched: false, reason: (e as Error).message });
+    return ok(result);
+  } catch {
+    return ok({ matched: false, reason: 'upstream_error' });
   }
 });
 
@@ -404,17 +405,18 @@ realtimeRoutes.get('/realtime/train/vehicle-kinds', async (c) => {
 realtimeRoutes.post('/realtime/train/verify', async (c) => {
   const guard = await realtimeGuard(c);
   if (!guard.ok) return guard.res;
+  const ok = (r: TrainVerifyResult) => c.json(r);
   let raw: unknown;
-  try { raw = await c.req.json(); } catch { return c.json({ matched: false, reason: 'invalid_json' }, 400); }
+  try { raw = await c.req.json(); } catch { return ok({ matched: false, reason: 'invalid_json' }); }
   const parsed = TrainVerifyBodySchema.safeParse(raw);
-  if (!parsed.success) return c.json({ matched: false, reason: 'invalid_body' }, 400);
+  if (!parsed.success) return ok({ matched: false, reason: 'invalid_body' });
   const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
-  if (!key) return c.json({ matched: false, reason: 'no_api_key' });
+  if (!key) return ok({ matched: false, reason: 'no_api_key' });
   try {
     const result = await trainInfoProvider.verify(parsed.data, key);
-    return c.json(result);
-  } catch (e) {
-    return c.json({ matched: false, reason: (e as Error).message });
+    return ok(result);
+  } catch {
+    return ok({ matched: false, reason: 'upstream_error' });
   }
 });
 
@@ -475,19 +477,20 @@ realtimeRoutes.get('/realtime/intercity-bus/:kind/grades', async (c) => {
 realtimeRoutes.post('/realtime/intercity-bus/:kind/verify', async (c) => {
   const guard = await realtimeGuard(c);
   if (!guard.ok) return guard.res;
+  const ok = (r: IntercityBusVerifyResult) => c.json(r);
   const kindP = IntercityBusKindSchema.safeParse(c.req.param('kind'));
-  if (!kindP.success) return c.json({ matched: false, reason: 'invalid_kind' }, 400);
+  if (!kindP.success) return ok({ matched: false, reason: 'invalid_kind' });
   let raw: unknown;
-  try { raw = await c.req.json(); } catch { return c.json({ matched: false, reason: 'invalid_json' }, 400); }
+  try { raw = await c.req.json(); } catch { return ok({ matched: false, reason: 'invalid_json' }); }
   const parsed = IntercityBusVerifyBodySchema.safeParse(raw);
-  if (!parsed.success) return c.json({ matched: false, reason: 'invalid_body' }, 400);
+  if (!parsed.success) return ok({ matched: false, reason: 'invalid_body' });
   const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
-  if (!key) return c.json({ matched: false, reason: 'no_api_key' });
+  if (!key) return ok({ matched: false, reason: 'no_api_key' });
   try {
     const result = await intercityBusProvider.verify(kindP.data, parsed.data, key);
-    return c.json(result);
-  } catch (e) {
-    return c.json({ matched: false, reason: (e as Error).message });
+    return ok(result);
+  } catch {
+    return ok({ matched: false, reason: 'upstream_error' });
   }
 });
 

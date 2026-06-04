@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "dev": "npm run -w @aircon/web dev",
-    "build:web": "npm run -w @aircon/web build && (cd apps/web && npx @cloudflare/next-on-pages)",
+    "build:web": "node scripts/sync-headers.mjs && npm run -w @aircon/web build && (cd apps/web && npx @cloudflare/next-on-pages)",
+    "sync:headers": "node scripts/sync-headers.mjs",
     "deploy:web": "npm run -w @aircon/web deploy",
     "test:e2e": "playwright test",
     "test:e2e:prod": "BASE_URL=https://aircondemocracy.com playwright test",

@@ -12,6 +12,7 @@ import {
   TOKEN, FONT, lineColor, carCountFor, type Station,
 } from '@aircon/core';
 import type { SubwayMatchResult } from '../../../lib/apiClient';
+import type { SubwayMatchCandidate } from '@aircon/core';
 import { Label } from '../Label';
 import { primaryButtonStyle } from '../styles';
 import { StationAutocomplete } from './StationAutocomplete';
@@ -33,8 +34,8 @@ export interface TrainModeBodyProps {
   onSubmit: () => void;
   trainMatch: SubwayMatchResult | null;
   matchLoading: boolean;
-  pickedCandidate: import('@aircon/core').SubwayMatchCandidate | null;
-  onPickCandidate: (c: import('@aircon/core').SubwayMatchCandidate | null) => void;
+  pickedCandidate: SubwayMatchCandidate | null;
+  onPickCandidate: (c: SubwayMatchCandidate | null) => void;
 }
 
 // 와이어프레임 SVG 아이콘 (lucide-react 안 쓰고 inline — 디자인 의도 그대로).
@@ -375,8 +376,8 @@ function CandidatePicker({
   line: string;
   prev: string;
   next: string;
-  candidates: import('@aircon/core').SubwayMatchCandidate[];
-  onPick: (c: import('@aircon/core').SubwayMatchCandidate | null) => void;
+  candidates: SubwayMatchCandidate[];
+  onPick: (c: SubwayMatchCandidate | null) => void;
 }) {
   const color = lineColor(line);
   return (
@@ -424,7 +425,7 @@ function CandidateCard({
   line: string;
   prev: string;
   next: string;
-  cand: import('@aircon/core').SubwayMatchCandidate;
+  cand: SubwayMatchCandidate;
   onPick: () => void;
 }) {
   const color = lineColor(line);

@@ -5,6 +5,7 @@ import { TOKEN, VOTE_CONFIG, FONT, type VoteType } from '@aircon/core';
 import { Star } from 'lucide-react';
 import { api, ApiError, type PlaceDetail } from '../lib/apiClient';
 import { recordVote, removePlace } from '../lib/recentPlaces';
+import type * as QRCodeModule from 'qrcode.react';
 import { isFavorite, toggleFavorite } from '../lib/favorites';
 import { useUser } from '../lib/useUser';
 import { consumePendingVote, setPendingVote } from '../lib/migration';
@@ -530,7 +531,7 @@ function ShareSheet({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const [QRMod, setQRMod] = useState<typeof import('qrcode.react') | null>(null);
+  const [QRMod, setQRMod] = useState<typeof QRCodeModule | null>(null);
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://aircondemocracy.com';
   const placeUrl = `${origin}/p/${encodeURIComponent(placeId)}`;
   const printUrl = `${origin}/print/${encodeURIComponent(placeId)}`;
