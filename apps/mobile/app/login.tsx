@@ -3,12 +3,13 @@
 // Android는 Custom Tabs. 시스템 브라우저와 cookie 공유돼 자연스러운 SSO 동작.
 
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, Image, Linking } from 'react-native';
+import { Platform, View, Text, Pressable, StyleSheet, ActivityIndicator, Image, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { TOKEN } from '@aircon/core';
-import { API_BASE } from '../src/lib/apiClient';
+import { API_BASE, saveSessionToken } from '../src/lib/apiClient';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -50,6 +51,40 @@ export default function LoginScreen() {
     }
   };
 
+  // Apple Sign In (iOS only) — App Store 4.8 정책 대응.
+  // expo-apple-authentication이 native UI → identity token 반환 → server verify.
+  const startApple = async () => {
+    setPending('apple');
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) throw new Error('no_identity_token');
+      const res = await fetch(`${API_BASE}/api/auth/apple/native`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action' },
+        body: JSON.stringify({
+          identityToken: credential.identityToken,
+          fullName: credential.fullName
+            ? { givenName: credential.fullName.givenName ?? undefined, familyName: credential.fullName.familyName ?? undefined }
+            : undefined,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = (await res.json()) as { sessionJwt?: string };
+      if (body.sessionJwt) await saveSessionToken(body.sessionJwt);
+      router.push('/');
+    } catch (e) {
+      // 사용자 취소(ERR_REQUEST_CANCELED)는 silent. 그 외만 alert 가능 — 현재는 silent.
+      console.warn('[apple sign in]', e);
+    } finally {
+      setPending(null);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.body}>
@@ -58,6 +93,16 @@ export default function LoginScreen() {
         <Text style={styles.tagline}>로그인하면 장소 관리 기능을 쓸 수 있어요.</Text>
 
         <View style={styles.list}>
+          {/* Apple Sign In은 iOS only. Apple HIG에 따라 다른 OAuth 버튼과 동등하거나 더 prominent. */}
+          {Platform.OS === 'ios' && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={TOKEN.r.lg}
+              style={styles.appleBtn}
+              onPress={startApple}
+            />
+          )}
           {PROVIDERS.map((p) => (
             <Pressable
               key={p.id}
@@ -101,6 +146,7 @@ const styles = StyleSheet.create({
   list: { width: '100%', gap: 10, maxWidth: 360 },
   btn: { padding: 15, borderRadius: TOKEN.r.lg, alignItems: 'center' },
   btnText: { fontSize: 15, fontWeight: '700' },
+  appleBtn: { height: 52 }, // Apple HIG: 44pt 이상. 다른 버튼과 동등 size.
   skip: { marginTop: 20 },
   skipText: { fontSize: 13, color: TOKEN.text3, textDecorationLine: 'underline' },
   legalFooter: { marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 8 },

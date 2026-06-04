@@ -18,35 +18,53 @@ export { type ApiPlace, type PlaceWithCounts, type PlaceDetail, type MyVote, typ
 export const API_BASE = 'https://aircondemocracy.com';
 
 const VOTER_TOKEN_KEY = '@aircon/voter-token';
+const SESSION_TOKEN_KEY = '@aircon/session-token';
 
 // Cache token in-memory after first read — AsyncStorage는 async라 매 요청마다 await는 비쌈.
-let cachedToken: string | null | undefined = undefined;
+let cachedVoter: string | null | undefined = undefined;
+let cachedSession: string | null | undefined = undefined;
 
 async function getVoterToken(): Promise<string | null> {
-  if (cachedToken !== undefined) return cachedToken;
-  try {
-    cachedToken = await AsyncStorage.getItem(VOTER_TOKEN_KEY);
-  } catch {
-    cachedToken = null;
-  }
-  return cachedToken;
+  if (cachedVoter !== undefined) return cachedVoter;
+  try { cachedVoter = await AsyncStorage.getItem(VOTER_TOKEN_KEY); }
+  catch { cachedVoter = null; }
+  return cachedVoter;
 }
 
 async function saveVoterToken(token: string): Promise<void> {
-  cachedToken = token;
-  try {
-    await AsyncStorage.setItem(VOTER_TOKEN_KEY, token);
-  } catch {
-    // 저장 실패해도 in-memory cache는 동작. 앱 재시작 시 새 token 발급될 뿐.
-  }
+  cachedVoter = token;
+  try { await AsyncStorage.setItem(VOTER_TOKEN_KEY, token); } catch { /* 무시 */ }
+}
+
+async function getSessionToken(): Promise<string | null> {
+  if (cachedSession !== undefined) return cachedSession;
+  try { cachedSession = await AsyncStorage.getItem(SESSION_TOKEN_KEY); }
+  catch { cachedSession = null; }
+  return cachedSession;
+}
+
+/** Sign In with Apple 성공 후 session token 저장. */
+export async function saveSessionToken(token: string): Promise<void> {
+  cachedSession = token;
+  try { await AsyncStorage.setItem(SESSION_TOKEN_KEY, token); } catch { /* 무시 */ }
+}
+
+/** 로그아웃 시 session token 제거. voter는 유지 (익명 vote bucket). */
+export async function clearSessionToken(): Promise<void> {
+  cachedSession = null;
+  try { await AsyncStorage.removeItem(SESSION_TOKEN_KEY); } catch { /* 무시 */ }
 }
 
 export const api = createApiClient({
   baseUrl: API_BASE,
   credentials: 'omit', // RN cookie jar 없음 — Bearer 패턴으로 통일.
   getAuthHeaders: async (): Promise<Record<string, string>> => {
-    const token = await getVoterToken();
-    return token ? { Authorization: `Bearer voter:${token}` } : {};
+    const headers: Record<string, string> = {};
+    const voter = await getVoterToken();
+    if (voter) headers['Authorization'] = `Bearer voter:${voter}`;
+    const session = await getSessionToken();
+    if (session) headers['X-Aircon-Session'] = session;
+    return headers;
   },
   onResponse: (res) => {
     // server가 voter 신규 발급했으면 X-Aircon-Voter-Token 헤더에 token 박힘.
