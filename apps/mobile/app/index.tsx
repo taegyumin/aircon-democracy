@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Image } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { TOKEN } from '@aircon/core';
@@ -18,14 +18,19 @@ import { listFavorites, type FavoritePlace } from '../src/lib/favorites';
 import { useUser } from '../src/lib/useUser';
 
 export default function HomeIndex() {
-  const { user } = useUser();
+  const { user, refresh } = useUser();
   const [favorites, setFavorites] = React.useState<FavoritePlace[]>([]);
   const [recent, setRecent] = React.useState<RecentPlace[]>([]);
 
-  React.useEffect(() => {
-    listFavorites().then(setFavorites);
-    getRecent(5).then(setRecent);
-  }, []);
+  // Settings에서 logout/계정삭제 후 router.replace('/')로 돌아올 때 stale user 방지.
+  // recent/favorites도 함께 refresh — vote 후 home 돌아왔을 때 즉시 반영.
+  useFocusEffect(
+    React.useCallback(() => {
+      void refresh();
+      listFavorites().then(setFavorites);
+      getRecent(5).then(setRecent);
+    }, [refresh]),
+  );
 
   const recentExFaves = recent.filter((r) => !favorites.find((f) => f.id === r.id));
   const hasReturning = favorites.length > 0 || recentExFaves.length > 0;
