@@ -227,7 +227,7 @@ function isAllowedOrigin(origin: string, cfRay: string | null): boolean {
   return false;
 }
 
-export function csrfGuard(): MiddlewareHandler<any> {
+export function csrfGuard(): MiddlewareHandler {
   return async (c, next) => {
     const method = c.req.method;
     if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return next();

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildBusPlace } from '../buildBusPlace';
+import type { BusMatchResult } from '@aircon/core';
 
 // 2026-05-27 LLM P1: placeId에 region이 포함되어 "서울 10번 / 부산 10번" bucket 분리.
 // region 미지정 시 'seoul' default — legacy 호환.
@@ -14,7 +15,7 @@ describe('buildBusPlace', () => {
         vehId: '107900172', plainNo: '서울74사1234',
         routeId: '100100027', routeName: '272',
         currentStop: '신촌오거리', nextStop: '연세대학교',
-      } as any,
+      } as BusMatchResult,
     });
     expect(p.id).toBe('bus:vehicle:seoul:100100027:107900172');
     expect(p.name).toBe('272번 [차량 서울74사1234]');
@@ -25,11 +26,11 @@ describe('buildBusPlace', () => {
   it('같은 vehId라도 routeId 다르면 별도 bucket', () => {
     const m272 = buildBusPlace({
       routeName: '272', stopName: '신촌',
-      match: { matched: true, vehId: 'V1', routeId: 'R272' } as any,
+      match: { matched: true, vehId: 'V1', routeId: 'R272' } as BusMatchResult,
     });
     const m5511 = buildBusPlace({
       routeName: '5511', stopName: '관악',
-      match: { matched: true, vehId: 'V1', routeId: 'R5511' } as any,
+      match: { matched: true, vehId: 'V1', routeId: 'R5511' } as BusMatchResult,
     });
     expect(m272.id).not.toBe(m5511.id);
   });
@@ -37,7 +38,7 @@ describe('buildBusPlace', () => {
   it('routeId 없으면 routeName으로 fallback', () => {
     const p = buildBusPlace({
       routeName: '272', stopName: '신촌',
-      match: { matched: true, vehId: 'V1', routeName: '272' } as any,
+      match: { matched: true, vehId: 'V1', routeName: '272' } as BusMatchResult,
     });
     expect(p.id).toBe('bus:vehicle:seoul:272:V1');
   });
@@ -46,7 +47,7 @@ describe('buildBusPlace', () => {
     const p = buildBusPlace({
       routeName: '5511', stopName: '관악구청',
       region: 'seoul', routeId: '100200055',
-      match: { matched: false, reason: 'no_vehicle_at_stop' } as any,
+      match: { matched: false, reason: 'no_vehicle_at_stop' } as BusMatchResult,
     });
     expect(p.id).toBe('bus:seoul:100200055:stop:관악구청');
     expect(p.name).toBe('5511번 버스 (관악구청)');
