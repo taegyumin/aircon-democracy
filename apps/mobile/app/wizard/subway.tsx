@@ -1,8 +1,11 @@
 // Mobile 지하철 wizard — web의 SubwayWizard 'train mode' core flow를 RN으로.
-// 첫 sprint: prev/next 역 입력 + segment resolve. 실시간 trainNo 매칭은 후속.
-// 비즈니스 로직(searchStations, findSegments, neighborNames)은 @aircon/core 그대로.
+// 2026-06-04: 차량모드(실시간 trainNo 매칭) 추가. swopenAPI 1~9호선 + 신림선/신분당/우이신설/에버라인.
+// 매칭됐으면 subway:train:{line}:{trainNo}:{car} placeId — 같은 차량 사용자끼리 vote bucket 묶임.
+// 매칭 안 됐어도(no_train_at_segment / service_closed / realtime_unsupported) segment id fallback —
+// 사용자는 그래도 투표 가능. no-vehicle headline로 안내.
+// 비즈니스 로직(searchStations, findSegments, neighborNames, buildSubwayTrainPlace) @aircon/core 공유.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,11 +15,12 @@ import {
   searchStations,
   findSegments,
   neighborNames,
-  segmentPlaceId,
   lineColor,
+  buildSubwayTrainPlace,
   type Station,
+  type SubwayMatchResult,
 } from '@aircon/core';
-import { API_BASE } from '../../src/lib/apiClient';
+import { api, API_BASE } from '../../src/lib/apiClient';
 
 export default function SubwayWizard() {
   const [prevQ, setPrevQ] = useState('');
@@ -27,6 +31,8 @@ export default function SubwayWizard() {
   const [car, setCar] = useState<number | 'unknown' | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trainMatch, setTrainMatch] = useState<SubwayMatchResult | null>(null);
+  const [matchLoading, setMatchLoading] = useState(false);
 
   const segments = useMemo(() => {
     if (!prev || !next) return [];
@@ -65,6 +71,25 @@ export default function SubwayWizard() {
     return nextQ.trim() ? searchStations({ query: nextQ, limit: 5 }) : [];
   }, [nextQ, prev]);
 
+  // Segment 확정되면 차량 매칭 시도. 매번 segment 바뀔 때마다 재시도.
+  // race 방지: cancelled flag. 매칭 실패해도 segment 모드로 fallback 가능 (submit에서 처리).
+  useEffect(() => {
+    if (!resolved) { setTrainMatch(null); setMatchLoading(false); return; }
+    let cancelled = false;
+    setTrainMatch(null);
+    setMatchLoading(true);
+    api.matchSubwayTrain({ line: resolved.line, prev: resolved.prev, next: resolved.next })
+      .then((r) => { if (!cancelled) setTrainMatch(r); })
+      .catch(() => { if (!cancelled) setTrainMatch({ matched: false, reason: 'upstream_error' }); })
+      .finally(() => { if (!cancelled) setMatchLoading(false); });
+    return () => { cancelled = true; };
+  }, [resolved?.line, resolved?.prev, resolved?.next]);
+
+  // headline state: 차량 매칭됐는지, no-vehicle인지, 미확정인지.
+  const noVehicle = !!resolved && !!trainMatch && !trainMatch.matched && !matchLoading &&
+    (trainMatch.reason === 'no_train_at_segment' || trainMatch.reason === 'service_closed' || trainMatch.reason === 'realtime_unsupported');
+  const trainConfirmed = trainMatch?.matched ?? false;
+
   const canSubmit = !!resolved && car !== null && !submitting;
 
   const submit = async () => {
@@ -72,16 +97,26 @@ export default function SubwayWizard() {
     setSubmitting(true);
     setError(null);
     try {
-      const id = segmentPlaceId(resolved.line, resolved.prev, resolved.next, car);
-      const carPart = car === 'unknown' ? '' : ` ${car}호차`;
-      const name = `${resolved.line} ${resolved.prev}→${resolved.next}${carPart}`;
+      // buildSubwayTrainPlace: matched면 subway:train:..., 아니면 segment fallback.
+      const payload = buildSubwayTrainPlace({
+        line: resolved.line,
+        prev: resolved.prev,
+        next: resolved.next,
+        car,
+        trainMatch: trainMatch
+          ? { matched: trainMatch.matched, trainNo: trainMatch.trainNo, destination: trainMatch.destination }
+          : null,
+      });
       const res = await fetch(`${API_BASE}/api/places/upsert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action', Origin: API_BASE },
-        body: JSON.stringify({ id, name, type: 'subway', detail: `${resolved.line} · ${resolved.prev}→${resolved.next} 구간` }),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      router.push(`/p/${encodeURIComponent(id)}`);
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? `HTTP ${res.status}`);
+      }
+      router.push(`/p/${encodeURIComponent(payload.id)}`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -119,10 +154,18 @@ export default function SubwayWizard() {
         )}
         {segments.length === 1 && (
           <View style={[styles.match, { borderColor: lineColor(segments[0].line) }]}>
-            <Text style={styles.matchLabel}>자동 매칭</Text>
+            <Text style={styles.matchLabel}>
+              {matchLoading ? '열차 찾는 중…' : trainConfirmed ? '✓ 열차 확인됨' : noVehicle ? '⚠️ 지금 이 구간에 차량이 없어요' : '자동 매칭'}
+            </Text>
             <Text style={[styles.matchText, { color: lineColor(segments[0].line) }]}>
               {segments[0].line} · {segments[0].prev} → {segments[0].next}
+              {trainConfirmed && trainMatch?.trainNo ? ` · ${trainMatch.trainNo}호` : ''}
             </Text>
+            {noVehicle && (
+              <Text style={styles.noVehicleSub}>
+                막차 시간이 지났거나 차량 간격이 긴 시간대예요. 그래도 구간 단위로 투표할 수 있어요.
+              </Text>
+            )}
           </View>
         )}
         {segments.length > 1 && (
@@ -254,6 +297,7 @@ const styles = StyleSheet.create({
   match: { marginTop: 14, padding: 14, backgroundColor: TOKEN.coldBg, borderWidth: 1.5, borderRadius: TOKEN.r.md },
   matchLabel: { fontSize: 11, color: TOKEN.text2, marginBottom: 4 },
   matchText: { fontSize: 15, fontWeight: '800' },
+  noVehicleSub: { fontSize: 11, color: TOKEN.text2, lineHeight: 16, marginTop: 6 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: TOKEN.surface, borderWidth: 1.5, borderColor: TOKEN.border, borderRadius: 999 },
   chipText: { fontSize: 13, fontWeight: '700', color: TOKEN.text1 },

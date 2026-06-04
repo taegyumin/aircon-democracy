@@ -11,6 +11,7 @@ export * from './brands';
 export * from './api';
 export * from './subwayDirection';
 export * from './buildBusPlace';
+export * from './buildSubwayPlace';
 export * from './busRegion';
 export * from './subwayProgress';
 // validation은 server/client 모두에서 사용. 두 import 경로 (main + subpath) 통하도록
