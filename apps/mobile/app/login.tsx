@@ -3,7 +3,7 @@
 // Android는 Custom Tabs. 시스템 브라우저와 cookie 공유돼 자연스러운 SSO 동작.
 
 import { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Image, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
@@ -75,6 +75,18 @@ export default function LoginScreen() {
         <Pressable onPress={() => router.push('/')} style={styles.skip}>
           <Text style={styles.skipText}>로그인 없이 계속하기</Text>
         </Pressable>
+
+        {/* App Store 5.1.1(i) + Play Console 필수: 앱 내 개인정보처리방침 링크. */}
+        <View style={styles.legalFooter}>
+          <Pressable onPress={() => Linking.openURL('https://aircondemocracy.com/privacy')}>
+            <Text style={styles.legalLink}>개인정보처리방침</Text>
+          </Pressable>
+          <Text style={styles.legalSep}>·</Text>
+          <Pressable onPress={() => Linking.openURL('https://aircondemocracy.com/account-deletion')}>
+            <Text style={styles.legalLink}>계정·데이터 삭제</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.brandFooter}>© 2026 Minari</Text>
       </View>
     </SafeAreaView>
   );
@@ -91,4 +103,8 @@ const styles = StyleSheet.create({
   btnText: { fontSize: 15, fontWeight: '700' },
   skip: { marginTop: 20 },
   skipText: { fontSize: 13, color: TOKEN.text3, textDecorationLine: 'underline' },
+  legalFooter: { marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  legalLink: { fontSize: 12, color: TOKEN.text3, textDecorationLine: 'underline' },
+  legalSep: { fontSize: 12, color: TOKEN.text3 },
+  brandFooter: { marginTop: 6, fontSize: 11, color: TOKEN.text3 },
 });

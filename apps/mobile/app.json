@@ -28,7 +28,6 @@
       },
       "permissions": [
         "CAMERA",
-        "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
       ]
     },
@@ -43,7 +42,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "근처 지하철역을 추천하기 위해 사용합니다."
+          "locationWhenInUsePermission": "근처 지하철역·정류장을 추천하기 위해 사용합니다. 위치는 서버에 저장되지 않습니다.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
         }
       ]
     ],

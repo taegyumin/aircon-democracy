@@ -23,13 +23,13 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "PUT_YOUR_APPLE_ID_HERE",
-        "ascAppId": "PUT_YOUR_ASC_APP_ID_HERE",
+        "appleId": "mtg821@gmail.com",
+        "ascAppId": "6776724491",
         "appleTeamId": "RWC9Y2BDAS"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
-        "track": "internal"
+        "track": "production"
       }
     }
   }
