@@ -407,9 +407,9 @@ realtimeRoutes.post('/realtime/train/verify', async (c) => {
   if (!guard.ok) return guard.res;
   const ok = (r: TrainVerifyResult) => c.json(r);
   let raw: unknown;
-  try { raw = await c.req.json(); } catch { return ok({ matched: false, reason: 'invalid_json' }); }
+  try { raw = await c.req.json(); } catch { return c.json({ matched: false, reason: 'invalid_json' } satisfies TrainVerifyResult, 400); }
   const parsed = TrainVerifyBodySchema.safeParse(raw);
-  if (!parsed.success) return ok({ matched: false, reason: 'invalid_body' });
+  if (!parsed.success) return c.json({ matched: false, reason: 'invalid_body' } satisfies TrainVerifyResult, 400);
   const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
   if (!key) return ok({ matched: false, reason: 'no_api_key' });
   try {
@@ -479,11 +479,11 @@ realtimeRoutes.post('/realtime/intercity-bus/:kind/verify', async (c) => {
   if (!guard.ok) return guard.res;
   const ok = (r: IntercityBusVerifyResult) => c.json(r);
   const kindP = IntercityBusKindSchema.safeParse(c.req.param('kind'));
-  if (!kindP.success) return ok({ matched: false, reason: 'invalid_kind' });
+  if (!kindP.success) return c.json({ matched: false, reason: 'invalid_kind' } satisfies IntercityBusVerifyResult, 400);
   let raw: unknown;
-  try { raw = await c.req.json(); } catch { return ok({ matched: false, reason: 'invalid_json' }); }
+  try { raw = await c.req.json(); } catch { return c.json({ matched: false, reason: 'invalid_json' } satisfies IntercityBusVerifyResult, 400); }
   const parsed = IntercityBusVerifyBodySchema.safeParse(raw);
-  if (!parsed.success) return ok({ matched: false, reason: 'invalid_body' });
+  if (!parsed.success) return c.json({ matched: false, reason: 'invalid_body' } satisfies IntercityBusVerifyResult, 400);
   const key = (c.env as unknown as { DATAGOKR_BUS_KEY?: string }).DATAGOKR_BUS_KEY;
   if (!key) return ok({ matched: false, reason: 'no_api_key' });
   try {

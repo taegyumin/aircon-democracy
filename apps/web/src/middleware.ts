@@ -21,9 +21,10 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // _next/static, _next/image, api, 파일 확장자 가진 정적 자산은 모두 제외.
-  // _headers / next.config가 이미 적절한 캐시 정책 부여.
+  // _next/, api/만 제외. asset 분기는 함수 안 Accept 헤더로 처리 —
+  // placeId가 dot 허용(venue:gps:37.5:127.0)이라 dot path 제외 패턴은
+  // 실제 페이지 path까지 skip시켜 Cache-Control 누락 회귀. Codex 리뷰 (C) 지적.
   matcher: [
-    '/((?!_next/|api/|.*\\..*).*)',
+    '/((?!_next/|api/).*)',
   ],
 };
