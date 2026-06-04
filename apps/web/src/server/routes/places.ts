@@ -234,7 +234,8 @@ placesRoutes.post('/places/upsert', async (c) => {
 //   - is_public=0 default (검색에 안 나오고 link/QR로만 접근).
 //   - rate limit: voter 분당 5, 일 50.
 placesRoutes.post('/places/user', async (c) => {
-  const token = getCookie(c, SESSION_COOKIE);
+  // Web cookie 또는 mobile X-Aircon-Session 헤더. /me와 동일 패턴.
+  const token = c.req.header('X-Aircon-Session') ?? getCookie(c, SESSION_COOKIE);
   if (!token || !c.env.SESSION_SECRET) return c.json({ error: 'unauthorized' }, 401);
   let userId: string;
   try {

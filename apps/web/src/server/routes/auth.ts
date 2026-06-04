@@ -38,10 +38,13 @@ async function upsertUserAndIssueSession(
   let userId: string;
   if (existing) {
     userId = existing.id;
+    // COALESCE: 새 값 null이면 기존 DB 값 유지. Apple 재로그인 시 fullName/email 누락 케이스.
+    // 'Apple User' default도 null과 다르게 — null만 fallback.
+    const dn = displayName === 'Apple User' || displayName === '' ? null : displayName;
     await c.env.DB.prepare(
-      'UPDATE users SET display_name = ?, profile_image_url = ?, email = ?, last_login_at = ? WHERE id = ?',
+      'UPDATE users SET display_name = COALESCE(?, display_name), profile_image_url = COALESCE(?, profile_image_url), email = COALESCE(?, email), last_login_at = ? WHERE id = ?',
     )
-      .bind(displayName, profileImageUrl, email, now, userId)
+      .bind(dn, profileImageUrl, email, now, userId)
       .run();
   } else {
     userId = crypto.randomUUID();
@@ -150,19 +153,46 @@ authRoutes.post('/auth/logout', (c) => {
 
 authRoutes.get('/health', (c) => c.json({ ok: true, ts: Date.now() }));
 
-// Apple Sign In (iOS native) — App Store 4.8 정책 대응.
-// expo-apple-authentication이 device에서 받은 identityToken (RS256 JWT, Apple 서명)을
-// 본 endpoint로 전송 → JWKS로 verify → users upsert → session JWT를 응답 body로 반환.
+// SHA256 hex — server가 raw nonce를 hash해서 Apple identityToken의 nonce claim과 비교.
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+const APPLE_NONCE_TTL_MS = 5 * 60 * 1000;
+
+// GET /api/auth/apple/nonce — mobile이 sign-in 시작 전에 server-발급 nonce 받음.
+// 1회 소비 + 5분 만료. mobile은 SHA256(nonce)을 signInAsync에 넣고 raw nonce를 POST 본문에 첨부.
+authRoutes.get('/auth/apple/nonce', async (c) => {
+  const nonce = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, '');
+  const expiresAt = Date.now() + APPLE_NONCE_TTL_MS;
+  await c.env.DB.prepare('INSERT INTO apple_nonces (nonce, expires_at) VALUES (?, ?)')
+    .bind(nonce, expiresAt).run();
+  return c.json({ nonce, expiresAt });
+});
+
+// POST /api/auth/apple/native — identityToken verify + nonce 1회 소비 + session 발급.
+// expo-apple-authentication이 받은 identityToken (RS256 JWT, Apple 서명)을 본 endpoint로 전송.
 // mobile은 sessionJwt를 AsyncStorage 저장 후 X-Aircon-Session 헤더로 재전송.
 //
-// fullName은 첫 sign-in에만 옵션으로 전달됨 (Apple privacy 정책). 그 후엔 'Apple User'.
+// fullName은 첫 sign-in에만 옵션으로 전달됨 (Apple privacy 정책). 그 후엔 silent — 기존 값 유지.
 authRoutes.post('/auth/apple/native', async (c) => {
-  let body: { identityToken?: string; fullName?: { givenName?: string; familyName?: string } };
+  let body: { identityToken?: string; nonce?: string; fullName?: { givenName?: string; familyName?: string } };
   try { body = await c.req.json(); } catch { return c.json({ error: 'invalid_json' }, 400); }
   const token = body.identityToken;
+  const rawNonce = body.nonce;
   if (!token || typeof token !== 'string') return c.json({ error: 'missing_token' }, 400);
+  if (!rawNonce || typeof rawNonce !== 'string') return c.json({ error: 'missing_nonce' }, 400);
 
-  let payload: { sub?: string; email?: string; email_verified?: boolean | string };
+  // Nonce 1회 소비 — 같은 nonce 두 번 사용 X. expired면 reject.
+  const now = Date.now();
+  const consumed = await c.env.DB.prepare(
+    'DELETE FROM apple_nonces WHERE nonce = ? AND expires_at > ? RETURNING nonce',
+  ).bind(rawNonce, now).first();
+  if (!consumed) return c.json({ error: 'invalid_or_expired_nonce' }, 401);
+
+  let payload: { sub?: string; email?: string; nonce?: string };
   try {
     const verified = await joseVerify(token, APPLE_JWKS, {
       issuer: 'https://appleid.apple.com',
@@ -173,6 +203,10 @@ authRoutes.post('/auth/apple/native', async (c) => {
     return c.json({ error: 'invalid_apple_token' }, 401);
   }
 
+  // identityToken의 nonce claim은 SHA256(raw nonce) — Apple 정책.
+  const expectedHash = await sha256Hex(rawNonce);
+  if (payload.nonce !== expectedHash) return c.json({ error: 'nonce_mismatch' }, 401);
+
   const appleSub = payload.sub;
   if (!appleSub) return c.json({ error: 'no_sub' }, 401);
 
@@ -180,10 +214,12 @@ authRoutes.post('/auth/apple/native', async (c) => {
   const fn = body.fullName;
   const displayName = (fn?.givenName || fn?.familyName)
     ? `${fn.givenName ?? ''} ${fn.familyName ?? ''}`.trim()
-    : 'Apple User';
+    : null;
 
+  // 첫 로그인엔 fullName/email 받지만 그 후엔 null. upsertUserAndIssueSession이
+  // null이면 기존 값 유지하도록 COALESCE 처리. (Codex review 지적)
   const { userId, sessionJwt } = await upsertUserAndIssueSession(
-    c, 'apple', appleSub, displayName, null, email,
+    c, 'apple', appleSub, displayName ?? 'Apple User', null, email,
   );
 
   const user = await c.env.DB.prepare(

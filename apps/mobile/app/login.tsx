@@ -8,6 +8,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { TOKEN } from '@aircon/core';
 import { API_BASE, saveSessionToken } from '../src/lib/apiClient';
 
@@ -52,22 +53,34 @@ export default function LoginScreen() {
   };
 
   // Apple Sign In (iOS only) — App Store 4.8 정책 대응.
-  // expo-apple-authentication이 native UI → identity token 반환 → server verify.
+  // Replay 방어: server-issued nonce → SHA256 hash → Apple → server가 verify + 1회 소비.
   const startApple = async () => {
     setPending('apple');
     try {
+      // 1. server-issued nonce 받기 (1회 소비 + 5분 만료).
+      const nonceRes = await fetch(`${API_BASE}/api/auth/apple/nonce`);
+      if (!nonceRes.ok) throw new Error('nonce_fetch_failed');
+      const { nonce } = (await nonceRes.json()) as { nonce: string };
+
+      // 2. SHA256(nonce) → Apple 전달. identityToken에 hash가 nonce claim으로 박힘.
+      const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, nonce);
+
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
+        nonce: hashedNonce,
       });
       if (!credential.identityToken) throw new Error('no_identity_token');
+
+      // 3. server: identityToken verify + payload.nonce === SHA256(raw nonce) + nonce 소비.
       const res = await fetch(`${API_BASE}/api/auth/apple/native`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action' },
         body: JSON.stringify({
           identityToken: credential.identityToken,
+          nonce, // raw nonce — server가 SHA256해서 token nonce claim과 비교.
           fullName: credential.fullName
             ? { givenName: credential.fullName.givenName ?? undefined, familyName: credential.fullName.familyName ?? undefined }
             : undefined,
