@@ -1,11 +1,13 @@
-// Mobile 버스 wizard — 노선 + 정류장 입력 후 차량 매칭 (서버에 호출).
+// Mobile 버스 wizard — 노선 + 정류장 입력 후 차량 매칭 + RouteTimeline 시각 picker.
+// 2026-06-04: web RouteTimeline RN 포팅 통합. match.matched=true 후 timeline에서 차량 override 가능.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TOKEN, buildBusPlace, type BusMatchResult } from '@aircon/core';
-import { API_BASE } from '../../src/lib/apiClient';
+import { TOKEN, SEOUL_REGION, buildBusPlace, type BusMatchResult, type BusRouteStation, type BusVehiclePosition } from '@aircon/core';
+import { api, API_BASE } from '../../src/lib/apiClient';
+import { RouteTimeline } from '../../src/components/RouteTimeline';
 
 export default function BusWizard() {
   const [route, setRoute] = useState('');
@@ -15,10 +17,32 @@ export default function BusWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Timeline picker — match.matched=true 후 사용자가 자기 탑승 차량을 직접 클릭 가능.
+  const [stations, setStations] = useState<BusRouteStation[]>([]);
+  const [vehicles, setVehicles] = useState<BusVehiclePosition[]>([]);
+  const [pickedVeh, setPickedVeh] = useState<BusVehiclePosition | null>(null);
+
+  // matched && routeId 있을 때 stations + vehicles 로드. routeId 바뀌면 reset + refetch.
+  useEffect(() => {
+    if (!match?.matched || !match.routeId) { setStations([]); setVehicles([]); setPickedVeh(null); return; }
+    const routeId = match.routeId;
+    let cancelled = false;
+    Promise.all([
+      api.listBusRouteStations(routeId, SEOUL_REGION).catch(() => ({ stations: [] })),
+      api.listBusRouteVehicles(routeId, SEOUL_REGION).catch(() => ({ vehicles: [] })),
+    ]).then(([sRes, vRes]) => {
+      if (cancelled) return;
+      setStations(sRes.stations ?? []);
+      setVehicles(vRes.vehicles ?? []);
+    });
+    return () => { cancelled = true; };
+  }, [match?.matched, match?.routeId]);
+
   const tryMatch = async () => {
     if (!route.trim() || !stop.trim()) return;
     setMatchLoading(true);
     setMatch(null);
+    setPickedVeh(null);
     setError(null);
     try {
       const res = await fetch(`${API_BASE}/api/realtime/bus/match`, {
@@ -40,16 +64,16 @@ export default function BusWizard() {
     setSubmitting(true);
     setError(null);
     try {
-      // builder를 @aircon/core에서 import — web과 같은 id schema 보장.
-      // 이전엔 mobile이 'bus:vehicle:<vehId>' (routeId 누락) 형식이라 노선 변경
-      // 시 bucket 충돌. LLM 리뷰 P2.
-      const payload = buildBusPlace({ routeName: route, stopName: stop, match });
+      // pickedVeh 있으면 그 차량으로 match override → buildBusPlace는 matched=true 흐름으로.
+      const effectiveMatch: BusMatchResult | null = pickedVeh && match
+        ? { ...match, matched: true, vehId: pickedVeh.vehId, plainNo: pickedVeh.plainNo, reason: undefined, candidates: undefined }
+        : match;
+      const payload = buildBusPlace({ routeName: route, stopName: stop, match: effectiveMatch });
       const res = await fetch(`${API_BASE}/api/places/upsert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Aircon-Intent': 'user-action', Origin: API_BASE },
         body: JSON.stringify(payload),
       });
-      // res.ok 체크 없으면 server 400/500이어도 그냥 navigate (잘못된 place 등장).
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(body?.error ?? `HTTP ${res.status}`);
@@ -71,7 +95,7 @@ export default function BusWizard() {
         <Text style={styles.label}>노선 번호 *</Text>
         <TextInput
           value={route}
-          onChangeText={(v) => { setRoute(v); setMatch(null); }}
+          onChangeText={(v) => { setRoute(v); setMatch(null); setPickedVeh(null); }}
           placeholder="예: 272, 5511, M7106"
           placeholderTextColor={TOKEN.text3}
           style={styles.input}
@@ -83,7 +107,7 @@ export default function BusWizard() {
         <Text style={styles.label}>지나는 정류장 *</Text>
         <TextInput
           value={stop}
-          onChangeText={(v) => { setStop(v); setMatch(null); }}
+          onChangeText={(v) => { setStop(v); setMatch(null); setPickedVeh(null); }}
           placeholder="예: 신촌오거리, 강남역.강남대로"
           placeholderTextColor={TOKEN.text3}
           style={styles.input}
@@ -104,7 +128,7 @@ export default function BusWizard() {
             {match.matched
               ? <>
                   <Text style={styles.matchLabel}>이 버스 맞으시죠?</Text>
-                  <Text style={styles.matchTitle}>{match.routeName}번 · 차량번호 {match.plainNo}</Text>
+                  <Text style={styles.matchTitle}>{match.routeName}번 · 차량번호 {pickedVeh?.plainNo ?? match.plainNo}</Text>
                   {match.currentStop && <Text style={styles.matchSub}>{match.currentStop} 지나는 중{match.nextStop ? ` · 다음 ${match.nextStop}` : ''}</Text>}
                 </>
               : <Text style={styles.matchFail}>
@@ -112,6 +136,19 @@ export default function BusWizard() {
                     : match.reason === 'no_api_key' ? 'API 키 활성화 대기 중. 노선 단위로 투표할게요.'
                     : '매칭 실패. 노선 단위로 투표할게요.'}
                 </Text>}
+          </View>
+        )}
+
+        {/* RouteTimeline — matched && stations/vehicles 로드됐을 때만. 사용자가 다른 차량 override 가능. */}
+        {match?.matched && stations.length > 0 && (
+          <View style={{ marginTop: 14 }}>
+            <Text style={styles.label}>또는 노선에서 직접 차량 선택</Text>
+            <RouteTimeline
+              stations={stations}
+              vehicles={vehicles}
+              selectedVehId={pickedVeh?.vehId ?? match.vehId ?? null}
+              onPickVehicle={setPickedVeh}
+            />
           </View>
         )}
 
