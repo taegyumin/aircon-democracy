@@ -25,7 +25,7 @@
       "ios": {
         "appleId": "PUT_YOUR_APPLE_ID_HERE",
         "ascAppId": "PUT_YOUR_ASC_APP_ID_HERE",
-        "appleTeamId": "PUT_YOUR_APPLE_TEAM_ID_HERE"
+        "appleTeamId": "RWC9Y2BDAS"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
