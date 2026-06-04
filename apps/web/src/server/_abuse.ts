@@ -235,11 +235,19 @@ export function csrfGuard(): MiddlewareHandler {
     const url = new URL(c.req.url);
     if (isCsrfExempt(url.pathname)) return next();
 
-    const origin = c.req.header('Origin') ?? '';
     const intent = c.req.header('X-Aircon-Intent') ?? '';
-    const cfRay = c.req.header('CF-Ray') ?? null;
+    if (intent !== 'user-action') {
+      return c.json({ error: 'forbidden', reason: 'csrf_intent' }, 403);
+    }
 
-    if (!origin || !isAllowedOrigin(origin, cfRay) || intent !== 'user-action') {
+    // Mobile RN: Authorization Bearer 토큰이 voterCookieMiddleware에서 HMAC verify 성공한
+    // 경우(voterSource === 'bearer') Origin 검사 면제. cookie 흐름은 그대로.
+    // 위조 Bearer는 verify 실패 → voterSource='new'로 분류되어 면제 안 됨 → Origin 차단.
+    if (c.get('voterSource') === 'bearer') return next();
+
+    const origin = c.req.header('Origin') ?? '';
+    const cfRay = c.req.header('CF-Ray') ?? null;
+    if (!origin || !isAllowedOrigin(origin, cfRay)) {
       return c.json({ error: 'forbidden', reason: 'csrf_origin' }, 403);
     }
     return next();

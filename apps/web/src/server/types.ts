@@ -17,6 +17,8 @@ export interface Bindings {
 
 export interface Vars {
   voterId: string;
+  /** voter token 출처. csrfGuard에서 'bearer'일 때만 Origin 면제 (mobile RN). */
+  voterSource: 'bearer' | 'cookie' | 'new';
 }
 
 export type Env = { Bindings: Bindings; Variables: Vars };

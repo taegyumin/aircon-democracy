@@ -46,6 +46,8 @@ export interface ApiClientOptions {
   getAuthHeaders?: () => Record<string, string> | Promise<Record<string, string>>;
   /** 기본 'include' (web cookie). mobile은 cookie 없으므로 'omit' 적합. */
   credentials?: RequestCredentials;
+  /** Response 받은 직후 호출 — mobile은 X-Aircon-Voter-Token 헤더 capture해서 SecureStore 저장. */
+  onResponse?: (res: Response) => void;
 }
 
 export function createApiClient(options: ApiClientOptions = {}) {
@@ -68,6 +70,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
         ...(init?.headers ?? {}),
       },
     });
+    options.onResponse?.(res);
     let body: unknown = null;
     try {
       body = await res.json();

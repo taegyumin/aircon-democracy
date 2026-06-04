@@ -43,15 +43,20 @@ const BEARER_PREFIX = 'Bearer voter:';
 
 export const voterCookieMiddleware: MiddlewareHandler<Env> = async (c, next) => {
   let voterId: string | null = null;
+  // 출처 표기 — csrfGuard가 'bearer'일 때만 Origin 면제 가능 (위조 Bearer로 신규 발급된
+  // 케이스는 'new'로 분류돼 면제 안 됨).
+  let voterSource: 'bearer' | 'cookie' | 'new' = 'new';
 
   // 1. Authorization (mobile/native 우선).
   const auth = c.req.header('Authorization');
   if (auth && auth.startsWith(BEARER_PREFIX)) {
     voterId = await verifyCookie(auth.slice(BEARER_PREFIX.length), c.env.COOKIE_SECRET);
+    if (voterId) voterSource = 'bearer';
   }
   // 2. Cookie (web fallback).
   if (!voterId) {
     voterId = await verifyCookie(getCookie(c, COOKIE_NAME), c.env.COOKIE_SECRET);
+    if (voterId) voterSource = 'cookie';
   }
   // 3. 신규 발급.
   let issuingNewToken = false;
@@ -70,8 +75,10 @@ export const voterCookieMiddleware: MiddlewareHandler<Env> = async (c, next) => 
     // 이름이 X-Aircon-* 인 이유: CORS expose-headers 명시 필요 (별도 작업 시).
     c.header('X-Aircon-Voter-Token', token);
     issuingNewToken = true;
+    voterSource = 'new';
   }
   c.set('voterId', voterId);
+  c.set('voterSource', voterSource);
   await next();
 
   // 신규 voter token이 응답에 박혔다면 절대 edge cache 안 됨 (identity 누설 방지).
