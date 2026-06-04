@@ -2,7 +2,7 @@
 // Expo WebBrowser.openAuthSessionAsync 사용 — iOS는 ASWebAuthenticationSession,
 // Android는 Custom Tabs. 시스템 브라우저와 cookie 공유돼 자연스러운 SSO 동작.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, View, Text, Pressable, StyleSheet, ActivityIndicator, Image, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -35,6 +35,14 @@ const OAUTH_RETURN = 'aircondemocracy://oauth-return';
 
 export default function LoginScreen() {
   const [pending, setPending] = useState<string | null>(null);
+  // Apple Sign In은 iOS 13+ + 실기기에서만. isAvailableAsync false면 버튼 hide.
+  // 초기값 true로 잡으면 simulator/구형기기에서 잠깐 깜빡임 발생 → false로 시작 후 effect에서 ON.
+  const [appleAvailable, setAppleAvailable] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => setAppleAvailable(false));
+  }, []);
 
   const start = async (provider: Provider['id']) => {
     setPending(provider);
@@ -106,8 +114,8 @@ export default function LoginScreen() {
         <Text style={styles.tagline}>로그인하면 장소 관리 기능을 쓸 수 있어요.</Text>
 
         <View style={styles.list}>
-          {/* Apple Sign In은 iOS only. Apple HIG에 따라 다른 OAuth 버튼과 동등하거나 더 prominent. */}
-          {Platform.OS === 'ios' && (
+          {/* Apple Sign In은 iOS only + isAvailableAsync 통과한 기기에만. Apple HIG에 따라 더 prominent. */}
+          {Platform.OS === 'ios' && appleAvailable && (
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
               buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
