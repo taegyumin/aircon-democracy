@@ -11,8 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  TOKEN, FONT, distanceM, formatDistance,
-  CITY_CODES, SEOUL_REGION,
+  TOKEN, FONT, SEOUL_REGION,
   type BusRouteCandidate, type BusRouteStation, type Coords,
   type BusMatchCandidate,
 } from '@aircon/core';

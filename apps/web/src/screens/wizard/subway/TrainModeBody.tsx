@@ -49,13 +49,6 @@ function ArrowRight({ color = TOKEN.text3, size = 18 }: { color?: string; size?:
     </svg>
   );
 }
-function CheckIcon({ color = TOKEN.ok, size = 14 }: { color?: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M4.5 12.5l5 5L19.5 7" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 export function TrainModeBody(p: TrainModeBodyProps) {
   const bothFilled = !!p.prevStation && !!p.nextStation;
