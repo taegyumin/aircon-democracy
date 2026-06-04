@@ -21,7 +21,7 @@ import { WizardHeader } from '../WizardHeader';
 import { useBusMatch, freshenBusMatch } from './useBusMatch';
 import { buildBusPlace } from './buildBusPlace';
 import { RouteTimeline } from './RouteTimeline';
-import type { BusVehiclePosition } from '@aircon/core';
+import type { BusVehiclePosition, BusMatchResult } from '@aircon/core';
 
 // region: 'seoul' (ws.bus.go.kr) 또는 cityCode 숫자 문자열 (TAGO 1613000).
 // 사용자 변경 가능. GPS로 자동 추론 후 사용자가 dropdown으로 override.
@@ -168,21 +168,22 @@ export function BusWizard({ onBack, onPicked }: Props) {
     : baseMatch;
   // Timeline picker가 가장 우선 — 사용자가 자기 차량 직접 클릭.
   // 사용자가 명시적으로 픽한 거라 항상 'at-stop' 진행도로 표현.
-  // matchAfterCandidate와 동일 shape 유지 (reason/candidates undefined) — TS union narrow.
+  // satisfies BusMatchResult로 contract 보증. reason/candidates는 undefined로 명시 —
+  // matchAfterCandidate union과 동일 shape 유지해 narrowing 안 깨지게.
   const vehicleMatch = pickedTimelineVeh
-    ? {
-        matched: true as const,
+    ? ({
+        matched: true,
         vehId: pickedTimelineVeh.vehId,
         plainNo: pickedTimelineVeh.plainNo,
         routeId: selectedRoute?.id,
         routeName: selectedRoute?.name,
         currentStop: stations.find((s) => s.seq === pickedTimelineVeh.stOrd)?.name,
         nextStop: stations.find((s) => s.seq === pickedTimelineVeh.stOrd + 1)?.name,
-        progress: 1 as number,
-        progressLabel: 'at-stop' as const,
+        progress: 1,
+        progressLabel: 'at-stop',
         reason: undefined,
         candidates: undefined,
-      }
+      } satisfies BusMatchResult)
     : matchAfterCandidate;
 
   const [submitting, setSubmitting] = useState(false);

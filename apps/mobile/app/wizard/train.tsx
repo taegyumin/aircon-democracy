@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TOKEN, joinYmdHm, TRAIN_VERIFY_ERROR_COPY } from '@aircon/core';
+import { TOKEN, joinYmdHm, TRAIN_VERIFY_ERROR_COPY, parseStationLabel } from '@aircon/core';
 import type { TrainVerifyResult } from '@aircon/core';
 import { api } from '../../src/lib/apiClient';
 import { SimpleSuggestInput } from '../../src/components/SimpleSuggestInput';
@@ -93,20 +93,20 @@ export default function TrainWizard() {
     return scored.slice(0, 8).map((x) => x.label);
   }
 
+  function findByLabel(v: string): TrainStationCached | null {
+    const parsed = parseStationLabel(v);
+    if (!parsed) return null;
+    return allStations.find((s) => s.nodeName === parsed.name && s.cityName === parsed.city) ?? null;
+  }
   function handleDepChange(v: string) {
     setDepQuery(v);
     setResult(null);
-    const m = /^(.+) \((.+)\)$/.exec(v);
-    const hit = m ? allStations.find((s) => s.nodeName === m[1] && s.cityName === m[2]) : null;
-    setDepPlaceId(hit?.nodeId ?? '');
+    setDepPlaceId(findByLabel(v)?.nodeId ?? '');
   }
-
   function handleArrChange(v: string) {
     setArrQuery(v);
     setResult(null);
-    const m = /^(.+) \((.+)\)$/.exec(v);
-    const hit = m ? allStations.find((s) => s.nodeName === m[1] && s.cityName === m[2]) : null;
-    setArrPlaceId(hit?.nodeId ?? '');
+    setArrPlaceId(findByLabel(v)?.nodeId ?? '');
   }
 
   const depPlandTimeHHMI = useMemo(() => joinYmdHm(runDt, depHour, depMin), [runDt, depHour, depMin]);

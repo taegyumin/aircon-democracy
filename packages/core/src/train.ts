@@ -44,6 +44,16 @@ export const INTERCITY_BUS_VERIFY_ERROR_COPY: Record<string, string> = {
   service_closed: '해당 노선·날짜에 운행 정보가 없어요.',
 };
 
+/**
+ * 'StationName (cityName)' 형태의 자동완성 label을 (name, city)로 분해.
+ * web/mobile train wizard 양쪽에서 같은 regex가 중복되던 패턴 — core helper로 통일.
+ * label 형식 안 맞으면 null. SimpleSuggestInput 사용자가 자유 텍스트 입력 시 nodeId clear용.
+ */
+export function parseStationLabel(label: string): { name: string; city: string } | null {
+  const m = /^(.+) \((.+)\)$/.exec(label);
+  return m ? { name: m[1], city: m[2] } : null;
+}
+
 /** Lightweight name search across train-only stations. */
 export function searchTrainStations(query: string, limit = 12): TrainStation[] {
   const q = query.trim();

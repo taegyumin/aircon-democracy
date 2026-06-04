@@ -103,7 +103,7 @@ export default function SubwayWizard() {
           suggestions={prevSugg}
           placeholder="예: 강남"
         />
-        <View style={{ height: 12 }} />
+        <View style={styles.gap12} />
         <StationField
           label="🔴 다음 도착 역"
           query={nextQ}
@@ -126,7 +126,7 @@ export default function SubwayWizard() {
           </View>
         )}
         {segments.length > 1 && (
-          <View style={{ marginTop: 14 }}>
+          <View style={styles.gap14Top}>
             <Text style={styles.fieldLabel}>여러 노선이 있어요. 어느 노선?</Text>
             <View style={styles.chipRow}>
               {segments.map((s) => {
@@ -146,7 +146,7 @@ export default function SubwayWizard() {
         )}
 
         {resolved && (
-          <View style={{ marginTop: 18 }}>
+          <View style={styles.sectionGap}>
             <Text style={styles.fieldLabel}>몇 호차예요?</Text>
             <View style={styles.carGrid}>
               {[1,2,3,4,5,6,7,8,9,10].map((n) => {
@@ -245,6 +245,10 @@ const styles = StyleSheet.create({
   selectedName: { fontSize: 14, fontWeight: '700', color: TOKEN.text1 },
   selectedSub: { fontSize: 11, color: TOKEN.text3, marginTop: 2 },
   change: { fontSize: 13, color: TOKEN.text2 },
+  // Spacing tokens — inline {{ marginTop / height }} 대체.
+  gap12: { height: 12 },
+  gap14Top: { marginTop: 14 },
+  sectionGap: { marginTop: 18 },
   alert: { marginTop: 14, padding: 14, backgroundColor: TOKEN.hotBg, borderRadius: TOKEN.r.md },
   alertText: { color: TOKEN.hot, fontSize: 13 },
   match: { marginTop: 14, padding: 14, backgroundColor: TOKEN.coldBg, borderWidth: 1.5, borderRadius: TOKEN.r.md },

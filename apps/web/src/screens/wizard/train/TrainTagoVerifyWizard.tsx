@@ -9,7 +9,7 @@
 // 간선철도는 좌석권에 trainNo + 호차가 명시되어 있어 사용자 입력만으로 안정 매칭.
 
 import { useEffect, useMemo, useState } from 'react';
-import { TOKEN, FONT, joinYmdHm, TRAIN_VERIFY_ERROR_COPY } from '@aircon/core';
+import { TOKEN, FONT, joinYmdHm, TRAIN_VERIFY_ERROR_COPY, parseStationLabel } from '@aircon/core';
 import type { TrainVerifyResult } from '@aircon/core';
 import { api } from '../../../lib/apiClient';
 import { WizardHeader } from '../WizardHeader';
@@ -119,19 +119,20 @@ export function TrainTagoVerifyWizard({ onBack, onPicked }: Props) {
 
   // setValue wrapper — 사용자가 suggestion 선택 시 label 형식 매칭해 nodeId 발급.
   // 사용자가 직접 타이핑하면 nodeId clear (정확 매칭 안 됐단 뜻).
+  function findByLabel(v: string): TrainStationCached | null {
+    const parsed = parseStationLabel(v);
+    if (!parsed) return null;
+    return allStations.find((s) => s.nodeName === parsed.name && s.cityName === parsed.city) ?? null;
+  }
   function handleDepChange(v: string) {
     setDepQuery(v);
     setResult(null);
-    const m = /^(.+) \((.+)\)$/.exec(v);
-    const hit = m ? allStations.find((s) => s.nodeName === m[1] && s.cityName === m[2]) : null;
-    setDepPlaceId(hit?.nodeId ?? '');
+    setDepPlaceId(findByLabel(v)?.nodeId ?? '');
   }
   function handleArrChange(v: string) {
     setArrQuery(v);
     setResult(null);
-    const m = /^(.+) \((.+)\)$/.exec(v);
-    const hit = m ? allStations.find((s) => s.nodeName === m[1] && s.cityName === m[2]) : null;
-    setArrPlaceId(hit?.nodeId ?? '');
+    setArrPlaceId(findByLabel(v)?.nodeId ?? '');
   }
 
   const depPlandTimeHHMI = useMemo(() => joinYmdHm(runDt, depHour, depMin), [runDt, depHour, depMin]);
