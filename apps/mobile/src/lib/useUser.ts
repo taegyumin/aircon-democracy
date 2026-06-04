@@ -29,8 +29,9 @@ export function useUser(): UseUserResult {
   }, []);
 
   const logout = useCallback(async () => {
-    // server endpoint는 cookie deletion만 (mobile은 cookie 없음) — clearSessionToken이 실효.
-    try { await api.logout(); } catch { /* server 실패해도 local clear는 진행 */ }
+    // mobile에서는 server logout이 noop (cookie 없음). local clear가 실효.
+    // fire-and-forget: 네트워크 없어도 UX는 즉시 진행.
+    void api.logout().catch(() => { /* 무시 */ });
     await clearSessionToken();
     setUser(null);
   }, []);

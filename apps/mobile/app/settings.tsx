@@ -1,10 +1,12 @@
 // Settings — logged-in user의 로그아웃 + 계정·데이터 삭제 안내.
 // App Store 5.1.1(v) + Play Console 정책: in-app account deletion 접근 필수.
 
+import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Linking, ActivityIndicator, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TOKEN } from '@aircon/core';
+import { api, clearSessionToken } from '../src/lib/apiClient';
 import { useUser } from '../src/lib/useUser';
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -16,6 +18,7 @@ const PROVIDER_LABEL: Record<string, string> = {
 
 export default function SettingsScreen() {
   const { user, loading, logout } = useUser();
+  const [deleting, setDeleting] = useState(false);
 
   const confirmLogout = () => {
     Alert.alert('로그아웃', '정말 로그아웃하시겠어요?', [
@@ -29,6 +32,45 @@ export default function SettingsScreen() {
         },
       },
     ]);
+  };
+
+  // App Store 5.1.1(v) / Play Console — in-app 계정 삭제 필수.
+  // 2단계 confirm으로 실수 방지. 서버 DELETE /api/me 성공 시 local session clear + 홈으로.
+  const confirmDelete = () => {
+    Alert.alert(
+      '계정·데이터 삭제',
+      '내 계정과 등록한 장소가 모두 삭제됩니다. 익명 투표 기록은 voter token에 묶여 있어 그대로 남습니다. 계속하시겠어요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '다음',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('정말 삭제하시겠어요?', '복구할 수 없습니다.', [
+              { text: '취소', style: 'cancel' },
+              {
+                text: '삭제',
+                style: 'destructive',
+                onPress: async () => {
+                  setDeleting(true);
+                  try {
+                    await api.deleteAccount();
+                    await clearSessionToken();
+                    Alert.alert('삭제 완료', '계정이 삭제되었습니다.', [
+                      { text: '확인', onPress: () => router.replace('/') },
+                    ]);
+                  } catch (e) {
+                    Alert.alert('삭제 실패', '네트워크 오류로 삭제하지 못했습니다. 다시 시도해주세요.');
+                  } finally {
+                    setDeleting(false);
+                  }
+                },
+              },
+            ]);
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -57,11 +99,14 @@ export default function SettingsScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => Linking.openURL('https://aircondemocracy.com/account-deletion')}
-              style={styles.row}
+              onPress={deleting ? undefined : confirmDelete}
+              style={[styles.row, deleting && { opacity: 0.5 }]}
+              disabled={deleting}
             >
-              <Text style={[styles.rowLabel, { color: TOKEN.hot }]}>계정·데이터 삭제</Text>
-              <Text style={styles.rowArrow}>›</Text>
+              <Text style={[styles.rowLabel, { color: TOKEN.hot }]}>
+                {deleting ? '삭제 중…' : '계정·데이터 삭제'}
+              </Text>
+              {deleting ? <ActivityIndicator color={TOKEN.hot} /> : <Text style={styles.rowArrow}>›</Text>}
             </Pressable>
           </>
         ) : (
