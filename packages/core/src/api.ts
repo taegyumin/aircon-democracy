@@ -266,6 +266,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
     // ── Auth ─────────────────────────────────────────────────────────
     me: () => request<{ user: User | null }>('/api/me'),
     logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
+    deleteAccount: () => request<{ ok: true }>('/api/me', { method: 'DELETE' }),
   };
 }
 

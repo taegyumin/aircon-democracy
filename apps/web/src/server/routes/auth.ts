@@ -151,6 +151,30 @@ authRoutes.post('/auth/logout', (c) => {
   return c.json({ ok: true });
 });
 
+// DELETE /api/me — App Store 5.1.1(v) / Play Console: in-app 계정 삭제 필수.
+// 처리: places.is_public=1은 익명화(created_by=NULL), is_public=0은 DELETE, 그 후 users row DELETE.
+// votes는 voter_hash 기반 익명이라 user_id 참조 없음 — 그대로 유지.
+// Apple revoke webhook은 별도 sprint. 사용자 본인이 Apple ID 설정에서 수동 revoke 가능.
+authRoutes.delete('/me', async (c) => {
+  const token = c.req.header('X-Aircon-Session') ?? getCookie(c, SESSION_COOKIE);
+  if (!token || !c.env.SESSION_SECRET) return c.json({ error: 'no_session' }, 401);
+  let userId: string;
+  try {
+    const payload = (await jwtVerify(token, c.env.SESSION_SECRET, 'HS256')) as { uid?: string };
+    if (!payload?.uid) return c.json({ error: 'invalid_session' }, 401);
+    userId = payload.uid;
+  } catch {
+    return c.json({ error: 'invalid_session' }, 401);
+  }
+  await c.env.DB.batch([
+    c.env.DB.prepare('UPDATE places SET created_by = NULL WHERE created_by = ? AND is_public = 1').bind(userId),
+    c.env.DB.prepare('DELETE FROM places WHERE created_by = ? AND is_public = 0').bind(userId),
+    c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId),
+  ]);
+  deleteCookie(c, SESSION_COOKIE, { path: '/' });
+  return c.json({ ok: true });
+});
+
 authRoutes.get('/health', (c) => c.json({ ok: true, ts: Date.now() }));
 
 // SHA256 hex — server가 raw nonce를 hash해서 Apple identityToken의 nonce claim과 비교.
