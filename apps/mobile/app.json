@@ -17,7 +17,8 @@
       "bundleIdentifier": "com.aircondemocracy.app",
       "infoPlist": {
         "NSCameraUsageDescription": "QR 코드를 스캔하기 위해 카메라를 사용합니다.",
-        "NSLocationWhenInUseUsageDescription": "근처 지하철역을 추천하기 위해 사용합니다. 위치는 서버에 저장되지 않습니다."
+        "NSLocationWhenInUseUsageDescription": "근처 지하철역을 추천하기 위해 사용합니다. 위치는 서버에 저장되지 않습니다.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
