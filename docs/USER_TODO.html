@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>에어컨 민주주의 — 출시 TODO</title>
+<style>
+  :root {
+    --bg: #f7f7fa;
+    --card: #fff;
+    --text: #1a1a1f;
+    --muted: #6b6b7a;
+    --border: #e4e4eb;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --yellow: #d97706;
+    --yellow-bg: #fffbeb;
+    --green: #059669;
+    --green-bg: #ecfdf5;
+    --blue: #1b53e5;
+    --blue-bg: #eff6ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  header { margin-bottom: 28px; }
+  h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.4px; }
+  .meta { color: var(--muted); font-size: 13px; }
+  section { background: var(--card); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; border: 1px solid var(--border); }
+  section h2 { font-size: 16px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700; letter-spacing: 0.3px; }
+  .badge.now    { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+  .badge.soon   { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow); }
+  .badge.done   { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+  .badge.auto   { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue); }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start; }
+  li:last-child { border-bottom: none; }
+  .check { width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+  .check.todo { background: #fff; border: 2px solid var(--border); }
+  .check.todo-now { background: #fff; border: 2px solid var(--red); }
+  .check.done { background: var(--green); color: #fff; }
+  .check.auto { background: var(--blue); color: #fff; }
+  .item-body { flex: 1; }
+  .item-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .item-detail { font-size: 13px; color: var(--muted); }
+  .item-detail code { background: #f4f4f6; padding: 2px 5px; border-radius: 4px; font-size: 12px; font-family: ui-monospace, monospace; }
+  .item-detail a { color: var(--blue); text-decoration: none; }
+  .item-detail a:hover { text-decoration: underline; }
+  .strike { text-decoration: line-through; color: var(--muted); }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 20px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; padding-left: 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🚀 에어컨 민주주의 — 출시 TODO</h1>
+    <div class="meta">앱: 에어컨 민주주의 / 회사: Minari / Bundle: <code style="font-size:12px">com.aircondemocracy.app</code></div>
+    <div class="meta">최종 업데이트: <strong>2026-06-06 00:15 KST</strong></div>
+  </header>
+
+  <!-- ───── NOW ───── -->
+  <section>
+    <h2><span class="badge now">NOW</span> 지금 해줘야 진행됨</h2>
+    <ul>
+      <li>
+        <div class="check todo-now">1</div>
+        <div class="item-body">
+          <div class="item-title">iPhone에 TestFlight install + 자체 검증</div>
+          <div class="item-detail">
+            iOS submit 완료! Apple 처리 5-10분 후 TestFlight에 노출.<br/>
+            <a href="https://appstoreconnect.apple.com/apps/6776724491/testflight/ios" target="_blank">👉 ASC TestFlight 페이지</a>에서 "Processing" → "Ready to Test" 확인.<br/>
+            <strong>본인 iPhone</strong>: App Store에서 <strong>TestFlight</strong> 앱 설치 → Apple ID 로그인 → "에어컨 민주주의" 보이면 INSTALL.<br/>
+            <strong>검증 흐름</strong>: 앱 실행 → 카테고리 (지하철/버스/카페/강의실) 각각 1회 → 투표 → Apple 로그인 → /settings → logout/계정삭제 확인.
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="check todo-now">2</div>
+        <div class="item-body">
+          <div class="item-title">Play Console에 SA 권한 부여 (앱별 — 이전 SA와 다른 새 SA임)</div>
+          <div class="item-detail">
+            현재 사용 중인 SA: <code>aircondemocracy-play-publisher@aircon-democracy.iam.gserviceaccount.com</code> (snuboard 아닌 aircon-democracy GCP project).<br/>
+            <a href="https://play.google.com/console/users-and-permissions" target="_blank">Play Console → 사용자 및 권한</a> 가서:<br/>
+            - 위 이메일이 이미 있으면 → 클릭 → "앱 권한" → "에어컨 민주주의" → 권한 4개 (앱 정보 보기 / 앱 초안 수정 / 프로덕션 출시 / 테스트 트랙 출시) 체크<br/>
+            - 없으면 → "새 사용자 초대" → 이메일 붙여넣기 → 위 권한 부여<br/>
+            완료되면 알려주세요. 내가 즉시 <code>eas submit android</code> 재시도.
+          </div>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ───── SOON ───── -->
+  <section>
+    <h2><span class="badge soon">SOON</span> 빌드 끝나면 차례로</h2>
+    <ul>
+      <li>
+        <div class="check todo">3</div>
+        <div class="item-body">
+          <div class="item-title">App Store Connect metadata 입력</div>
+          <div class="item-detail">
+            <code>apps/mobile/store-metadata.md</code> 보면서 그대로 복붙. 카테고리·등급·심사 노트도 포함.<br/>
+            지원 URL: <code>https://aircondemocracy.com</code> · 개인정보 처리방침: <code>/privacy</code>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="check todo">4</div>
+        <div class="item-body">
+          <div class="item-title">Play Console metadata 입력</div>
+          <div class="item-detail">
+            동일. Account deletion URL: <code>https://aircondemocracy.com/account-deletion</code><br/>
+            Data Safety 항목도 metadata.md 참고.
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="check todo">5</div>
+        <div class="item-body">
+          <div class="item-title">Screenshots 5장 (자동 캡처 스크립트 제공 예정)</div>
+          <div class="item-detail">
+            iOS 6.7" 시뮬레이터 + Android phone 둘 다. 내가 스크립트 줄 테니 명령만 실행하면 자동 캡처.
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="check todo">6</div>
+        <div class="item-body">
+          <div class="item-title">TestFlight 설치 + 자체 검증 (iOS)</div>
+          <div class="item-detail">
+            EAS build 끝나면 TestFlight 초대 자동 → 본인 iPhone에 install → wizard/vote 전체 흐름 1회 실행.<br/>
+            Apple Sign In도 본인 Apple ID로 1회 테스트.
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="check todo">7</div>
+        <div class="item-body">
+          <div class="item-title">Internal Testing 설치 + 자체 검증 (Android)</div>
+          <div class="item-detail">
+            Play Console에서 Internal testing track으로 본인 Google 계정 추가 → 본인 Android에 install.<br/>
+            (Android 기기 없으면 emulator로.)
+          </div>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ───── AUTO ───── -->
+  <section>
+    <h2><span class="badge auto">AUTO</span> 내가 자율로 진행 중</h2>
+    <ul>
+      <li>
+        <div class="check auto">⚡</div>
+        <div class="item-body">
+          <div class="item-title">Codex 리뷰 받은 Apple Sign In 후속 fixes</div>
+          <div class="item-detail">
+            P2: logout 흐름, isAvailableAsync 체크, Apple revocation webhook. 큰 변경 전 Codex 검토 후 합의된 것만.
+          </div>
+        </div>
+      </li>
+      <li>
+        <div class="check auto">⚡</div>
+        <div class="item-body">
+          <div class="item-title">Android EAS Build 진행 중 (Build ID 1ea0c921, OLD 코드)</div>
+          <div class="item-detail">
+            <strong>주의</strong>: 이 빌드는 Codex 후속 fix 들어가기 전 commit (09834e2) 기준.<br/>
+            계정 삭제 in-app + Settings 화면 등 빠짐. iOS interactive 빌드 끝나면 Android도 같이 rebuild 권장.<br/>
+            현 빌드는 internal smoke test 용도로만 사용 — Play Store 실제 제출은 latest commit으로 다시.
+          </div>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ───── DONE ───── -->
+  <section>
+    <h2><span class="badge done">DONE</span> 끝난 것</h2>
+    <ul>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">Apple Developer App ID 등록 (com.aircondemocracy.app)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">App Store Connect 앱 생성 (ASC App ID 6776724491)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">Apple Team ID RWC9Y2BDAS / Apple ID mtg821@gmail.com / eas.json 반영</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">Sign In with Apple capability 활성화</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">Sign In with Apple 구현 + nonce 1회 소비 + Codex 보안 검토</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">app.json version 1.0.0 + 권한 정리 (RECORD_AUDIO 제거)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">eas.json submit 자격증명 + production track</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">개인정보처리방침·계정삭제 링크 mobile에 노출</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">web /account-deletion 페이지 신규</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">위치 권한 축소 (coarse + whenInUse only)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">Store metadata 한국어 초안 작성 (apps/mobile/store-metadata.md)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">prod deploy (Sign In with Apple 라이브) + D1 migration 0007 apple_nonces 적용</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">Codex 리뷰 발견 후속 fix 5건: <code>DELETE /api/me</code> in-app 계정삭제 + Apple-only login + isAvailableAsync + useFocusEffect refresh + router.replace</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">/settings 화면 추가 (logout + 계정삭제 in-app + 개인정보처리방침)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">ITSAppUsesNonExemptEncryption=false (App Store 심사 manual 설정 생략)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">Google Play Console 앱 등록 (com.aircondemocracy.app)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">Google Service Account JSON + Play Console 권한 9개 부여 + eas.json 절대경로 반영</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">iOS Distribution Certificate + Provisioning Profile 생성 (2027-06-05 만료)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">iOS production build 큐잉 (<code>d382eafd</code>, v1.0.0)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">Android production build 큐잉 (<code>763ad1a3</code>, versionCode 3, latest commit)</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">EXPO_TOKEN 셋업 — 자율 빌드 로그 fetch + fix 루프 가능</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">iOS 빌드 SUCCESS (<code>1f829743</code>, .ipa ready). monorepo hoist + expo-router + metro + nodeModulesPaths + .npmrc + permissions clean + OTA off 등 7번 fail 후 통과</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">보안 리뷰 3건 대응: OTA 비활성화 + RECORD_AUDIO 차단 + ACCESS_FINE_LOCATION 차단 + permissions 중복 정리</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">Android 빌드 SUCCESS (<code>9984d44d</code>, .aab ready). monorepo react-native symlink 트릭으로 react-native-gesture-handler Gradle 해결</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">ASC API Key 발급 + eas.json 박기 — non-interactive iOS submit 가능</div></div></li>
+      <li><div class="check done">✓</div><div class="item-body"><div class="item-title strike">iOS TestFlight 업로드 SUCCESS (Apple processing 5-10분 후 노출)</div></div></li>
+    </ul>
+  </section>
+
+  <footer>
+    파일 위치: <code>docs/USER_TODO.html</code> · 매번 자동 업데이트<br/>
+    크롬·사파리에서 <code>file:///Users/taegyumin/github/aircon-democracy/docs/USER_TODO.html</code> 열기
+  </footer>
+</div>
+</body>
+</html>

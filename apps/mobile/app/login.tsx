@@ -85,7 +85,7 @@ export default function LoginScreen() {
               buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
               cornerRadius={TOKEN.r.lg}
               style={[styles.appleBtn, pending && { opacity: 0.5 }]}
-              onPress={pending ? undefined : startApple}
+              onPress={() => { if (!pending) void startApple(); }}
             />
           </View>
         )}

@@ -15,7 +15,8 @@ const workspaceRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-config.watchFolders = [workspaceRoot];
+// SDK 54+: getDefaultConfig가 이미 일부 watchFolders 설정. 우리 workspaceRoot 추가 (중복 dedupe).
+config.watchFolders = Array.from(new Set([...(config.watchFolders ?? []), workspaceRoot]));
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(workspaceRoot, 'node_modules'),
