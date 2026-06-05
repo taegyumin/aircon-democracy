@@ -17,7 +17,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:unit": "npm run -w @aircon/core test && npm run -w @aircon/web test",
     "check:data": "node scripts/check-data.mjs",
-    "check": "npm run check:data && npm run test:unit"
+    "check": "npm run check:data && npm run test:unit",
+    "postinstall": "node scripts/link-rn-for-mobile.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260524.1",
