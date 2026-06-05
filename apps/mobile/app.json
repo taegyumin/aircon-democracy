@@ -29,12 +29,23 @@
       },
       "permissions": [
         "CAMERA",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "plugins": [
       "expo-router",
       "expo-apple-authentication",
+      "./plugins/with-rn-monorepo-path",
       [
         "expo-camera",
         {
@@ -61,6 +72,12 @@
         "projectId": "5a57a567-de79-4c3a-bbac-8f5e69e97039"
       }
     },
-    "owner": "taegyumin"
+    "owner": "taegyumin",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5a57a567-de79-4c3a-bbac-8f5e69e97039"
+    }
   }
 }
