@@ -25,7 +25,7 @@
         "appleTeamId": "RWC9Y2BDAS",
         "ascApiKeyPath": "/Users/taegyumin/.aircon-asc-key.p8",
         "ascApiKeyId": "2VLN2VR3YH",
-        "ascApiIssuerId": "87052488-7e0b-40aa-9c58-ceecdfbdf24e"
+        "ascApiKeyIssuerId": "87052488-7e0b-40aa-9c58-ceecdfbdf24e"
       },
       "android": {
         "serviceAccountKeyPath": "/Users/taegyumin/.aircon-google-play-key.json",
