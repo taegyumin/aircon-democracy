@@ -91,15 +91,19 @@ function FindOtherRow({ c, onPick }: { c: CategoryDef; onPick: () => void }) {
 export function CategoryPicker({ onPick }: Props) {
   const moveCats = CATEGORIES.filter((c) => c.group === 'move');
   const stayCats = CATEGORIES.filter((c) => c.group === 'stay' && c.key !== 'custom');
-  const customCat = CATEGORIES.find((c) => c.key === 'custom');
-  const primaryMove = moveCats.find((c) => c.rank === 'primary');
+  // mobile: 'custom' (다른 장소 찾기 = CustomPlaceSearch)는 RN 포팅 안 됨 → hide.
+  // 별도 sprint에서 mobile에 CustomPlaceSearch 포팅 후 노출.
+  const customCat = null;
+  const primaryMoves = moveCats.filter((c) => c.rank === 'primary');
   const secondaryMove = moveCats.filter((c) => c.rank !== 'primary');
 
   return (
     <View style={{ gap: 22 }}>
       <View>
         <SectionLabel>이동 중</SectionLabel>
-        {primaryMove && <PrimaryRow c={primaryMove} onPick={() => onPick(primaryMove.key)} />}
+        {primaryMoves.map((c) => (
+          <PrimaryRow key={c.key} c={c} onPick={() => onPick(c.key)} />
+        ))}
         {secondaryMove.length > 0 && (
           <View style={styles.row}>
             {secondaryMove.map((c) => (

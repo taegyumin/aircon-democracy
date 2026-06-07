@@ -108,7 +108,7 @@ export default function BusWizard() {
         >
           {matchLoading
             ? <ActivityIndicator color={TOKEN.cold} />
-            : <Text style={styles.findText}>너가 타고 있는 버스 찾기</Text>}
+            : <Text style={styles.findText}>타고 계신 버스 찾기</Text>}
         </Pressable>
 
         {match && (

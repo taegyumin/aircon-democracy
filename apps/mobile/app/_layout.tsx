@@ -16,7 +16,9 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ title: '에어컨 민주주의' }} />
         <Stack.Screen name="wizard/index" options={{ title: '지금 어디 계세요?' }} />
         <Stack.Screen name="wizard/subway" options={{ title: '지하철' }} />
-        <Stack.Screen name="wizard/bus" options={{ title: '버스' }} />
+        <Stack.Screen name="wizard/bus" options={{ title: '시내·마을버스' }} />
+        <Stack.Screen name="wizard/intercity-bus" options={{ title: '고속·시외버스' }} />
+        <Stack.Screen name="wizard/train" options={{ title: '기차' }} />
         <Stack.Screen name="wizard/cafe" options={{ title: '카페·음식점' }} />
         <Stack.Screen name="wizard/classroom" options={{ title: '강의실' }} />
         <Stack.Screen name="p/[placeId]" options={{ title: '투표' }} />
