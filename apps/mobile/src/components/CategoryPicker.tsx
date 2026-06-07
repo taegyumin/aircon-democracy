@@ -17,7 +17,8 @@ interface Props {
   onPick: (k: Category) => void;
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+// React 19 ReactNode (bigint 포함) vs RN 0.81 Text.children prop type 차이 회피 — string 한정.
+function SectionLabel({ children }: { children: string }) {
   return <Text style={styles.sectionLabel}>{children}</Text>;
 }
 
@@ -93,7 +94,6 @@ export function CategoryPicker({ onPick }: Props) {
   const stayCats = CATEGORIES.filter((c) => c.group === 'stay' && c.key !== 'custom');
   // mobile: 'custom' (다른 장소 찾기 = CustomPlaceSearch)는 RN 포팅 안 됨 → hide.
   // 별도 sprint에서 mobile에 CustomPlaceSearch 포팅 후 노출.
-  const customCat = null;
   const primaryMoves = moveCats.filter((c) => c.rank === 'primary');
   const secondaryMove = moveCats.filter((c) => c.rank !== 'primary');
 
@@ -120,7 +120,6 @@ export function CategoryPicker({ onPick }: Props) {
           ))}
         </View>
       </View>
-      {customCat && <FindOtherRow c={customCat} onPick={() => onPick(customCat.key)} />}
     </View>
   );
 }
