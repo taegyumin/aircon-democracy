@@ -10,10 +10,14 @@ export default function RootLayout() {
           headerStyle: { backgroundColor: '#FFFFFF' },
           headerTitleStyle: { fontWeight: '700', color: '#1A1A1F' },
           headerShadowVisible: false,
+          // iOS back button label hide (default가 이전 화면 title이라 긴 한글이 현재 title 밀어냄).
+          headerBackTitle: '',
+          headerBackButtonDisplayMode: 'minimal',
           contentStyle: { backgroundColor: '#F2F2F7' },
         }}
       >
-        <Stack.Screen name="index" options={{ title: '에어컨 민주주의' }} />
+        {/* 홈은 자체 brand row(로고+QR+사용자) 있어서 default Stack header 숨김 — 안 그러면 2중 헤더. */}
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="wizard/index" options={{ title: '지금 어디 계세요?' }} />
         <Stack.Screen name="wizard/subway" options={{ title: '지하철' }} />
         <Stack.Screen name="wizard/bus" options={{ title: '시내·마을버스' }} />
