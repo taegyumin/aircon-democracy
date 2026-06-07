@@ -2,7 +2,7 @@
 // Anchoring A: counts는 vote 후에만 표시.
 
 import * as React from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Share, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -62,6 +62,20 @@ export default function VoteScreen() {
     }
   };
 
+  const handleShare = async () => {
+    if (!detail) return;
+    const placeUrl = `https://aircondemocracy.com/p/${encodeURIComponent(placeId)}`;
+    try {
+      await Share.share({
+        message: `'${detail.place.name}' 에어컨 온도 투표: ${placeUrl}`,
+        url: placeUrl,
+        title: detail.place.name,
+      });
+    } catch (e) {
+      Alert.alert('공유 실패', (e as Error).message);
+    }
+  };
+
   const handleToggleFav = async () => {
     if (!detail || !user) return;
     const next = await toggleFavorite({
@@ -105,6 +119,17 @@ export default function VoteScreen() {
           </Svg>
         </Pressable>
         <View style={{ flex: 1 }} />
+        <Pressable onPress={handleShare} hitSlop={8} accessibilityLabel="공유" style={{ marginRight: 14 }}>
+          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+            <Path
+              d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7M16 6l-4-4-4 4M12 2v14"
+              stroke={TOKEN.text2}
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </Pressable>
         <Pressable
           onPress={user ? handleToggleFav : () => router.push('/login')}
           hitSlop={8}
