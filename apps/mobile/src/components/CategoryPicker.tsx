@@ -92,8 +92,7 @@ function FindOtherRow({ c, onPick }: { c: CategoryDef; onPick: () => void }) {
 export function CategoryPicker({ onPick }: Props) {
   const moveCats = CATEGORIES.filter((c) => c.group === 'move');
   const stayCats = CATEGORIES.filter((c) => c.group === 'stay' && c.key !== 'custom');
-  // mobile: 'custom' (다른 장소 찾기 = CustomPlaceSearch)는 RN 포팅 안 됨 → hide.
-  // 별도 sprint에서 mobile에 CustomPlaceSearch 포팅 후 노출.
+  const customCat = CATEGORIES.find((c) => c.key === 'custom');
   const primaryMoves = moveCats.filter((c) => c.rank === 'primary');
   const secondaryMove = moveCats.filter((c) => c.rank !== 'primary');
 
@@ -120,6 +119,7 @@ export function CategoryPicker({ onPick }: Props) {
           ))}
         </View>
       </View>
+      {customCat && <FindOtherRow c={customCat} onPick={() => onPick(customCat.key)} />}
     </View>
   );
 }
