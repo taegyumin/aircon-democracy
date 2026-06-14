@@ -1,7 +1,7 @@
 // 표면 primitive — Card / ListRow / Badge / Chip / SectionHeader.
 // 일관 radius/shadow/padding + 44pt 터치타겟 + a11y.
 
-import { View, Pressable, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
+import { View, Pressable, ActivityIndicator, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { TOKEN, SPACE, ELEVATION } from '@aircon/core';
 import { AppText } from './AppText';
@@ -25,7 +25,7 @@ export function Card({ children, style, onPress, accessibilityLabel }: {
 }
 
 export function ListRow({
-  title, sub, leading, trailing, onPress, accent, titleColor, titleVariant = 'title2',
+  title, sub, leading, trailing, onPress, accent, titleColor, titleVariant = 'title2', disabled, loading,
 }: {
   title: string;
   sub?: string;
@@ -35,16 +35,22 @@ export function ListRow({
   accent?: boolean;
   titleColor?: string;
   titleVariant?: 'title2' | 'bodyLg';
+  disabled?: boolean;
+  loading?: boolean;
 }) {
+  const isOff = disabled || loading;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={isOff ? undefined : onPress}
+      disabled={isOff}
       accessibilityRole="button"
       accessibilityLabel={title}
+      accessibilityState={{ disabled: isOff, busy: loading }}
       style={({ pressed }) => [
         styles.row,
         accent && { borderColor: TOKEN.cold, borderWidth: 1.5 },
-        pressed && { opacity: 0.9 },
+        isOff && { opacity: 0.55 },
+        pressed && !isOff && { opacity: 0.9 },
       ]}
     >
       {leading && <View style={styles.rowLeading}>{leading}</View>}
@@ -52,7 +58,7 @@ export function ListRow({
         <AppText variant={titleVariant} color={titleColor} numberOfLines={1}>{title}</AppText>
         {sub ? <AppText variant="caption" color={TOKEN.text2} numberOfLines={1} style={{ marginTop: 2 }}>{sub}</AppText> : null}
       </View>
-      {trailing ?? <ChevronRight size={20} color={TOKEN.text3} />}
+      {loading ? <ActivityIndicator color={TOKEN.text3} /> : (trailing ?? <ChevronRight size={20} color={TOKEN.text3} />)}
     </Pressable>
   );
 }
