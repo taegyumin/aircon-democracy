@@ -20,7 +20,9 @@
     "store:sync": "node scripts/store-sync.mjs",
     "store:check": "node scripts/store-sync.mjs --check",
     "store:push:ios": "npm run store:sync && (cd apps/mobile && eas metadata:push)",
-    "check": "npm run check:data && npm run store:check && npm run test:unit",
+    "design:check": "node scripts/check-design-tokens.mjs",
+    "design:baseline": "node scripts/check-design-tokens.mjs --update",
+    "check": "npm run check:data && npm run store:check && npm run design:check && npm run test:unit",
     "postinstall": "node scripts/link-rn-for-mobile.mjs"
   },
   "devDependencies": {

@@ -22,6 +22,10 @@ jobs:
         # 어긋나면 실패. 왜: 카피를 손으로 복사하다 어긋나 '제거한 기능을 스토어가 광고'하는
         # 심사 리젝 사고 방지 (snuboard 교훈). 고치려면 store-copy.json 수정 → npm run store:sync.
         run: npm run store:check
+      - name: Design tokens (신규 하드코딩 색 차단)
+        # baseline(scripts/design-tokens-baseline.json) 대비 신규 하드코딩 hex/rgba만 차단.
+        # 기존 위반은 스냅샷 허용 → 출시 후 ratchet으로 축소. TOKEN(@aircon/core) 강제.
+        run: npm run design:check
       - name: Unit tests (packages/core + apps/web)
         run: npm run test:unit
       - name: Next.js build (RSC/edge boundary 검증)
