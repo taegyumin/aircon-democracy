@@ -1,13 +1,14 @@
-// Mobile 버스 wizard — 노선 + 정류장 입력 후 차량 매칭 + RouteTimeline 시각 picker.
+// Mobile 버스 wizard — 노선 + 정류장 입력 후 차량 매칭 + RouteTimeline 시각 picker. 디자인 시스템 적용.
 // 2026-06-04: web RouteTimeline RN 포팅 통합. match.matched=true 후 timeline에서 차량 override 가능.
 
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TOKEN, SEOUL_REGION, buildBusPlace, type BusMatchResult, type BusRouteStation, type BusVehiclePosition } from '@aircon/core';
+import { TOKEN, SPACE, SEOUL_REGION, buildBusPlace, type BusMatchResult, type BusRouteStation, type BusVehiclePosition } from '@aircon/core';
 import { api } from '../../src/lib/apiClient';
 import { RouteTimeline } from '../../src/components/RouteTimeline';
+import { AppText, Field, Button, Card, Badge } from '../../src/ui';
 
 export default function BusWizard() {
   const [route, setRoute] = useState('');
@@ -74,63 +75,64 @@ export default function BusWizard() {
     }
   };
 
+  const canFind = !!route.trim() && !!stop.trim() && !matchLoading;
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>어떤 버스 타고 계세요?</Text>
-        <Text style={styles.hint}>노선 번호 + 지금 지나는 정류장을 알려주시면 어떤 차량인지 찾아드릴게요.</Text>
+        <AppText variant="title">어떤 버스 타고 계세요?</AppText>
+        <AppText variant="body" color={TOKEN.text2} style={styles.hint}>
+          노선 번호 + 지금 지나는 정류장을 알려주시면 어떤 차량인지 찾아드릴게요.
+        </AppText>
 
-        <Text style={styles.label}>노선 번호 *</Text>
-        <TextInput
-          value={route}
-          onChangeText={(v) => { setRoute(v); setMatch(null); setPickedVeh(null); }}
-          placeholder="예: 272, 5511, M7106"
-          placeholderTextColor={TOKEN.text3}
-          style={styles.input}
-          autoFocus
-        />
+        <View style={{ gap: SPACE.fieldGap }}>
+          <Field
+            label="노선 번호"
+            value={route}
+            onChangeText={(v) => { setRoute(v); setMatch(null); setPickedVeh(null); }}
+            placeholder="예: 272, 5511, M7106"
+            autoFocus
+          />
+          <Field
+            label="지나는 정류장"
+            value={stop}
+            onChangeText={(v) => { setStop(v); setMatch(null); setPickedVeh(null); }}
+            placeholder="예: 신촌오거리, 강남역.강남대로"
+          />
+        </View>
 
-        <View style={{ height: 12 }} />
-
-        <Text style={styles.label}>지나는 정류장 *</Text>
-        <TextInput
-          value={stop}
-          onChangeText={(v) => { setStop(v); setMatch(null); setPickedVeh(null); }}
-          placeholder="예: 신촌오거리, 강남역.강남대로"
-          placeholderTextColor={TOKEN.text3}
-          style={styles.input}
-        />
-
-        <Pressable
-          onPress={tryMatch}
-          disabled={!route.trim() || !stop.trim() || matchLoading}
-          style={[styles.findBtn, (!route.trim() || !stop.trim()) && styles.findBtnDisabled]}
-        >
-          {matchLoading
-            ? <ActivityIndicator color={TOKEN.cold} />
-            : <Text style={styles.findText}>타고 계신 버스 찾기</Text>}
-        </Pressable>
+        <View style={{ marginTop: SPACE.s4 }}>
+          <Button label="타고 계신 버스 찾기" variant="secondary" onPress={tryMatch} loading={matchLoading} disabled={!canFind} />
+        </View>
 
         {match && (
-          <View style={[styles.matchBox, match.matched && styles.matchBoxOk]}>
-            {match.matched
-              ? <>
-                  <Text style={styles.matchLabel}>이 버스 맞으시죠?</Text>
-                  <Text style={styles.matchTitle}>{match.routeName}번 · 차량번호 {pickedVeh?.plainNo ?? match.plainNo}</Text>
-                  {match.currentStop && <Text style={styles.matchSub}>{match.currentStop} 지나는 중{match.nextStop ? ` · 다음 ${match.nextStop}` : ''}</Text>}
-                </>
-              : <Text style={styles.matchFail}>
-                  {match.reason === 'no_vehicle_at_stop' ? '근처에 차량이 없어요. 노선 단위로 투표할게요.'
-                    : match.reason === 'no_api_key' ? 'API 키 활성화 대기 중. 노선 단위로 투표할게요.'
-                    : '매칭 실패. 노선 단위로 투표할게요.'}
-                </Text>}
-          </View>
+          <Card style={[styles.matchBox, match.matched && styles.matchBoxOk]}>
+            {match.matched ? (
+              <>
+                <Badge label="이 버스 맞으시죠?" color={TOKEN.ok} bg={TOKEN.okBg} />
+                <AppText variant="title2" style={{ marginTop: SPACE.s2 }}>
+                  {match.routeName}번 · 차량번호 {pickedVeh?.plainNo ?? match.plainNo}
+                </AppText>
+                {match.currentStop && (
+                  <AppText variant="caption" color={TOKEN.text2} style={{ marginTop: 2 }}>
+                    {match.currentStop} 지나는 중{match.nextStop ? ` · 다음 ${match.nextStop}` : ''}
+                  </AppText>
+                )}
+              </>
+            ) : (
+              <AppText variant="caption" color={TOKEN.text2}>
+                {match.reason === 'no_vehicle_at_stop' ? '근처에 차량이 없어요. 노선 단위로 투표할게요.'
+                  : match.reason === 'no_api_key' ? 'API 키 활성화 대기 중. 노선 단위로 투표할게요.'
+                  : '매칭 실패. 노선 단위로 투표할게요.'}
+              </AppText>
+            )}
+          </Card>
         )}
 
         {/* RouteTimeline — matched && stations/vehicles 로드됐을 때만. 사용자가 다른 차량 override 가능. */}
         {match?.matched && stations.length > 0 && (
-          <View style={{ marginTop: 14 }}>
-            <Text style={styles.label}>또는 노선에서 직접 차량 선택</Text>
+          <View style={{ marginTop: SPACE.s4 }}>
+            <AppText variant="label" color={TOKEN.text2} style={{ marginBottom: SPACE.s2 }}>또는 노선에서 직접 차량 선택</AppText>
             <RouteTimeline
               stations={stations}
               vehicles={vehicles}
@@ -140,11 +142,15 @@ export default function BusWizard() {
           </View>
         )}
 
-        {error && <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View>}
+        {error && (
+          <Card style={styles.errorBox}>
+            <AppText variant="caption" color={TOKEN.hot}>{error}</AppText>
+          </Card>
+        )}
 
-        <Pressable onPress={submit} disabled={!route.trim() || submitting} style={[styles.submit, !route.trim() && styles.submitDisabled]}>
-          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{match?.matched ? '이 차량으로 투표' : '투표하러 가기'}</Text>}
-        </Pressable>
+        <View style={{ marginTop: SPACE.s7 }}>
+          <Button label={match?.matched ? '이 차량으로 투표' : '투표하러 가기'} onPress={submit} loading={submitting} disabled={!route.trim()} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -152,23 +158,9 @@ export default function BusWizard() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKEN.bg },
-  scroll: { padding: 20, paddingBottom: 60 },
-  title: { fontSize: 20, fontWeight: '900', color: TOKEN.text1, marginBottom: 6 },
-  hint: { fontSize: 13, color: TOKEN.text2, marginBottom: 22, lineHeight: 18 },
-  label: { fontSize: 12, fontWeight: '700', color: TOKEN.text2, marginBottom: 8, letterSpacing: 0.3 },
-  input: { padding: 13, borderWidth: 2, borderColor: TOKEN.border, borderRadius: TOKEN.r.md, fontSize: 14, color: TOKEN.text1, backgroundColor: TOKEN.bg },
-  findBtn: { marginTop: 18, padding: 13, backgroundColor: TOKEN.surface, borderWidth: 1.5, borderColor: TOKEN.cold, borderRadius: TOKEN.r.md, alignItems: 'center' },
-  findBtnDisabled: { borderColor: TOKEN.border },
-  findText: { fontSize: 14, fontWeight: '700', color: TOKEN.cold },
-  matchBox: { marginTop: 16, padding: 14, backgroundColor: TOKEN.surface, borderWidth: 1.5, borderColor: TOKEN.border, borderRadius: TOKEN.r.md },
-  matchBoxOk: { backgroundColor: '#F0FDF4', borderColor: TOKEN.ok },
-  matchLabel: { fontSize: 11, color: TOKEN.text2, marginBottom: 4 },
-  matchTitle: { fontSize: 16, fontWeight: '900', color: TOKEN.text1 },
-  matchSub: { fontSize: 12, color: TOKEN.text2, marginTop: 4 },
-  matchFail: { fontSize: 12, color: TOKEN.text3, lineHeight: 18 },
-  error: { marginTop: 14, padding: 10, backgroundColor: TOKEN.hotBg, borderRadius: TOKEN.r.md },
-  errorText: { color: TOKEN.hot, fontSize: 12 },
-  submit: { marginTop: 28, padding: 16, backgroundColor: TOKEN.cold, borderRadius: TOKEN.r.lg, alignItems: 'center' },
-  submitDisabled: { backgroundColor: TOKEN.border },
-  submitText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  scroll: { padding: SPACE.screenPadding, paddingBottom: SPACE.bottomInset },
+  hint: { marginTop: SPACE.s2, marginBottom: SPACE.s5, lineHeight: 21 },
+  matchBox: { marginTop: SPACE.s4 },
+  matchBoxOk: { backgroundColor: TOKEN.okBg, borderColor: TOKEN.ok, borderWidth: 1.5 },
+  errorBox: { marginTop: SPACE.s4, backgroundColor: TOKEN.hotBg, borderColor: TOKEN.hotBg },
 });

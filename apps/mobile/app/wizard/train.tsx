@@ -1,14 +1,16 @@
-// Mobile 기차 wizard (RN) — web TrainTagoVerifyWizard 포팅.
+// Mobile 기차 wizard (RN) — web TrainTagoVerifyWizard 포팅. 디자인 시스템 적용.
 // TAGO TrainInfo로 좌석권 정보(출도착역 + 시/분 + 호차) 검증 → placeId 발급.
 
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TOKEN, joinYmdHm, TRAIN_VERIFY_ERROR_COPY, parseStationLabel } from '@aircon/core';
+import { Info, Check } from 'lucide-react-native';
+import { TOKEN, SPACE, joinYmdHm, TRAIN_VERIFY_ERROR_COPY, parseStationLabel } from '@aircon/core';
 import type { TrainVerifyResult } from '@aircon/core';
 import { api } from '../../src/lib/apiClient';
 import { SimpleSuggestInput } from '../../src/components/SimpleSuggestInput';
+import { AppText, Input, Button, Card, SelectionGrid } from '../../src/ui';
 
 interface TrainStationCached {
   nodeId: string;
@@ -148,16 +150,18 @@ export default function TrainWizard() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.notice}>
-          <Text style={styles.noticeText}>좌석권에 적힌 정보로 차량을 식별합니다. 같은 차량 사용자끼리만 묶여요.</Text>
-        </View>
+        <Card style={styles.notice}>
+          <Info size={16} color={TOKEN.cold} />
+          <AppText variant="caption" color={TOKEN.text2} style={styles.noticeText}>
+            좌석권에 적힌 정보로 차량을 식별합니다. 같은 차량 사용자끼리만 묶여요.
+          </AppText>
+        </Card>
 
-        <Text style={styles.label}>
-          출발역 *
-          {stationsLoading && <Text style={styles.labelSub}> · 역 정보 로딩 중…</Text>}
-        </Text>
+        <AppText variant="label" color={TOKEN.text2} style={styles.label}>
+          출발역{stationsLoading ? '  · 역 정보 로딩 중…' : ''}
+        </AppText>
         <SimpleSuggestInput
           value={depQuery}
           setValue={handleDepChange}
@@ -165,8 +169,7 @@ export default function TrainWizard() {
           suggestions={suggestStations(depQuery)}
         />
 
-        <View style={{ height: 18 }} />
-        <Text style={styles.label}>도착역 *</Text>
+        <AppText variant="label" color={TOKEN.text2} style={[styles.label, styles.labelGap]}>도착역</AppText>
         <SimpleSuggestInput
           value={arrQuery}
           setValue={handleArrChange}
@@ -174,70 +177,58 @@ export default function TrainWizard() {
           suggestions={suggestStations(arrQuery)}
         />
 
-        <View style={{ height: 18 }} />
-        <Text style={styles.label}>출발 시각 * <Text style={styles.labelSub}>(좌석권 상단)</Text></Text>
+        <AppText variant="label" color={TOKEN.text2} style={[styles.label, styles.labelGap]}>출발 시각  (좌석권 상단)</AppText>
         <View style={styles.timeRow}>
-          <TextInput
+          <Input
             value={depHour}
             onChangeText={(v) => { setDepHour(v.replace(/[^0-9]/g, '').slice(0, 2)); setResult(null); }}
             placeholder="시 (예: 11)"
-            placeholderTextColor={TOKEN.text3}
             keyboardType="numeric"
-            style={[styles.input, !!depHour && styles.inputFilled]}
+            style={styles.timeInput}
           />
-          <Text style={styles.timeSep}>:</Text>
-          <TextInput
+          <AppText variant="title2" color={TOKEN.text3}>:</AppText>
+          <Input
             value={depMin}
             onChangeText={(v) => { setDepMin(v.replace(/[^0-9]/g, '').slice(0, 2)); setResult(null); }}
             placeholder="분 (예: 00)"
-            placeholderTextColor={TOKEN.text3}
             keyboardType="numeric"
-            style={[styles.input, !!depMin && styles.inputFilled]}
+            style={styles.timeInput}
           />
         </View>
 
-        <View style={{ height: 18 }} />
-        <Text style={styles.label}>몇 호차예요? *</Text>
-        <View style={styles.carGrid}>
-          {CAR_OPTIONS.map((n) => {
-            const active = carOrdr === n;
-            return (
-              <Pressable
-                key={n}
-                onPress={() => { setCarOrdr(active ? null : n); setResult(null); }}
-                style={[styles.carCell, active && styles.carCellActive]}
-              >
-                <Text style={[styles.carText, active && { color: '#fff' }]}>{n}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <AppText variant="label" color={TOKEN.text2} style={[styles.label, styles.labelGap]}>몇 호차예요?</AppText>
+        <SelectionGrid
+          columns={5}
+          items={CAR_OPTIONS.map((n) => ({ key: String(n), label: String(n) }))}
+          selectedKey={carOrdr ? String(carOrdr) : null}
+          onSelect={(k) => { const n = Number(k); setCarOrdr(carOrdr === n ? null : n); setResult(null); }}
+        />
 
         {result?.matched && (
-          <View style={styles.matchOk}>
-            <Text style={styles.matchOkTitle}>✓ {result.vehicleKndNm} {result.trainNo} · {result.carOrdr}호차</Text>
-            <Text style={styles.matchOkSub}>
+          <Card style={styles.matchOk}>
+            <View style={styles.matchHead}>
+              <Check size={16} color={TOKEN.ok} />
+              <AppText variant="label" weight="bold" color={TOKEN.ok}>{result.vehicleKndNm} {result.trainNo} · {result.carOrdr}호차</AppText>
+            </View>
+            <AppText variant="caption" color={TOKEN.text2} style={{ marginTop: SPACE.s2 }}>
               {result.depPlaceNm} {formatPlanTime(result.depPlandTime)} → {result.arrPlaceNm} {formatPlanTime(result.arrPlandTime)}
-            </Text>
-          </View>
+            </AppText>
+          </Card>
         )}
 
         {error && (
-          <View style={styles.error}>
-            <Text style={styles.errorText}>{TRAIN_VERIFY_ERROR_COPY[error] ?? error}</Text>
-          </View>
+          <Card style={styles.errorBox}>
+            <AppText variant="caption" color={TOKEN.hot}>{TRAIN_VERIFY_ERROR_COPY[error] ?? error}</AppText>
+          </Card>
         )}
 
-        <View style={{ height: 12 }} />
-        {result?.matched ? (
-          <Pressable onPress={confirm} disabled={submitting} style={[styles.submit, submitting && styles.submitDisabled]}>
-            {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>투표하러 가기</Text>}
-          </Pressable>
-        ) : (
-          <Pressable onPress={verify} disabled={!canVerify} style={[styles.submit, !canVerify && styles.submitDisabled]}>
-            {verifying ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>운행 확인하기</Text>}
-          </Pressable>
-        )}
+        <View style={{ marginTop: SPACE.s6 }}>
+          {result?.matched ? (
+            <Button label="투표하러 가기" onPress={confirm} loading={submitting} />
+          ) : (
+            <Button label="운행 확인하기" onPress={verify} loading={verifying} disabled={!canVerify} />
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -245,28 +236,14 @@ export default function TrainWizard() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKEN.bg },
-  scroll: { padding: 20, paddingBottom: 60 },
-  notice: { marginBottom: 14, padding: 12, backgroundColor: '#FEF3C7', borderRadius: TOKEN.r.md },
-  noticeText: { fontSize: 12, color: '#92400E', lineHeight: 18 },
-  label: { fontSize: 12, fontWeight: '700', color: TOKEN.text2, marginBottom: 8, letterSpacing: 0.3 },
-  labelSub: { fontWeight: '400', color: TOKEN.text3 },
-  input: { padding: 13, borderWidth: 2, borderColor: TOKEN.border, borderRadius: TOKEN.r.md, fontSize: 14, color: TOKEN.text1, backgroundColor: TOKEN.bg, flex: 1 },
-  inputFilled: { borderColor: TOKEN.cold },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  timeSep: { color: TOKEN.text3, fontSize: 16 },
-  carGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  carCell: {
-    width: '18%', paddingVertical: 12, backgroundColor: TOKEN.surface,
-    borderWidth: 1.5, borderColor: TOKEN.border, borderRadius: TOKEN.r.md, alignItems: 'center',
-  },
-  carCellActive: { backgroundColor: TOKEN.cold, borderColor: TOKEN.cold },
-  carText: { fontSize: 14, fontWeight: '800', color: TOKEN.text1 },
-  matchOk: { marginTop: 16, padding: 14, backgroundColor: TOKEN.coldBg, borderWidth: 1.5, borderColor: TOKEN.cold, borderRadius: TOKEN.r.md },
-  matchOkTitle: { fontSize: 13, fontWeight: '800', color: TOKEN.cold, marginBottom: 4 },
-  matchOkSub: { fontSize: 12, color: TOKEN.text2 },
-  error: { marginTop: 14, padding: 10, backgroundColor: TOKEN.hotBg, borderRadius: TOKEN.r.md },
-  errorText: { color: TOKEN.hot, fontSize: 12 },
-  submit: { marginTop: 16, padding: 16, backgroundColor: TOKEN.cold, borderRadius: TOKEN.r.lg, alignItems: 'center' },
-  submitDisabled: { backgroundColor: TOKEN.border },
-  submitText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  scroll: { padding: SPACE.screenPadding, paddingBottom: SPACE.bottomInset },
+  notice: { flexDirection: 'row', gap: SPACE.s2, alignItems: 'flex-start', backgroundColor: TOKEN.coldBg, borderColor: TOKEN.coldBg, marginBottom: SPACE.s5 },
+  noticeText: { flex: 1, lineHeight: 17 },
+  label: { marginBottom: SPACE.s2 },
+  labelGap: { marginTop: SPACE.s5 },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 },
+  timeInput: { flex: 1 },
+  matchOk: { marginTop: SPACE.s5, backgroundColor: TOKEN.okBg, borderColor: TOKEN.ok, borderWidth: 1.5 },
+  matchHead: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 },
+  errorBox: { marginTop: SPACE.s4, backgroundColor: TOKEN.hotBg, borderColor: TOKEN.hotBg },
 });

@@ -1,9 +1,11 @@
-// 텍스트 자동완성 입력 (RN) — 기차/시외버스 wizard에서 역·터미널 검색용.
+// 텍스트 자동완성 입력 (RN) — 기차/시외버스 wizard에서 역·터미널 검색용. 디자인 시스템 적용.
 // web의 train/SimpleSuggestInput.tsx RN 포팅. label 단위로만 동작 (지하철과 다름).
 
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
-import { TOKEN } from '@aircon/core';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { TOKEN, SPACE, ELEVATION } from '@aircon/core';
+import { AppText } from '../ui/AppText';
+import { Input } from '../ui/Input';
 
 interface Props {
   value: string;
@@ -19,26 +21,25 @@ export function SimpleSuggestInput({ value, setValue, placeholder, suggestions }
 
   return (
     <View>
-      <TextInput
+      <Input
         value={value}
         onChangeText={setValue}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 120)}
         placeholder={placeholder}
-        placeholderTextColor={TOKEN.text3}
-        style={[styles.input, !!value && styles.inputFilled]}
         autoCorrect={false}
         autoCapitalize="none"
       />
       {showList && (
         <View style={styles.list}>
-          {suggestions.slice(0, 6).map((s) => (
+          {suggestions.slice(0, 6).map((s, i) => (
             <Pressable
               key={s}
               onPress={() => { setValue(s); setFocused(false); }}
-              style={styles.row}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.row, i > 0 && styles.rowBorder, pressed && { backgroundColor: TOKEN.surface2 }]}
             >
-              <Text style={styles.rowText}>{s}</Text>
+              <AppText variant="body">{s}</AppText>
             </Pressable>
           ))}
         </View>
@@ -48,34 +49,15 @@ export function SimpleSuggestInput({ value, setValue, placeholder, suggestions }
 }
 
 const styles = StyleSheet.create({
-  input: {
-    padding: 13,
-    borderWidth: 2,
-    borderColor: TOKEN.border,
-    borderRadius: TOKEN.r.md,
-    fontSize: 14,
-    color: TOKEN.text1,
-    backgroundColor: TOKEN.bg,
-  },
-  inputFilled: {
-    borderColor: TOKEN.cold,
-  },
   list: {
-    marginTop: 6,
+    marginTop: SPACE.s2,
     backgroundColor: TOKEN.surface,
     borderWidth: 1,
     borderColor: TOKEN.border,
     borderRadius: TOKEN.r.md,
     overflow: 'hidden',
+    ...ELEVATION.sh1,
   },
-  row: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: TOKEN.border,
-  },
-  rowText: {
-    fontSize: 13,
-    color: TOKEN.text1,
-  },
+  row: { minHeight: SPACE.touchMin, justifyContent: 'center', paddingVertical: SPACE.s2, paddingHorizontal: SPACE.s4 },
+  rowBorder: { borderTopWidth: 1, borderTopColor: TOKEN.border },
 });

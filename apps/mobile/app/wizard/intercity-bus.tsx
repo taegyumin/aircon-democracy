@@ -1,14 +1,16 @@
-// Mobile 고속·시외버스 wizard (RN) — web IntercityBusWizard 포팅.
+// Mobile 고속·시외버스 wizard (RN) — web IntercityBusWizard 포팅. 디자인 시스템 적용.
 // TAGO ExpBusInfo / SuburbsBusInfo로 좌석권 검증.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TOKEN, joinYmdHm, INTERCITY_BUS_VERIFY_ERROR_COPY } from '@aircon/core';
+import { Info, Check } from 'lucide-react-native';
+import { TOKEN, SPACE, joinYmdHm, INTERCITY_BUS_VERIFY_ERROR_COPY } from '@aircon/core';
 import type { IntercityBusTerminal, IntercityBusVerifyResult } from '@aircon/core';
 import { api } from '../../src/lib/apiClient';
 import { SimpleSuggestInput } from '../../src/components/SimpleSuggestInput';
+import { AppText, Input, Button, Card, SegmentedControl } from '../../src/ui';
 
 type Kind = 'exp' | 'suburbs';
 
@@ -129,31 +131,24 @@ export default function IntercityBusWizard() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.notice}>
-          <Text style={styles.noticeText}>승차권에 적힌 정보로 차량을 식별합니다. 같은 차량 사용자끼리만 묶여요.</Text>
+        <Card style={styles.notice}>
+          <Info size={16} color={TOKEN.cold} />
+          <AppText variant="caption" color={TOKEN.text2} style={styles.noticeText}>
+            승차권에 적힌 정보로 차량을 식별합니다. 같은 차량 사용자끼리만 묶여요.
+          </AppText>
+        </Card>
+
+        <View style={{ marginBottom: SPACE.s5 }}>
+          <SegmentedControl<Kind>
+            options={[{ key: 'exp', label: '고속버스' }, { key: 'suburbs', label: '시외버스' }]}
+            value={kind}
+            onChange={setKind}
+          />
         </View>
 
-        <View style={styles.toggleRow}>
-          {([
-            { v: 'exp', label: '고속버스' },
-            { v: 'suburbs', label: '시외버스' },
-          ] as const).map(({ v, label }) => {
-            const active = kind === v;
-            return (
-              <Pressable
-                key={v}
-                onPress={() => setKind(v)}
-                style={[styles.toggleBtn, active && styles.toggleBtnActive]}
-              >
-                <Text style={[styles.toggleText, active && styles.toggleTextActive]}>{label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <Text style={styles.label}>출발 터미널 *</Text>
+        <AppText variant="label" color={TOKEN.text2} style={styles.label}>출발 터미널</AppText>
         <SimpleSuggestInput
           value={depQuery}
           setValue={handleDepChange}
@@ -161,8 +156,7 @@ export default function IntercityBusWizard() {
           suggestions={depSugg.map(labelOf)}
         />
 
-        <View style={{ height: 18 }} />
-        <Text style={styles.label}>도착 터미널 *</Text>
+        <AppText variant="label" color={TOKEN.text2} style={[styles.label, styles.labelGap]}>도착 터미널</AppText>
         <SimpleSuggestInput
           value={arrQuery}
           setValue={handleArrChange}
@@ -170,51 +164,50 @@ export default function IntercityBusWizard() {
           suggestions={arrSugg.map(labelOf)}
         />
 
-        <View style={{ height: 18 }} />
-        <Text style={styles.label}>출발 시각 * <Text style={styles.labelSub}>(승차권 정확히)</Text></Text>
+        <AppText variant="label" color={TOKEN.text2} style={[styles.label, styles.labelGap]}>출발 시각  (승차권 정확히)</AppText>
         <View style={styles.timeRow}>
-          <TextInput
+          <Input
             value={depHour}
             onChangeText={(v) => { setDepHour(v.replace(/[^0-9]/g, '').slice(0, 2)); setResult(null); }}
             placeholder="시 (예: 14)"
-            placeholderTextColor={TOKEN.text3}
             keyboardType="numeric"
-            style={[styles.input, !!depHour && styles.inputFilled]}
+            style={styles.timeInput}
           />
-          <Text style={styles.timeSep}>:</Text>
-          <TextInput
+          <AppText variant="title2" color={TOKEN.text3}>:</AppText>
+          <Input
             value={depMin}
             onChangeText={(v) => { setDepMin(v.replace(/[^0-9]/g, '').slice(0, 2)); setResult(null); }}
             placeholder="분 (예: 30)"
-            placeholderTextColor={TOKEN.text3}
             keyboardType="numeric"
-            style={[styles.input, !!depMin && styles.inputFilled]}
+            style={styles.timeInput}
           />
         </View>
 
         {result?.matched && (
-          <View style={styles.matchOk}>
-            <Text style={styles.matchOkTitle}>✓ {result.gradeNm} · {result.depPlaceNm}→{result.arrPlaceNm}</Text>
-            <Text style={styles.matchOkSub}>{formatPlanTime(result.depPlandTime)} 출발 → {formatPlanTime(result.arrPlandTime)} 도착</Text>
-          </View>
+          <Card style={styles.matchOk}>
+            <View style={styles.matchHead}>
+              <Check size={16} color={TOKEN.ok} />
+              <AppText variant="label" weight="bold" color={TOKEN.ok}>{result.gradeNm} · {result.depPlaceNm}→{result.arrPlaceNm}</AppText>
+            </View>
+            <AppText variant="caption" color={TOKEN.text2} style={{ marginTop: SPACE.s2 }}>
+              {formatPlanTime(result.depPlandTime)} 출발 → {formatPlanTime(result.arrPlandTime)} 도착
+            </AppText>
+          </Card>
         )}
 
         {error && (
-          <View style={styles.error}>
-            <Text style={styles.errorText}>{INTERCITY_BUS_VERIFY_ERROR_COPY[error] ?? error}</Text>
-          </View>
+          <Card style={styles.errorBox}>
+            <AppText variant="caption" color={TOKEN.hot}>{INTERCITY_BUS_VERIFY_ERROR_COPY[error] ?? error}</AppText>
+          </Card>
         )}
 
-        <View style={{ height: 12 }} />
-        {result?.matched ? (
-          <Pressable onPress={confirm} disabled={submitting} style={[styles.submit, submitting && styles.submitDisabled]}>
-            {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>투표하러 가기</Text>}
-          </Pressable>
-        ) : (
-          <Pressable onPress={verify} disabled={!canVerify} style={[styles.submit, !canVerify && styles.submitDisabled]}>
-            {verifying ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>운행 확인하기</Text>}
-          </Pressable>
-        )}
+        <View style={{ marginTop: SPACE.s6 }}>
+          {result?.matched ? (
+            <Button label="투표하러 가기" onPress={confirm} loading={submitting} />
+          ) : (
+            <Button label="운행 확인하기" onPress={verify} loading={verifying} disabled={!canVerify} />
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -222,26 +215,14 @@ export default function IntercityBusWizard() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKEN.bg },
-  scroll: { padding: 20, paddingBottom: 60 },
-  notice: { marginBottom: 14, padding: 12, backgroundColor: '#FEF3C7', borderRadius: TOKEN.r.md },
-  noticeText: { fontSize: 12, color: '#92400E', lineHeight: 18 },
-  toggleRow: { flexDirection: 'row', backgroundColor: TOKEN.bg, borderWidth: 1, borderColor: TOKEN.border, borderRadius: TOKEN.r.lg, padding: 4, marginBottom: 22 },
-  toggleBtn: { flex: 1, paddingVertical: 10, borderRadius: TOKEN.r.md, alignItems: 'center' },
-  toggleBtnActive: { backgroundColor: TOKEN.surface },
-  toggleText: { fontSize: 13, fontWeight: '700', color: TOKEN.text3 },
-  toggleTextActive: { color: TOKEN.text1 },
-  label: { fontSize: 12, fontWeight: '700', color: TOKEN.text2, marginBottom: 8, letterSpacing: 0.3 },
-  labelSub: { fontWeight: '400', color: TOKEN.text3 },
-  input: { padding: 13, borderWidth: 2, borderColor: TOKEN.border, borderRadius: TOKEN.r.md, fontSize: 14, color: TOKEN.text1, backgroundColor: TOKEN.bg, flex: 1 },
-  inputFilled: { borderColor: TOKEN.cold },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  timeSep: { color: TOKEN.text3, fontSize: 16 },
-  matchOk: { marginTop: 16, padding: 14, backgroundColor: TOKEN.coldBg, borderWidth: 1.5, borderColor: TOKEN.cold, borderRadius: TOKEN.r.md },
-  matchOkTitle: { fontSize: 13, fontWeight: '800', color: TOKEN.cold, marginBottom: 4 },
-  matchOkSub: { fontSize: 12, color: TOKEN.text2 },
-  error: { marginTop: 14, padding: 10, backgroundColor: TOKEN.hotBg, borderRadius: TOKEN.r.md },
-  errorText: { color: TOKEN.hot, fontSize: 12 },
-  submit: { marginTop: 16, padding: 16, backgroundColor: TOKEN.cold, borderRadius: TOKEN.r.lg, alignItems: 'center' },
-  submitDisabled: { backgroundColor: TOKEN.border },
-  submitText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  scroll: { padding: SPACE.screenPadding, paddingBottom: SPACE.bottomInset },
+  notice: { flexDirection: 'row', gap: SPACE.s2, alignItems: 'flex-start', backgroundColor: TOKEN.coldBg, borderColor: TOKEN.coldBg, marginBottom: SPACE.s5 },
+  noticeText: { flex: 1, lineHeight: 17 },
+  label: { marginBottom: SPACE.s2 },
+  labelGap: { marginTop: SPACE.s5 },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 },
+  timeInput: { flex: 1 },
+  matchOk: { marginTop: SPACE.s5, backgroundColor: TOKEN.okBg, borderColor: TOKEN.ok, borderWidth: 1.5 },
+  matchHead: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s2 },
+  errorBox: { marginTop: SPACE.s4, backgroundColor: TOKEN.hotBg, borderColor: TOKEN.hotBg },
 });

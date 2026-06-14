@@ -1,4 +1,4 @@
-// Mobile 지하철 wizard — web의 SubwayWizard 'train mode' core flow를 RN으로.
+// Mobile 지하철 wizard — web의 SubwayWizard 'train mode' core flow를 RN으로. 디자인 시스템 적용.
 // 2026-06-04: 차량모드(실시간 trainNo 매칭) 추가. swopenAPI 1~9호선 + 신림선/신분당/우이신설/에버라인.
 // 매칭됐으면 subway:train:{line}:{trainNo}:{car} placeId — 같은 차량 사용자끼리 vote bucket 묶임.
 // 매칭 안 됐어도(no_train_at_segment / service_closed / realtime_unsupported) segment id fallback —
@@ -6,11 +6,13 @@
 // 비즈니스 로직(searchStations, findSegments, neighborNames, buildSubwayTrainPlace) @aircon/core 공유.
 
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Check } from 'lucide-react-native';
 import {
   TOKEN,
+  SPACE,
   STATIONS,
   searchStations,
   findSegments,
@@ -22,6 +24,7 @@ import {
   type SubwayMatchResult,
 } from '@aircon/core';
 import { api } from '../../src/lib/apiClient';
+import { AppText, Input, Button, Card, Badge, ListRow, SelectionGrid } from '../../src/ui';
 
 export default function SubwayWizard() {
   const [prevQ, setPrevQ] = useState('');
@@ -119,13 +122,18 @@ export default function SubwayWizard() {
     }
   };
 
+  const matchColor = segments.length === 1 ? lineColor(segments[0].line) : TOKEN.cold;
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.hint}>안내방송 들리는 대로 두 역만 입력하세요. 노선과 방향은 자동으로 알아낼게요.</Text>
+        <AppText variant="body" color={TOKEN.text2} style={styles.hint}>
+          안내방송 들리는 대로 두 역만 입력하세요. 노선과 방향은 자동으로 알아낼게요.
+        </AppText>
 
         <StationField
-          label="🔵 방금 지나간 역"
+          dotColor={TOKEN.cold}
+          label="방금 지나간 역"
           query={prevQ}
           setQuery={setPrevQ}
           station={prev}
@@ -133,9 +141,10 @@ export default function SubwayWizard() {
           suggestions={prevSugg}
           placeholder="예: 강남"
         />
-        <View style={styles.gap12} />
+        <View style={{ height: SPACE.fieldGap }} />
         <StationField
-          label="🔴 다음 도착 역"
+          dotColor={TOKEN.hot}
+          label="다음 도착 역"
           query={nextQ}
           setQuery={setNextQ}
           station={next}
@@ -145,37 +154,49 @@ export default function SubwayWizard() {
         />
 
         {prev && next && segments.length === 0 && (
-          <View style={styles.alert}><Text style={styles.alertText}>두 역이 인접해 있지 않아요.</Text></View>
+          <Card style={styles.warn}>
+            <AppText variant="label" weight="semibold" color={TOKEN.hot}>두 역이 인접해 있지 않아요</AppText>
+            <AppText variant="caption" color={TOKEN.text2} style={{ marginTop: 2 }}>안내방송에 나온 바로 다음 역으로 다시 확인해 주세요.</AppText>
+          </Card>
         )}
+
         {segments.length === 1 && (
-          <View style={[styles.match, { borderColor: lineColor(segments[0].line) }]}>
-            <Text style={styles.matchLabel}>
-              {matchLoading ? '열차 찾는 중…' : trainConfirmed ? '✓ 열차 확인됨' : noVehicle ? '⚠️ 지금 이 구간에 차량이 없어요' : '자동 매칭'}
-            </Text>
-            <Text style={[styles.matchText, { color: lineColor(segments[0].line) }]}>
+          <Card style={[styles.match, { borderColor: matchColor }]}>
+            <View style={styles.matchHead}>
+              {trainConfirmed
+                ? <Badge label="열차 확인됨" color={TOKEN.ok} bg={TOKEN.okBg} />
+                : noVehicle
+                  ? <Badge label="차량 없음" color={TOKEN.hot} bg={TOKEN.hotBg} />
+                  : <Badge label={matchLoading ? '열차 찾는 중' : '자동 매칭'} color={matchColor} bg={TOKEN.coldBg} />}
+            </View>
+            <AppText variant="title2" color={matchColor} style={{ marginTop: SPACE.s2 }}>
               {segments[0].line} · {segments[0].prev} → {segments[0].next}
               {trainConfirmed && trainMatch?.trainNo ? ` · ${trainMatch.trainNo}호` : ''}
-            </Text>
+            </AppText>
             {noVehicle && (
-              <Text style={styles.noVehicleSub}>
+              <AppText variant="caption" color={TOKEN.text2} style={{ marginTop: SPACE.s2 }}>
                 막차 시간이 지났거나 차량 간격이 긴 시간대예요. 그래도 구간 단위로 투표할 수 있어요.
-              </Text>
+              </AppText>
             )}
-          </View>
+          </Card>
         )}
+
         {segments.length > 1 && (
-          <View style={styles.gap14Top}>
-            <Text style={styles.fieldLabel}>여러 노선이 있어요. 어느 노선?</Text>
+          <View style={styles.section}>
+            <AppText variant="label" color={TOKEN.text2} style={styles.fieldLabel}>여러 노선이 있어요. 어느 노선?</AppText>
             <View style={styles.chipRow}>
               {segments.map((s) => {
                 const active = pickedLine === s.line;
+                const lc = lineColor(s.line);
                 return (
                   <Pressable
                     key={s.line}
                     onPress={() => setPickedLine(active ? null : s.line)}
-                    style={[styles.chip, active && { backgroundColor: lineColor(s.line), borderColor: lineColor(s.line) }]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    style={[styles.lineChip, active ? { backgroundColor: lc, borderColor: lc } : { borderColor: TOKEN.border }]}
                   >
-                    <Text style={[styles.chipText, active && { color: '#fff' }]}>{s.line}</Text>
+                    <AppText variant="label" weight="bold" color={active ? '#FFFFFF' : TOKEN.text1}>{s.line}</AppText>
                   </Pressable>
                 );
               })}
@@ -184,80 +205,83 @@ export default function SubwayWizard() {
         )}
 
         {resolved && (
-          <View style={styles.sectionGap}>
-            <Text style={styles.fieldLabel}>몇 호차예요?</Text>
-            <View style={styles.carGrid}>
-              {Array.from({ length: carCountFor(resolved.line) }, (_, i) => i + 1).map((n) => {
-                const active = car === n;
-                return (
-                  <Pressable key={n} onPress={() => setCar(active ? null : n)} style={[styles.carCell, active && styles.carCellActive]}>
-                    <Text style={[styles.carText, active && { color: '#fff' }]}>{n}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Pressable onPress={() => setCar(car === 'unknown' ? null : 'unknown')} style={[styles.unknown, car === 'unknown' && styles.unknownActive]}>
-              <Text style={[styles.unknownText, car === 'unknown' && { color: '#fff' }]}>
-                {car === 'unknown' ? '✓ 호차 모름' : '호차 모름 — 그래도 투표'}
-              </Text>
+          <View style={styles.section}>
+            <AppText variant="label" color={TOKEN.text2} style={styles.fieldLabel}>몇 호차예요?</AppText>
+            <SelectionGrid
+              columns={5}
+              items={Array.from({ length: carCountFor(resolved.line) }, (_, i) => ({ key: String(i + 1), label: String(i + 1) }))}
+              selectedKey={typeof car === 'number' ? String(car) : null}
+              onSelect={(k) => { const n = Number(k); setCar(car === n ? null : n); }}
+            />
+            <Pressable
+              onPress={() => setCar(car === 'unknown' ? null : 'unknown')}
+              accessibilityRole="button"
+              accessibilityState={{ selected: car === 'unknown' }}
+              style={[styles.unknown, car === 'unknown' && styles.unknownActive]}
+            >
+              {car === 'unknown' && <Check size={16} color="#FFFFFF" />}
+              <AppText variant="label" weight="bold" color={car === 'unknown' ? '#FFFFFF' : TOKEN.text2}>
+                {car === 'unknown' ? '호차 모름' : '호차 모름 — 그래도 투표'}
+              </AppText>
             </Pressable>
           </View>
         )}
 
-        {error && <View style={styles.error}><Text style={styles.errorText}>{error}</Text></View>}
+        {error && (
+          <Card style={styles.warn}>
+            <AppText variant="caption" color={TOKEN.hot}>{error}</AppText>
+          </Card>
+        )}
 
-        <Pressable onPress={submit} disabled={!canSubmit} style={[styles.submit, !canSubmit && styles.submitDisabled]}>
-          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>투표하러 가기</Text>}
-        </Pressable>
+        <View style={{ marginTop: SPACE.s7 }}>
+          <Button label="투표하러 가기" onPress={submit} loading={submitting} disabled={!canSubmit} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 function StationField({
-  label, query, setQuery, station, setStation, suggestions, placeholder,
+  dotColor, label, query, setQuery, station, setStation, suggestions, placeholder,
 }: {
+  dotColor: string;
   label: string;
   query: string; setQuery: (v: string) => void;
   station: Station | null; setStation: (s: Station | null) => void;
   suggestions: Station[];
   placeholder: string;
 }) {
-  if (station) {
-    return (
-      <View>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        <View style={styles.selectedRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.selectedName}>{station.name}</Text>
-            <Text style={styles.selectedSub}>{station.lines.join(' · ')} · {station.city}</Text>
-          </View>
-          <Pressable onPress={() => { setStation(null); setQuery(''); }}>
-            <Text style={styles.change}>변경</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
   return (
     <View>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder={placeholder}
-        placeholderTextColor={TOKEN.text3}
-        style={styles.input}
-      />
-      {suggestions.length > 0 && (
-        <View style={styles.suggestions}>
-          {suggestions.map((s) => (
-            <Pressable key={s.id} onPress={() => { setStation(s); setQuery(''); }} style={styles.suggestRow}>
-              <Text style={styles.suggestName}>{s.name}</Text>
-              <Text style={styles.suggestSub}>{s.lines.join(' · ')} · {s.city}</Text>
-            </Pressable>
-          ))}
+      <View style={styles.fieldLabelRow}>
+        <View style={[styles.dot, { backgroundColor: dotColor }]} />
+        <AppText variant="label" color={TOKEN.text2}>{label}</AppText>
+      </View>
+      {station ? (
+        <View style={[styles.selectedRow, { borderColor: dotColor }]}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <AppText variant="bodyLg" weight="bold" numberOfLines={1}>{station.name}</AppText>
+            <AppText variant="caption" color={TOKEN.text3} numberOfLines={1} style={{ marginTop: 2 }}>{station.lines.join(' · ')} · {station.city}</AppText>
+          </View>
+          <Button label="변경" variant="ghost" full={false} onPress={() => { setStation(null); setQuery(''); }} style={styles.changeBtn} />
         </View>
+      ) : (
+        <>
+          <Input value={query} onChangeText={setQuery} placeholder={placeholder} />
+          {suggestions.length > 0 && (
+            <View style={styles.suggestions}>
+              {suggestions.map((s) => (
+                <ListRow
+                  key={s.id}
+                  title={s.name}
+                  sub={`${s.lines.join(' · ')} · ${s.city}`}
+                  trailing={<View />}
+                  onPress={() => { setStation(s); setQuery(''); }}
+                />
+              ))}
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -265,50 +289,27 @@ function StationField({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: TOKEN.bg },
-  scroll: { padding: 20, paddingBottom: 60 },
-  hint: { fontSize: 13, color: TOKEN.text2, marginBottom: 14, lineHeight: 18 },
-  fieldLabel: { fontSize: 12, fontWeight: '700', color: TOKEN.text2, marginBottom: 8, letterSpacing: 0.3 },
-  input: {
-    padding: 13, borderWidth: 2, borderColor: TOKEN.border,
-    borderRadius: TOKEN.r.md, fontSize: 14, color: TOKEN.text1, backgroundColor: TOKEN.bg,
-  },
-  suggestions: { marginTop: 6, gap: 4 },
-  suggestRow: { padding: 12, backgroundColor: TOKEN.surface, borderRadius: TOKEN.r.md, borderWidth: 1, borderColor: TOKEN.border },
-  suggestName: { fontSize: 13, fontWeight: '700', color: TOKEN.text1 },
-  suggestSub: { fontSize: 11, color: TOKEN.text3, marginTop: 2 },
+  scroll: { padding: SPACE.screenPadding, paddingBottom: SPACE.bottomInset },
+  hint: { marginBottom: SPACE.s5, lineHeight: 21 },
+  fieldLabelRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s2, marginBottom: SPACE.s2 },
+  fieldLabel: { marginBottom: SPACE.s3 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  suggestions: { marginTop: SPACE.s2, gap: SPACE.rowGap },
   selectedRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12,
-    backgroundColor: TOKEN.coldBg, borderWidth: 2, borderColor: TOKEN.cold, borderRadius: TOKEN.r.md,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.s3, padding: SPACE.s3, paddingLeft: SPACE.s4,
+    backgroundColor: TOKEN.surface, borderWidth: 1.5, borderRadius: TOKEN.r.lg,
   },
-  selectedName: { fontSize: 14, fontWeight: '700', color: TOKEN.text1 },
-  selectedSub: { fontSize: 11, color: TOKEN.text3, marginTop: 2 },
-  change: { fontSize: 13, color: TOKEN.text2 },
-  // Spacing tokens — inline {{ marginTop / height }} 대체.
-  gap12: { height: 12 },
-  gap14Top: { marginTop: 14 },
-  sectionGap: { marginTop: 18 },
-  alert: { marginTop: 14, padding: 14, backgroundColor: TOKEN.hotBg, borderRadius: TOKEN.r.md },
-  alertText: { color: TOKEN.hot, fontSize: 13 },
-  match: { marginTop: 14, padding: 14, backgroundColor: TOKEN.coldBg, borderWidth: 1.5, borderRadius: TOKEN.r.md },
-  matchLabel: { fontSize: 11, color: TOKEN.text2, marginBottom: 4 },
-  matchText: { fontSize: 15, fontWeight: '800' },
-  noVehicleSub: { fontSize: 11, color: TOKEN.text2, lineHeight: 16, marginTop: 6 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: TOKEN.surface, borderWidth: 1.5, borderColor: TOKEN.border, borderRadius: 999 },
-  chipText: { fontSize: 13, fontWeight: '700', color: TOKEN.text1 },
-  carGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
-  carCell: {
-    width: '18%', paddingVertical: 12, backgroundColor: TOKEN.surface,
-    borderWidth: 1.5, borderColor: TOKEN.border, borderRadius: TOKEN.r.md, alignItems: 'center',
+  changeBtn: { height: 40, paddingHorizontal: SPACE.s3 },
+  section: { marginTop: SPACE.s5 },
+  warn: { marginTop: SPACE.s4, backgroundColor: TOKEN.hotBg, borderColor: TOKEN.hotBg },
+  match: { marginTop: SPACE.s4, borderWidth: 1.5 },
+  matchHead: { flexDirection: 'row' },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2 },
+  lineChip: { paddingHorizontal: SPACE.s4, minHeight: 40, justifyContent: 'center', backgroundColor: TOKEN.surface, borderWidth: 1.5, borderRadius: TOKEN.r.pill },
+  unknown: {
+    flexDirection: 'row', gap: SPACE.s2, marginTop: SPACE.s3, minHeight: SPACE.touchMin, padding: SPACE.s3,
+    backgroundColor: TOKEN.surface, borderRadius: TOKEN.r.md, borderWidth: 1.5, borderStyle: 'dashed',
+    borderColor: TOKEN.border, alignItems: 'center', justifyContent: 'center',
   },
-  carCellActive: { backgroundColor: TOKEN.cold, borderColor: TOKEN.cold },
-  carText: { fontSize: 16, fontWeight: '800', color: TOKEN.text1 },
-  unknown: { marginTop: 10, padding: 14, backgroundColor: TOKEN.surface, borderRadius: TOKEN.r.md, borderWidth: 1.5, borderStyle: 'dashed', borderColor: TOKEN.border, alignItems: 'center' },
   unknownActive: { backgroundColor: TOKEN.cold, borderColor: TOKEN.cold, borderStyle: 'solid' },
-  unknownText: { fontSize: 14, fontWeight: '700', color: TOKEN.text1 },
-  error: { marginTop: 14, padding: 10, backgroundColor: TOKEN.hotBg, borderRadius: TOKEN.r.md },
-  errorText: { color: TOKEN.hot, fontSize: 12 },
-  submit: { marginTop: 28, padding: 16, backgroundColor: TOKEN.cold, borderRadius: TOKEN.r.lg, alignItems: 'center' },
-  submitDisabled: { backgroundColor: TOKEN.border },
-  submitText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });
