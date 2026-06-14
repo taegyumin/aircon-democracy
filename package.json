@@ -25,6 +25,9 @@
     "store:push:ios": "npm run store:sync && (cd apps/mobile && eas metadata:push)",
     "design:check": "node scripts/check-design-tokens.mjs",
     "design:baseline": "node scripts/check-design-tokens.mjs --update",
+    "screenshots:capture": "node scripts/store-screenshots/capture.mjs",
+    "screenshots:compose": "node scripts/store-screenshots/compose.mjs",
+    "screenshots": "npm run screenshots:capture && npm run screenshots:compose",
     "gate": "npm run check:data && npm run store:check && npm run design:check && npm run typecheck && npm run lint && npm run test:unit",
     "gate:full": "npm run gate && npm run build:web",
     "check": "npm run gate",
@@ -35,6 +38,7 @@
     "@playwright/test": "^1.60.0",
     "expo-router": "~6.0.24",
     "glob": "^10.4.5",
+    "sharp": "^0.34.5",
     "turbo": "^2.9.14",
     "typescript": "^5.6.3",
     "wrangler": "^4.86.0"

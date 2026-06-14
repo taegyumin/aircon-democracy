@@ -1,0 +1,3 @@
+# 생성물 — 커밋 안 함 (제출 직전 `npm run screenshots`로 항상 새로 생성, stale 방지).
+raw/
+out/

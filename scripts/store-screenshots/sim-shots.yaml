@@ -1,0 +1,29 @@
+# 시뮬레이터(실제 앱) 화면 캡처 Maestro flow. capture.mjs가 이걸 돌리고 결과 PNG를 raw/로 복사.
+# takeScreenshot 이름 = SHOTS의 name. 홈 카테고리 라벨에 맞춰 탭.
+appId: com.aircondemocracy.app
+---
+- launchApp
+- waitForAnimationToEnd
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
+      - waitForAnimationToEnd
+- takeScreenshot: 01-categories
+- tapOn:
+    text: "지하철"
+- waitForAnimationToEnd
+- takeScreenshot: 02-subway
+- back
+- waitForAnimationToEnd
+- tapOn:
+    text: "대학교 강의실"
+- waitForAnimationToEnd
+- takeScreenshot: 03-classroom
+- back
+- waitForAnimationToEnd
+- tapOn:
+    text: "기차 (KTX·SRT 등)"
+- waitForAnimationToEnd
+- takeScreenshot: 04-train
