@@ -1,6 +1,7 @@
-// 사이트 footer — 사업자 정보 + 개인정보 처리방침 링크.
-// Kakao 비즈 인증 + 전자상거래법 표시 의무 충족.
-// 모든 페이지 layout에 마운트. 시각적으로 가볍게 (작은 회색 글씨).
+// 사이트 footer — 개인정보 처리방침 링크 + 저작권.
+// 사업자 상세 정보(상호·대표·등록번호·주소)는 제거: 무료·비거래 서비스라 전자상거래법
+// 통신판매업자 표시 의무가 적용되지 않고, 익명 서비스에 운영자 개인정보 과노출 방지.
+// 개인정보 관련 문의 연락처는 /privacy(8. 문의)에 유지 — PIPA 요건 충족.
 
 import { TOKEN, FONT } from '@aircon/core';
 
@@ -18,17 +19,11 @@ export function SiteFooter() {
       }}
     >
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        <div style={{ fontWeight: 700, color: TOKEN.text2, marginBottom: 4 }}>
-          미나리 (Minari)
+        <div style={{ marginBottom: 6 }}>
+          <a href="/privacy" style={{ color: TOKEN.text2, textDecoration: 'none' }}>개인정보 처리방침</a>
         </div>
-        <div>대표자: 민태규 · 사업자등록번호: 147-33-01631</div>
-        <div>충청남도 천안시 서북구 1공단4길 25, 4층 416호 (두정동, 팰리스타워2)</div>
-        <div>문의: <a href="mailto:mtg821@gmail.com" style={{ color: TOKEN.text3, textDecoration: 'none' }}>mtg821@gmail.com</a></div>
-        <div style={{ marginTop: 8 }}>
-          <a href="/privacy" style={{ color: TOKEN.text2, marginRight: 12 }}>개인정보 처리방침</a>
-        </div>
-        <div style={{ marginTop: 6, color: TOKEN.text3, fontSize: 10 }}>
-          © {new Date().getFullYear()} 미나리 · 시민 참여 플랫폼
+        <div style={{ color: TOKEN.text3, fontSize: 10 }}>
+          © {new Date().getFullYear()} 에어컨 민주주의 · 시민 참여 플랫폼
         </div>
       </div>
     </footer>

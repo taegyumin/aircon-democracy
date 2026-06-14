@@ -174,8 +174,7 @@ export function HomeScreen({ onSelectPlace, onWizard, onQR, onLogin }: Props) {
         {/* 카테고리 picker — 탭 시 wizard로 cat 파라미터 전달 */}
         <CategoryPicker onPick={(k) => onWizard(k)} />
 
-        {/* 사업자 정보 footer (전자상거래법 + Kakao 비즈 인증 표시 의무).
-            메인 페이지 scroll 끝에 노출 — vote/wizard 등 다른 화면 UX 영향 X. */}
+        {/* footer (개인정보 처리방침 링크 + 저작권). 메인 scroll 끝에만 노출. */}
         <div style={{ marginTop: 32 }}>
           <SiteFooter />
         </div>
