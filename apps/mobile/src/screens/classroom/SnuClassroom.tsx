@@ -1,13 +1,13 @@
-// 서울대 강의실 — 검색/단과대/건물 3-view state machine + 호실 grid.
+// 서울대 강의실 — 검색/단과대/건물 3-view state machine + 호실 grid. 디자인 시스템 적용.
 // web SNUClassroomWizard.tsx 의 SNU view 부분 RN 포팅.
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator,
-} from 'react-native';
-import { TOKEN, snu } from '@aircon/core';
+import { View, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
+import { TOKEN, SPACE, snu } from '@aircon/core';
 import { api } from '../../lib/apiClient';
 import { loadSnuRooms } from '../../lib/snuRooms';
+import { AppText, TopBar, Input, Card, Badge, Button } from '../../ui';
 
 type SNUBuilding = snu.SNUBuilding;
 type SNURoom = snu.SNURoom;
@@ -79,11 +79,8 @@ export function SnuClassroom({ onPicked, onExit }: Props) {
       : '서울대 강의실';
 
   return (
-    <View style={styles.safe}>
-      <View style={styles.header}>
-        <Pressable onPress={onBack} hitSlop={10}><Text style={styles.backBtn}>← {view.mode === 'search' ? '학교 변경' : '뒤로'}</Text></Pressable>
-        <Text style={styles.headerTitle}>{headerTitle}</Text>
-      </View>
+    <View style={styles.flex}>
+      <TopBar title={headerTitle} onBack={onBack} backLabel={view.mode === 'search' ? '학교 변경' : undefined} />
 
       {view.mode === 'building'
         ? <BuildingView
@@ -113,6 +110,33 @@ export function SnuClassroom({ onPicked, onExit }: Props) {
   );
 }
 
+// ───────────────────────── 공용 Row ─────────────────────────
+
+function HitRow({ kind, title, sub, onPress }: { kind: string; title: string; sub: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title} style={({ pressed }) => [styles.row, pressed && { opacity: 0.9 }]}>
+      <Badge label={kind} />
+      <View style={styles.rowText}>
+        <AppText variant="bodyLg" weight="semibold" numberOfLines={1}>{title}</AppText>
+        <AppText variant="caption" color={TOKEN.text2} numberOfLines={1} style={{ marginTop: 1 }}>{sub}</AppText>
+      </View>
+      <ChevronRight size={20} color={TOKEN.text3} />
+    </Pressable>
+  );
+}
+
+function NavRow({ title, sub, onPress }: { title: string; sub: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title} style={({ pressed }) => [styles.row, pressed && { opacity: 0.9 }]}>
+      <View style={styles.rowText}>
+        <AppText variant="bodyLg" weight="semibold" numberOfLines={1}>{title}</AppText>
+        <AppText variant="caption" color={TOKEN.text2} numberOfLines={1} style={{ marginTop: 1 }}>{sub}</AppText>
+      </View>
+      <ChevronRight size={20} color={TOKEN.text3} />
+    </Pressable>
+  );
+}
+
 // ───────────────────────── Search view ─────────────────────────
 
 function SearchView({
@@ -128,28 +152,25 @@ function SearchView({
 }) {
   return (
     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-      <View style={styles.searchBox}>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="동번호·단과대·건물·호실 (예: 301, 공대, 우민홀)"
-          placeholderTextColor={TOKEN.text3}
-          style={styles.searchInput}
-        />
-        {query.length > 0 && (
-          <Pressable onPress={() => setQuery('')} hitSlop={10}><Text style={styles.clearBtn}>×</Text></Pressable>
-        )}
-      </View>
+      <Input
+        value={query}
+        onChangeText={setQuery}
+        placeholder="동번호·단과대·건물·호실 (예: 301, 공대, 우민홀)"
+        clearButtonMode="while-editing"
+        autoCorrect={false}
+      />
 
       {roomsErr && (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>호실 데이터를 못 불러왔어요 ({roomsErr}). 건물·단과대 검색은 계속 사용할 수 있어요.</Text>
-        </View>
+        <Card style={styles.warn}>
+          <AppText variant="caption" color={TOKEN.hot}>호실 데이터를 못 불러왔어요 ({roomsErr}). 건물·단과대 검색은 계속 사용할 수 있어요.</AppText>
+        </Card>
       )}
+
+      <View style={{ height: SPACE.s4 }} />
 
       {query.trim()
         ? (hits.length === 0
-            ? <Text style={styles.emptyText}>일치하는 결과 없음. 다른 키워드를 입력해 보세요.</Text>
+            ? <AppText variant="body" center color={TOKEN.text3} style={styles.emptyText}>일치하는 결과 없음. 다른 키워드를 입력해 보세요.</AppText>
             : <HitList hits={hits} onTapCollege={onTapCollege} onTapBuilding={onTapBuilding} />)
         : <DefaultLanding rooms={rooms} onTapCollege={onTapCollege} onTapBuilding={onTapBuilding} />}
     </ScrollView>
@@ -162,43 +183,15 @@ function HitList({ hits, onTapCollege, onTapBuilding }: {
   onTapBuilding: (b: SNUBuilding) => void;
 }) {
   return (
-    <View style={{ gap: 6 }}>
+    <View style={styles.list}>
       {hits.map((h, i) => {
         if (h.type === 'college') {
-          return (
-            <Pressable key={`c-${h.college}-${i}`} onPress={() => onTapCollege(h.college)} style={styles.hitRow}>
-              <Text style={styles.hitKind}>단과대</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.hitTitle}>{h.college}</Text>
-                <Text style={styles.hitSub}>건물 {h.buildings.length}개</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
-          );
+          return <HitRow key={`c-${h.college}-${i}`} kind="단과대" title={h.college} sub={`건물 ${h.buildings.length}개`} onPress={() => onTapCollege(h.college)} />;
         }
         if (h.type === 'building') {
-          return (
-            <Pressable key={`b-${h.building.code}-${i}`} onPress={() => onTapBuilding(h.building)} style={styles.hitRow}>
-              <Text style={styles.hitKind}>건물</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.hitTitle}>{h.building.code}동 · {h.building.name}</Text>
-                <Text style={styles.hitSub}>{h.building.college} · 호실 {h.building.roomCount}개</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
-          );
+          return <HitRow key={`b-${h.building.code}-${i}`} kind="건물" title={`${h.building.code}동 · ${h.building.name}`} sub={`${h.building.college} · 호실 ${h.building.roomCount}개`} onPress={() => onTapBuilding(h.building)} />;
         }
-        // room
-        return (
-          <Pressable key={`r-${h.building.code}-${h.room.room}-${i}`} onPress={() => onTapBuilding(h.building)} style={styles.hitRow}>
-            <Text style={styles.hitKind}>호실</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.hitTitle}>{h.building.code}-{h.room.room} · {h.room.label}</Text>
-              <Text style={styles.hitSub}>{h.building.name}</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
-        );
+        return <HitRow key={`r-${h.building.code}-${h.room.room}-${i}`} kind="호실" title={`${h.building.code}-${h.room.room} · ${h.room.label}`} sub={h.building.name} onPress={() => onTapBuilding(h.building)} />;
       })}
     </View>
   );
@@ -216,29 +209,23 @@ function DefaultLanding({ rooms, onTapCollege, onTapBuilding }: {
     .sort((a, b) => b.roomCount - a.roomCount)
     .slice(0, 6);
   return (
-    <View style={{ gap: 18 }}>
+    <View style={{ gap: SPACE.s6 }}>
       <View>
-        <Text style={styles.sectionLabel}>단과대 둘러보기</Text>
-        <View style={styles.collegeGrid}>
+        <AppText variant="micro" color={TOKEN.text3} style={styles.sectionLabel}>단과대 둘러보기</AppText>
+        <View style={styles.tileGrid}>
           {popular.map((c) => (
-            <Pressable key={c} onPress={() => onTapCollege(c)} style={styles.collegeTile}>
-              <Text style={styles.collegeTileText}>{c}</Text>
-            </Pressable>
+            <Card key={c} onPress={() => onTapCollege(c)} accessibilityLabel={c} style={styles.tile}>
+              <AppText variant="label" weight="bold" numberOfLines={1}>{c}</AppText>
+            </Card>
           ))}
         </View>
       </View>
       <View>
-        <Text style={styles.sectionLabel}>자주 가는 건물</Text>
-        {!rooms && <Text style={styles.hint}>호실 데이터 불러오는 중…</Text>}
-        <View style={{ gap: 6 }}>
+        <AppText variant="micro" color={TOKEN.text3} style={styles.sectionLabel}>자주 가는 건물</AppText>
+        {!rooms && <AppText variant="caption" color={TOKEN.text3} style={{ marginBottom: SPACE.s2 }}>호실 데이터 불러오는 중…</AppText>}
+        <View style={styles.list}>
           {topBuildings.map((b) => (
-            <Pressable key={b.code} onPress={() => onTapBuilding(b)} style={styles.buildingRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.buildingTitle}>{b.code}동 · {b.name}</Text>
-                <Text style={styles.buildingSub}>{b.college} · 호실 {b.roomCount}개</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </Pressable>
+            <NavRow key={b.code} title={`${b.code}동 · ${b.name}`} sub={`${b.college} · 호실 ${b.roomCount}개`} onPress={() => onTapBuilding(b)} />
           ))}
         </View>
       </View>
@@ -252,16 +239,10 @@ function CollegeView({ college, onTapBuilding }: { college: string; onTapBuildin
   const list = useMemo(() => snu.BUILDINGS.filter((b) => b.college === college), [college]);
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      <Text style={styles.hint}>{list.length}개 건물</Text>
-      <View style={{ gap: 6 }}>
+      <AppText variant="caption" color={TOKEN.text3} style={{ marginBottom: SPACE.s3 }}>{list.length}개 건물</AppText>
+      <View style={styles.list}>
         {list.map((b) => (
-          <Pressable key={b.code} onPress={() => onTapBuilding(b)} style={styles.buildingRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.buildingTitle}>{b.code}동 · {b.name}</Text>
-              <Text style={styles.buildingSub}>호실 {b.roomCount}개</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
+          <NavRow key={b.code} title={`${b.code}동 · ${b.name}`} sub={`호실 ${b.roomCount}개`} onPress={() => onTapBuilding(b)} />
         ))}
       </View>
     </ScrollView>
@@ -293,37 +274,35 @@ function BuildingView({
 
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      <View style={styles.bldgInfo}>
-        <Text style={styles.bldgInfoTop}>{b.college} · {b.campus}캠퍼스</Text>
-        <Text style={styles.bldgInfoTitle}>{b.name} <Text style={styles.bldgInfoCode}>· {b.code}동</Text></Text>
-      </View>
+      <Card style={styles.bldgInfo}>
+        <AppText variant="caption" color={TOKEN.text2}>{b.college} · {b.campus}캠퍼스</AppText>
+        <AppText variant="title2" style={{ marginTop: 2 }}>{b.name} <AppText variant="title2" color={TOKEN.text3}>· {b.code}동</AppText></AppText>
+      </Card>
 
-      <Pressable
+      <Button
+        label="이 건물 전체에서 투표 (호실 모름)"
         onPress={() => onPick(b)}
+        loading={submittingId === wholeId}
         disabled={submittingId === wholeId}
-        style={[styles.primaryBtn, submittingId === wholeId && styles.primaryBtnDisabled]}
-      >
-        {submittingId === wholeId
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.primaryBtnText}>이 건물 전체에서 투표 (호실 모름)</Text>}
-      </Pressable>
+        style={{ marginBottom: SPACE.s5 }}
+      />
 
       {submitErr && (
-        <View style={styles.submitErrBox}><Text style={styles.submitErrText}>{submitErr}</Text></View>
+        <Card style={styles.warn}><AppText variant="caption" color={TOKEN.hot}>{submitErr}</AppText></Card>
       )}
 
       <View style={styles.roomHeader}>
-        <Text style={styles.sectionLabel}>호실 선택 ({filtered.length}개)</Text>
+        <AppText variant="micro" color={TOKEN.text3}>호실 선택 ({filtered.length}개)</AppText>
         {allRooms.length > filtered.length && (
-          <Pressable onPress={() => setAllKinds(!allKinds)}>
-            <Text style={styles.toggleText}>{allKinds ? '공용 공간만' : `전체 (${allRooms.length})`}</Text>
+          <Pressable onPress={() => setAllKinds(!allKinds)} hitSlop={8}>
+            <AppText variant="label" weight="bold" color={TOKEN.cold}>{allKinds ? '공용 공간만' : `전체 (${allRooms.length})`}</AppText>
           </Pressable>
         )}
       </View>
 
-      {!rooms && <Text style={styles.hint}>호실 정보 불러오는 중…</Text>}
+      {!rooms && <AppText variant="caption" color={TOKEN.text3}>호실 정보 불러오는 중…</AppText>}
       {rooms && filtered.length === 0 && (
-        <Text style={styles.hint}>등록된 호실이 없어요. 위 버튼으로 건물 단위 투표가 가능합니다.</Text>
+        <AppText variant="caption" color={TOKEN.text3}>등록된 호실이 없어요. 위 버튼으로 건물 단위 투표가 가능합니다.</AppText>
       )}
 
       <RoomGrid b={b} rooms={filtered} submittingId={submittingId} onPick={onPick} />
@@ -342,10 +321,10 @@ function RoomGrid({
   // 층별 그룹화 + 정렬 (지하 B → 1 → 2 → … → 옥상 R)
   const groups = useMemo(() => groupByFloor(rooms), [rooms]);
   return (
-    <View style={{ gap: 14 }}>
+    <View style={{ gap: SPACE.s4 }}>
       {groups.map(([floor, list]) => (
         <View key={floor}>
-          <Text style={styles.floorLabel}>{floor}</Text>
+          <AppText variant="label" color={TOKEN.text2} style={{ marginBottom: SPACE.s2 }}>{floor}</AppText>
           <View style={styles.roomGrid}>
             {list.map((r) => {
               const id = snu.snuPlaceId(b, r);
@@ -355,10 +334,12 @@ function RoomGrid({
                   key={r.room + r.label}
                   onPress={() => onPick(b, r)}
                   disabled={submitting}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${r.room} ${r.label}`}
                   style={[styles.roomBtn, kindStyle(r.kind), submitting && styles.roomBtnDisabled]}
                 >
-                  <Text style={styles.roomNum}>{r.room}</Text>
-                  <Text style={styles.roomLabel} numberOfLines={1}>{r.label}</Text>
+                  <AppText variant="label" weight="bold">{r.room}</AppText>
+                  <AppText variant="micro" weight="regular" color={TOKEN.text2} numberOfLines={1} style={styles.roomLabel}>{r.label}</AppText>
                 </Pressable>
               );
             })}
@@ -400,122 +381,29 @@ function kindStyle(kind: SNURoom['kind']) {
     case 'lab': return { backgroundColor: '#FEF3C7', borderColor: '#D97706' };
     case 'lounge': return { backgroundColor: '#ECFCCB', borderColor: '#65A30D' };
     case 'office': return { backgroundColor: '#FCE7F3', borderColor: '#BE185D' };
-    default: return { backgroundColor: TOKEN.bg, borderColor: TOKEN.border };
+    default: return { backgroundColor: TOKEN.surface, borderColor: TOKEN.border };
   }
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKEN.bg },
-  header: {
-    backgroundColor: TOKEN.surface,
-    paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: TOKEN.border,
-    gap: 6,
+  flex: { flex: 1 },
+  scroll: { padding: SPACE.screenPadding, paddingBottom: SPACE.bottomInset + SPACE.s5 },
+  list: { gap: SPACE.rowGap },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.s3, minHeight: 60,
+    paddingVertical: SPACE.s3, paddingHorizontal: SPACE.s4,
+    backgroundColor: TOKEN.surface, borderRadius: TOKEN.r.lg, borderWidth: 1, borderColor: TOKEN.border,
   },
-  backBtn: { fontSize: 13, color: TOKEN.text2, fontWeight: '600' },
-  headerTitle: { fontSize: 16, fontWeight: '800', color: TOKEN.text1 },
-  scroll: { padding: 20, paddingBottom: 80 },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: TOKEN.surface,
-    borderWidth: 1.5,
-    borderColor: TOKEN.border,
-    borderRadius: TOKEN.r.lg,
-    paddingHorizontal: 14,
-    marginBottom: 14,
-  },
-  searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: TOKEN.text1 },
-  clearBtn: { fontSize: 22, color: TOKEN.text3 },
-  hint: { fontSize: 12, color: TOKEN.text3, marginVertical: 6 },
-  emptyText: { fontSize: 13, color: TOKEN.text3, textAlign: 'center', padding: 20 },
-  errorBox: {
-    padding: 12, backgroundColor: TOKEN.hotBg, borderRadius: TOKEN.r.md, marginBottom: 12,
-  },
-  errorText: { fontSize: 12, color: TOKEN.hot },
-  sectionLabel: { fontSize: 11, fontWeight: '700', color: TOKEN.text3, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 },
-  collegeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  collegeTile: {
-    width: '47%',
-    padding: 14,
-    backgroundColor: TOKEN.surface,
-    borderRadius: TOKEN.r.md,
-    borderWidth: 1,
-    borderColor: TOKEN.border,
-  },
-  collegeTileText: { fontSize: 13, fontWeight: '700', color: TOKEN.text1 },
-  buildingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    backgroundColor: TOKEN.surface,
-    borderRadius: TOKEN.r.md,
-    borderWidth: 1,
-    borderColor: TOKEN.border,
-  },
-  buildingTitle: { fontSize: 14, fontWeight: '700', color: TOKEN.text1, marginBottom: 2 },
-  buildingSub: { fontSize: 11, color: TOKEN.text2 },
-  hitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    backgroundColor: TOKEN.surface,
-    borderRadius: TOKEN.r.md,
-    borderWidth: 1,
-    borderColor: TOKEN.border,
-  },
-  hitKind: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: TOKEN.cold,
-    backgroundColor: TOKEN.coldBg,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 4,
-    overflow: 'hidden',
-    letterSpacing: 0.5,
-  },
-  hitTitle: { fontSize: 14, fontWeight: '700', color: TOKEN.text1, marginBottom: 2 },
-  hitSub: { fontSize: 11, color: TOKEN.text2 },
-  chevron: { fontSize: 18, color: TOKEN.text3 },
-  bldgInfo: {
-    padding: 14,
-    backgroundColor: TOKEN.coldBg,
-    borderRadius: TOKEN.r.md,
-    marginBottom: 14,
-  },
-  bldgInfoTop: { fontSize: 11, color: TOKEN.text2, marginBottom: 4 },
-  bldgInfoTitle: { fontSize: 15, fontWeight: '800', color: TOKEN.text1 },
-  bldgInfoCode: { color: TOKEN.text3, fontWeight: '600' },
-  primaryBtn: {
-    padding: 14,
-    backgroundColor: TOKEN.cold,
-    borderRadius: TOKEN.r.lg,
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-  primaryBtnDisabled: { backgroundColor: TOKEN.border },
-  primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  submitErrBox: { marginTop: 10, padding: 10, backgroundColor: TOKEN.hotBg, borderRadius: TOKEN.r.md },
-  submitErrText: { fontSize: 12, color: TOKEN.hot },
-  roomHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  toggleText: { fontSize: 11, color: TOKEN.cold, fontWeight: '700' },
-  floorLabel: { fontSize: 11, fontWeight: '700', color: TOKEN.text2, marginBottom: 6 },
-  roomGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  roomBtn: {
-    minWidth: 64,
-    padding: 8,
-    borderRadius: TOKEN.r.sm,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
+  rowText: { flex: 1, minWidth: 0 },
+  warn: { marginTop: SPACE.s3, backgroundColor: TOKEN.hotBg, borderColor: TOKEN.hotBg },
+  emptyText: { paddingVertical: SPACE.s7 },
+  sectionLabel: { marginBottom: SPACE.s3 },
+  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2 },
+  tile: { width: '48.5%', minHeight: 56, justifyContent: 'center' },
+  bldgInfo: { backgroundColor: TOKEN.coldBg, borderColor: TOKEN.coldBg, marginBottom: SPACE.s4 },
+  roomHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: SPACE.s5, marginBottom: SPACE.s3 },
+  roomGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2 },
+  roomBtn: { minWidth: 66, paddingVertical: SPACE.s2, paddingHorizontal: SPACE.s2, borderRadius: TOKEN.r.sm, borderWidth: 1, alignItems: 'center' },
   roomBtnDisabled: { opacity: 0.5 },
-  roomNum: { fontSize: 13, fontWeight: '800', color: TOKEN.text1 },
-  roomLabel: { fontSize: 10, color: TOKEN.text2, marginTop: 2, maxWidth: 80 },
+  roomLabel: { marginTop: 1, maxWidth: 84 },
 });

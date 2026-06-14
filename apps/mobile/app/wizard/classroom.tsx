@@ -30,28 +30,28 @@ export default function ClassroomWizard() {
 
   if (univId === null || !known) {
     return (
-      <SafeAreaView style={styles.safe}>
-        <UniversityPicker onPick={setUnivId} />
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <UniversityPicker onPick={setUnivId} onBack={() => router.back()} />
       </SafeAreaView>
     );
   }
   if (known.kind === 'snu') {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
         <SnuClassroom onPicked={onPicked} onExit={reset} />
       </SafeAreaView>
     );
   }
   if (known.kind === 'yonsei') {
     return (
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
         <YonseiClassroom onPicked={onPicked} onExit={reset} />
       </SafeAreaView>
     );
   }
   // kind === 'generic' → university 객체 보장
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <GenericClassroom univ={known.university!} onPicked={onPicked} onExit={reset} />
     </SafeAreaView>
   );

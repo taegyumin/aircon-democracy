@@ -24,7 +24,8 @@ export default function RootLayout() {
         <Stack.Screen name="wizard/intercity-bus" options={{ title: '고속·시외버스' }} />
         <Stack.Screen name="wizard/train" options={{ title: '기차' }} />
         <Stack.Screen name="wizard/cafe" options={{ title: '카페·음식점' }} />
-        <Stack.Screen name="wizard/classroom" options={{ title: '강의실' }} />
+        {/* 강의실은 학교→단과대→건물 다단계 내부 네비게이션이라 자체 TopBar로 back을 제어 — Stack 헤더 숨김(2중 헤더 방지). */}
+        <Stack.Screen name="wizard/classroom" options={{ headerShown: false }} />
         <Stack.Screen name="wizard/custom" options={{ title: '다른 장소 찾기' }} />
         <Stack.Screen name="p/[placeId]" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ title: '로그인', presentation: 'modal' }} />

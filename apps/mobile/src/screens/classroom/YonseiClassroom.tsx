@@ -1,12 +1,12 @@
-// 연세대 강의실 — 건물 검색/picker + 호실 freeform 입력. 호실 dataset 없음.
+// 연세대 강의실 — 건물 검색/picker + 호실 freeform 입력. 호실 dataset 없음. 디자인 시스템 적용.
 // web YonseiClassroomWizard.tsx RN 포팅.
 
 import { useMemo, useState } from 'react';
-import {
-  View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator,
-} from 'react-native';
-import { TOKEN, yonsei } from '@aircon/core';
+import { View, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
+import { TOKEN, SPACE, yonsei } from '@aircon/core';
 import { api } from '../../lib/apiClient';
+import { AppText, TopBar, Input, Field, Card, Badge, Button } from '../../ui';
 
 type YonseiBuilding = yonsei.YonseiBuilding;
 
@@ -61,42 +61,35 @@ export function YonseiClassroom({ onPicked, onExit }: Props) {
       : '연세대 강의실';
 
   return (
-    <View style={styles.safe}>
-      <View style={styles.header}>
-        <Pressable onPress={onBack} hitSlop={10}><Text style={styles.backBtn}>← {view.mode === 'search' ? '학교 변경' : '뒤로'}</Text></Pressable>
-        <Text style={styles.headerTitle}>{headerTitle}</Text>
-      </View>
+    <View style={styles.flex}>
+      <TopBar title={headerTitle} onBack={onBack} backLabel={view.mode === 'search' ? '학교 변경' : undefined} />
 
       {view.mode === 'building' ? (
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.bldgInfo}>
-            <Text style={styles.bldgInfoTop}>{view.building.college} · 신촌캠퍼스</Text>
-            <Text style={styles.bldgInfoTitle}>{view.building.name} <Text style={styles.bldgInfoCode}>· {view.building.code}동</Text></Text>
-          </View>
+          <Card style={styles.bldgInfo}>
+            <AppText variant="caption" color={TOKEN.text2}>{view.building.college} · 신촌캠퍼스</AppText>
+            <AppText variant="title2" style={{ marginTop: 2 }}>{view.building.name} <AppText variant="title2" color={TOKEN.text3}>· {view.building.code}동</AppText></AppText>
+          </Card>
 
-          <Text style={styles.label}>호실 (선택)</Text>
-          <TextInput
+          <Field
+            label="호실 (선택)"
             value={room}
             onChangeText={setRoom}
             placeholder="예: 407, B106, N311, 강당"
-            placeholderTextColor={TOKEN.text3}
-            style={styles.input}
+            helper="같은 호실 번호끼리 의견이 모입니다. 모르면 비워둬도 됩니다."
             autoFocus
           />
-          <Text style={styles.helper}>같은 호실 번호끼리 의견이 모입니다. 모르면 비워둬도 됩니다.</Text>
 
-          <Pressable
-            onPress={() => submit(view.building)}
-            disabled={submitting}
-            style={[styles.primaryBtn, submitting && styles.primaryBtnDisabled]}
-          >
-            {submitting
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.primaryBtnText}>{room.trim() ? `${room.trim()}호로 투표` : '건물 전체에서 투표'}</Text>}
-          </Pressable>
+          <View style={{ marginTop: SPACE.s5 }}>
+            <Button
+              label={room.trim() ? `${room.trim()}호로 투표` : '건물 전체에서 투표'}
+              onPress={() => submit(view.building)}
+              loading={submitting}
+            />
+          </View>
 
           {submitErr && (
-            <View style={styles.submitErrBox}><Text style={styles.submitErrText}>{submitErr}</Text></View>
+            <Card style={styles.warn}><AppText variant="caption" color={TOKEN.hot}>{submitErr}</AppText></Card>
           )}
         </ScrollView>
       ) : view.mode === 'college' ? (
@@ -114,6 +107,31 @@ export function YonseiClassroom({ onPicked, onExit }: Props) {
   );
 }
 
+function HitRow({ kind, title, sub, onPress }: { kind: string; title: string; sub: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title} style={({ pressed }) => [styles.row, pressed && { opacity: 0.9 }]}>
+      <Badge label={kind} />
+      <View style={styles.rowText}>
+        <AppText variant="bodyLg" weight="semibold" numberOfLines={1}>{title}</AppText>
+        <AppText variant="caption" color={TOKEN.text2} numberOfLines={1} style={{ marginTop: 1 }}>{sub}</AppText>
+      </View>
+      <ChevronRight size={20} color={TOKEN.text3} />
+    </Pressable>
+  );
+}
+
+function NavRow({ title, sub, onPress }: { title: string; sub: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title} style={({ pressed }) => [styles.row, pressed && { opacity: 0.9 }]}>
+      <View style={styles.rowText}>
+        <AppText variant="bodyLg" weight="semibold" numberOfLines={1}>{title}</AppText>
+        <AppText variant="caption" color={TOKEN.text2} numberOfLines={1} style={{ marginTop: 1 }}>{sub}</AppText>
+      </View>
+      <ChevronRight size={20} color={TOKEN.text3} />
+    </Pressable>
+  );
+}
+
 function SearchView({ query, setQuery, hits, onTapCollege, onTapBuilding }: {
   query: string; setQuery: (s: string) => void; hits: yonsei.YHit[];
   onTapCollege: (c: string) => void; onTapBuilding: (b: YonseiBuilding) => void;
@@ -123,67 +141,42 @@ function SearchView({ query, setQuery, hits, onTapCollege, onTapBuilding }: {
   const popularColleges = yonsei.COLLEGE_LIST.slice(0, 6);
   return (
     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-      <View style={styles.searchBox}>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="건물명·코드·단과대 (예: 공학원, 102, 상경)"
-          placeholderTextColor={TOKEN.text3}
-          style={styles.searchInput}
-        />
-        {query.length > 0 && (
-          <Pressable onPress={() => setQuery('')} hitSlop={10}><Text style={styles.clearBtn}>×</Text></Pressable>
-        )}
-      </View>
+      <Input
+        value={query}
+        onChangeText={setQuery}
+        placeholder="건물명·코드·단과대 (예: 공학원, 102, 상경)"
+        clearButtonMode="while-editing"
+        autoCorrect={false}
+      />
+      <View style={{ height: SPACE.s4 }} />
       {query.trim() ? (
         hits.length === 0 ? (
-          <Text style={styles.emptyText}>일치하는 결과 없음.</Text>
+          <AppText variant="body" center color={TOKEN.text3} style={styles.emptyText}>일치하는 결과 없음.</AppText>
         ) : (
-          <View style={{ gap: 6 }}>
-            {hits.map((h, i) => h.type === 'college' ? (
-              <Pressable key={`c-${h.college}-${i}`} onPress={() => onTapCollege(h.college)} style={styles.hitRow}>
-                <Text style={styles.hitKind}>단과대</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.hitTitle}>{h.college}</Text>
-                  <Text style={styles.hitSub}>건물 {h.buildings.length}개</Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </Pressable>
-            ) : (
-              <Pressable key={`b-${h.building.code}-${i}`} onPress={() => onTapBuilding(h.building)} style={styles.hitRow}>
-                <Text style={styles.hitKind}>건물</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.hitTitle}>{h.building.code}동 · {h.building.name}</Text>
-                  <Text style={styles.hitSub}>{h.building.college}</Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </Pressable>
-            ))}
+          <View style={styles.list}>
+            {hits.map((h, i) => h.type === 'college'
+              ? <HitRow key={`c-${h.college}-${i}`} kind="단과대" title={h.college} sub={`건물 ${h.buildings.length}개`} onPress={() => onTapCollege(h.college)} />
+              : <HitRow key={`b-${h.building.code}-${i}`} kind="건물" title={`${h.building.code}동 · ${h.building.name}`} sub={h.building.college} onPress={() => onTapBuilding(h.building)} />,
+            )}
           </View>
         )
       ) : (
-        <View style={{ gap: 18 }}>
+        <View style={{ gap: SPACE.s6 }}>
           <View>
-            <Text style={styles.sectionLabel}>단과대 둘러보기</Text>
-            <View style={styles.collegeGrid}>
+            <AppText variant="micro" color={TOKEN.text3} style={styles.sectionLabel}>단과대 둘러보기</AppText>
+            <View style={styles.tileGrid}>
               {popularColleges.map((c) => (
-                <Pressable key={c} onPress={() => onTapCollege(c)} style={styles.collegeTile}>
-                  <Text style={styles.collegeTileText}>{c}</Text>
-                </Pressable>
+                <Card key={c} onPress={() => onTapCollege(c)} accessibilityLabel={c} style={styles.tile}>
+                  <AppText variant="label" weight="bold" numberOfLines={1}>{c}</AppText>
+                </Card>
               ))}
             </View>
           </View>
           <View>
-            <Text style={styles.sectionLabel}>자주 가는 건물</Text>
-            <View style={{ gap: 6 }}>
+            <AppText variant="micro" color={TOKEN.text3} style={styles.sectionLabel}>자주 가는 건물</AppText>
+            <View style={styles.list}>
               {popular.map((b) => (
-                <Pressable key={b.code} onPress={() => onTapBuilding(b)} style={styles.buildingRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.buildingTitle}>{b.code}동 · {b.name}</Text>
-                    <Text style={styles.buildingSub}>{b.college}</Text>
-                  </View>
-                  <Text style={styles.chevron}>›</Text>
-                </Pressable>
+                <NavRow key={b.code} title={`${b.code}동 · ${b.name}`} sub={b.college} onPress={() => onTapBuilding(b)} />
               ))}
             </View>
           </View>
@@ -197,16 +190,10 @@ function CollegeView({ college, onTapBuilding }: { college: string; onTapBuildin
   const list = useMemo(() => yonsei.BUILDINGS.filter((b) => b.college === college), [college]);
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      <Text style={styles.hint}>{list.length}개 건물</Text>
-      <View style={{ gap: 6 }}>
+      <AppText variant="caption" color={TOKEN.text3} style={{ marginBottom: SPACE.s3 }}>{list.length}개 건물</AppText>
+      <View style={styles.list}>
         {list.map((b) => (
-          <Pressable key={b.code} onPress={() => onTapBuilding(b)} style={styles.buildingRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.buildingTitle}>{b.code}동 · {b.name}</Text>
-              <Text style={styles.buildingSub}>{b.college}</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
+          <NavRow key={b.code} title={`${b.code}동 · ${b.name}`} sub={b.college} onPress={() => onTapBuilding(b)} />
         ))}
       </View>
     </ScrollView>
@@ -214,56 +201,19 @@ function CollegeView({ college, onTapBuilding }: { college: string; onTapBuildin
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: TOKEN.bg },
-  header: {
-    backgroundColor: TOKEN.surface,
-    paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: TOKEN.border,
-    gap: 6,
+  flex: { flex: 1 },
+  scroll: { padding: SPACE.screenPadding, paddingBottom: SPACE.bottomInset + SPACE.s5 },
+  list: { gap: SPACE.rowGap },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.s3, minHeight: 60,
+    paddingVertical: SPACE.s3, paddingHorizontal: SPACE.s4,
+    backgroundColor: TOKEN.surface, borderRadius: TOKEN.r.lg, borderWidth: 1, borderColor: TOKEN.border,
   },
-  backBtn: { fontSize: 13, color: TOKEN.text2, fontWeight: '600' },
-  headerTitle: { fontSize: 16, fontWeight: '800', color: TOKEN.text1 },
-  scroll: { padding: 20, paddingBottom: 80 },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: TOKEN.surface,
-    borderWidth: 1.5,
-    borderColor: TOKEN.border,
-    borderRadius: TOKEN.r.lg,
-    paddingHorizontal: 14,
-    marginBottom: 14,
-  },
-  searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: TOKEN.text1 },
-  clearBtn: { fontSize: 22, color: TOKEN.text3 },
-  hint: { fontSize: 12, color: TOKEN.text3, marginVertical: 6 },
-  emptyText: { fontSize: 13, color: TOKEN.text3, textAlign: 'center', padding: 20 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', color: TOKEN.text3, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 },
-  collegeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  collegeTile: { width: '47%', padding: 14, backgroundColor: TOKEN.surface, borderRadius: TOKEN.r.md, borderWidth: 1, borderColor: TOKEN.border },
-  collegeTileText: { fontSize: 13, fontWeight: '700', color: TOKEN.text1 },
-  buildingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, backgroundColor: TOKEN.surface, borderRadius: TOKEN.r.md, borderWidth: 1, borderColor: TOKEN.border },
-  buildingTitle: { fontSize: 14, fontWeight: '700', color: TOKEN.text1, marginBottom: 2 },
-  buildingSub: { fontSize: 11, color: TOKEN.text2 },
-  hitRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, backgroundColor: TOKEN.surface, borderRadius: TOKEN.r.md, borderWidth: 1, borderColor: TOKEN.border },
-  hitKind: { fontSize: 9, fontWeight: '700', color: TOKEN.cold, backgroundColor: TOKEN.coldBg, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, overflow: 'hidden', letterSpacing: 0.5 },
-  hitTitle: { fontSize: 14, fontWeight: '700', color: TOKEN.text1, marginBottom: 2 },
-  hitSub: { fontSize: 11, color: TOKEN.text2 },
-  chevron: { fontSize: 18, color: TOKEN.text3 },
-  bldgInfo: { padding: 14, backgroundColor: TOKEN.coldBg, borderRadius: TOKEN.r.md, marginBottom: 14 },
-  bldgInfoTop: { fontSize: 11, color: TOKEN.text2, marginBottom: 4 },
-  bldgInfoTitle: { fontSize: 15, fontWeight: '800', color: TOKEN.text1 },
-  bldgInfoCode: { color: TOKEN.text3, fontWeight: '600' },
-  label: { fontSize: 12, fontWeight: '700', color: TOKEN.text2, marginBottom: 8, letterSpacing: 0.3 },
-  input: { padding: 13, borderWidth: 2, borderColor: TOKEN.border, borderRadius: TOKEN.r.md, fontSize: 14, color: TOKEN.text1, backgroundColor: TOKEN.bg },
-  helper: { fontSize: 11, color: TOKEN.text3, marginTop: 6, lineHeight: 16 },
-  primaryBtn: { marginTop: 22, padding: 14, backgroundColor: TOKEN.cold, borderRadius: TOKEN.r.lg, alignItems: 'center' },
-  primaryBtnDisabled: { backgroundColor: TOKEN.border },
-  primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  submitErrBox: { marginTop: 10, padding: 10, backgroundColor: TOKEN.hotBg, borderRadius: TOKEN.r.md },
-  submitErrText: { fontSize: 12, color: TOKEN.hot },
+  rowText: { flex: 1, minWidth: 0 },
+  warn: { marginTop: SPACE.s3, backgroundColor: TOKEN.hotBg, borderColor: TOKEN.hotBg },
+  emptyText: { paddingVertical: SPACE.s7 },
+  sectionLabel: { marginBottom: SPACE.s3 },
+  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s2 },
+  tile: { width: '48.5%', minHeight: 56, justifyContent: 'center' },
+  bldgInfo: { backgroundColor: TOKEN.coldBg, borderColor: TOKEN.coldBg, marginBottom: SPACE.s5 },
 });
