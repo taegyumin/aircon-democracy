@@ -17,6 +17,11 @@ jobs:
       - run: npm ci
       - name: Data integrity
         run: npm run check:data
+      - name: Store copy SSOT drift
+        # docs/store/store-copy.json(SSOT)와 생성 산출물(store.config.json, play/*.txt)이
+        # 어긋나면 실패. 왜: 카피를 손으로 복사하다 어긋나 '제거한 기능을 스토어가 광고'하는
+        # 심사 리젝 사고 방지 (snuboard 교훈). 고치려면 store-copy.json 수정 → npm run store:sync.
+        run: npm run store:check
       - name: Unit tests (packages/core + apps/web)
         run: npm run test:unit
       - name: Next.js build (RSC/edge boundary 검증)

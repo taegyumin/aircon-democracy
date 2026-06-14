@@ -52,21 +52,30 @@ eas submit -p android --latest
 
 ## 5. 스토어 metadata 준비
 
-각 스토어가 요구하는 것:
-- **앱 아이콘**: `assets/icon.png` (이미 있음, 1024×1024 권장)
+### 카피(텍스트) — 단일 소스에서 생성 (손 복사 금지)
+
+부제·설명·키워드·프로모·릴리스노트의 **정본은 `docs/store/store-copy.json` 하나**.
+
+```bash
+# 카피 수정은 store-copy.json만. 그 후:
+npm run store:sync        # → apps/mobile/store.config.json (iOS) + docs/store/play/*.txt (Play)
+npm run store:check       # 드리프트/길이초과 검증 (CI가 push마다 자동 차단)
+npm run store:push:ios    # store:sync + `eas metadata:push` — App Store Connect 자동 반영
+# Play: EAS Metadata는 Apple 전용 → docs/store/play/*.txt를 Play Console에 붙여넣기 (생성물, 재타이핑 X)
+```
+
+왜: 카피를 ASC·Play·문서에 손으로 복사하다 어긋나 '제거한 기능을 스토어가 광고'하는 심사
+리젝 사고를 구조적으로 막는다. 길이 제한·진위(개인정보 문구 등)도 SSOT에서 한 번에 관리.
+
+### 나머지 에셋 (카피 아님)
+- **앱 아이콘**: `assets/icon.png` (1024×1024, alpha 없어야 — iOS 거부 #1)
 - **스크린샷**:
-  - iOS: 6.5" iPhone (1284×2778), 5.5" iPhone (1242×2208) — 각 최소 3장
+  - iOS: 6.7" (1290×2796) 필수 / 6.5" (1242×2688) 권장 — 각 최소 3장
   - Android: 폰 (1080×1920 이상) — 최소 2장
-  - 권장: 홈/카테고리 picker, 투표 화면, 카페·음식점 wizard, 즐겨찾기 화면
-- **앱 설명** (한국어):
-  ```
-  지하철·버스·강의실·카페 등 공공 공간의 냉방 상태를 시민이 익명으로 한 표 던지는
-  공익 서비스. 추워요/적당해요/더워요 3가지 선택지로 30초면 끝.
-  ```
-- **카테고리**: 라이프스타일 또는 도구
-- **개인정보 처리방침 URL**: `https://aircondemocracy.com/privacy` (이미 있음)
-- **연령 등급**: 4+
-- **광고 없음** 명시
+  - 권장 화면: 홈 카테고리 picker, 지하철 매칭, 투표, 결과, 버스 RouteTimeline
+- **카테고리**: 라이프스타일 / 보조 유틸리티
+- **개인정보 처리방침 URL**: `https://aircondemocracy.com/privacy`
+- **연령 등급**: 4+ · **광고 없음**
 
 ## 6. iOS 심사 주의
 

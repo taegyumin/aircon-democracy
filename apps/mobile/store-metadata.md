@@ -1,58 +1,15 @@
 # Store Metadata — 에어컨 민주주의
 
+> ⚠️ **카피 SSOT는 [`docs/store/store-copy.json`](../../docs/store/store-copy.json)** — 부제·설명·키워드·프로모·릴리스노트는 거기서만 수정하고 `npm run store:sync`로 제출 파일을 생성한다. CI(`npm run store:check`)가 드리프트를 차단한다. **이 문서의 카피 텍스트는 비정본(설명용)** — 운영 가이드(체크리스트·스크린샷 사양·데이터 안전 표)만 신뢰하라.
+
 배포자: **Minari** / Team `RWC9Y2BDAS` / Bundle `com.aircondemocracy.app`
 
 ## App Store Connect
 
-### 기본 정보
-- **이름**: 에어컨 민주주의
-- **부제**: 30초 익명 투표 (subtitle, 30자 이내)
-- **카테고리**: 주 — 라이프스타일 / 보조 — 유틸리티
+### 기본 정보 — 카피·URL은 SSOT에서 (이 문서 아님)
+- **이름·부제·프로모션 텍스트·설명·키워드·릴리스노트·저작권·URL**: 정본은 [`docs/store/store-copy.json`](../../docs/store/store-copy.json). `npm run store:sync` → `apps/mobile/store.config.json`(iOS) + `docs/store/play/*.txt`(Play) 생성. iOS 반영은 `npm run store:push:ios`(`eas metadata:push`), Play는 생성된 .txt를 콘솔에 붙여넣기. 여기 카피를 손으로 적지 말 것 — 드리프트 가드(`npm run store:check`)는 SSOT↔생성물만 보고 이 .md는 안 본다.
+- **카테고리** (ASC 콘솔 설정값, 카피 아님): 주 — 라이프스타일 / 보조 — 유틸리티
 - **콘텐츠 등급**: 4+
-- **저작권**: © 2026 Minari
-
-### 프로모션 텍스트 (170자)
-지금 탄 열차·버스가 추워요? 더워요? 30초 익명 투표로 같은 차량 사람들 의견을 실시간으로 봐요. 강의실·카페까지 전국 어디든.
-
-### 설명 (4000자)
-**더우세요? 추우세요? 30초 익명 투표로 같이 알아봐요.**
-
-지하철, 버스, 강의실, 카페 — 에어컨 온도 때문에 불편했던 적 있으신가요?
-"나만 추운가?" 싶을 때, 같은 공간 사람들의 의견을 30초 안에 확인할 수 있어요.
-
-📍 **지원 장소**
-- 지하철: 수도권 1~9호선 실시간 차량 단위 식별 + 전국 station 단위
-- 기차: KTX·SRT·ITX·새마을·무궁화호 (좌석권 정보로 차량 검증)
-- 버스: 서울 시내버스 차량 단위 + 전국 시내버스
-- 고속·시외버스: 승차권 정보로 차량 검증
-- 강의실: 서울대·연세대 강의동 단위 + 다른 대학 자유 등록
-- 카페·음식점: 주소 기반 등록
-
-⚡ **30초 익명 투표**
-- 회원가입 없이 바로 투표
-- 추워요 · 적당해요 · 더워요 3가지 선택
-- 같은 차량/공간 사람들의 의견 실시간 집계
-
-🔒 **개인정보 보호**
-- 위치는 서버에 저장 안 됨
-- 익명 식별자만 사용 (cookie 또는 device token)
-- 신고 기록도 hash 처리
-
-🚇 **실시간 데이터**
-- 서울 swopenAPI + 전국 TAGO API + 용인 에버라인
-- 김포골드라인·의정부경전철 등 일부 노선은 station 단위만 지원
-
-지금 어디 계세요? 30초 투표로 시작해보세요.
-
-웹: https://aircondemocracy.com
-
-### 키워드 (100자, 쉼표 구분)
-에어컨,온도,투표,익명,지하철,버스,강의실,카페,KTX,SRT
-
-### 지원 URL
-- 마케팅 URL: https://aircondemocracy.com
-- 지원 URL: https://aircondemocracy.com (현재 별도 지원 페이지 없음 — 차후 GitHub Issues 안내)
-- 개인정보 처리방침: https://aircondemocracy.com/privacy
 
 ### 심사용 데모 계정
 - **불요** — 회원가입 없는 익명 앱. 심사관에게 "Just open the app, tap a category, search for a location, and tap one of three temperature buttons" 안내.
@@ -60,7 +17,7 @@
 ### 첨부 메모 (Review Notes)
 ```
 이 앱은 회원가입 없이 익명으로 사용 가능합니다.
-모든 vote 데이터는 익명 hash 식별자로 저장되며, 위치 정보는 서버에 저장되지 않습니다.
+모든 vote 데이터는 익명 hash 식별자로 저장됩니다. 사용자의 현재 위치(GPS)는 서버에 저장하지 않으며, 사용자가 직접 등록한 장소(카페·음식점)의 주소·좌표만 장소 식별용으로 저장됩니다.
 
 External API 사용:
 - 서울 swopenAPI (지하철 실시간) — Seoul Open Data
