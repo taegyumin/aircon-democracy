@@ -1,13 +1,13 @@
 // 표면 primitive — Card / ListRow / Badge / Chip / SectionHeader.
 // 일관 radius/shadow/padding + 44pt 터치타겟 + a11y.
 
-import { View, Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import { View, Pressable, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { TOKEN, SPACE, ELEVATION } from '@aircon/core';
 import { AppText } from './AppText';
 
 export function Card({ children, style, onPress, accessibilityLabel }: {
-  children: React.ReactNode; style?: ViewStyle; onPress?: () => void; accessibilityLabel?: string;
+  children: React.ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void; accessibilityLabel?: string;
 }) {
   if (onPress) {
     return (
@@ -25,7 +25,7 @@ export function Card({ children, style, onPress, accessibilityLabel }: {
 }
 
 export function ListRow({
-  title, sub, leading, trailing, onPress, accent,
+  title, sub, leading, trailing, onPress, accent, titleColor, titleVariant = 'title2',
 }: {
   title: string;
   sub?: string;
@@ -33,6 +33,8 @@ export function ListRow({
   trailing?: React.ReactNode;
   onPress?: () => void;
   accent?: boolean;
+  titleColor?: string;
+  titleVariant?: 'title2' | 'bodyLg';
 }) {
   return (
     <Pressable
@@ -47,7 +49,7 @@ export function ListRow({
     >
       {leading && <View style={styles.rowLeading}>{leading}</View>}
       <View style={styles.rowText}>
-        <AppText variant="title2" numberOfLines={1}>{title}</AppText>
+        <AppText variant={titleVariant} color={titleColor} numberOfLines={1}>{title}</AppText>
         {sub ? <AppText variant="caption" color={TOKEN.text2} numberOfLines={1} style={{ marginTop: 2 }}>{sub}</AppText> : null}
       </View>
       {trailing ?? <ChevronRight size={20} color={TOKEN.text3} />}
