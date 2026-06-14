@@ -26,7 +26,7 @@ export default function RootLayout() {
         <Stack.Screen name="wizard/cafe" options={{ title: '카페·음식점' }} />
         <Stack.Screen name="wizard/classroom" options={{ title: '강의실' }} />
         <Stack.Screen name="wizard/custom" options={{ title: '다른 장소 찾기' }} />
-        <Stack.Screen name="p/[placeId]" options={{ title: '투표' }} />
+        <Stack.Screen name="p/[placeId]" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ title: '로그인', presentation: 'modal' }} />
         <Stack.Screen name="settings" options={{ title: '설정', headerShown: false }} />
         <Stack.Screen name="qr" options={{ title: 'QR 스캔', headerShown: false }} />
