@@ -9,14 +9,14 @@ export const TOKEN = {
   hotBg: '#FFF1F0',
   coldBg: '#EFF4FF',
   okBg: '#F0FDF4',
-  // 중립 — 따뜻한 off-white canvas (Thermal Civic: cold/hot 액센트가 POP하도록). web+mobile 공유.
-  bg: '#F6F5F1',
+  // 중립 — 깨끗한 light gray canvas (누런기 없음). cold/hot 투표 액센트가 더 또렷이 POP. web+mobile 공유.
+  bg: '#F4F5F7',
   surface: '#FFFFFF',
-  surface2: '#F8F7F4',
+  surface2: '#EFF1F4',
   text1: '#1A1A1F',
   text2: '#6B6B7A',
   text3: '#A0A0AE',
-  border: '#E7E5DF',
+  border: '#E6E7EB',
   r: { xs: 6, sm: 10, md: 14, lg: 18, xl: 24, pill: 999 },
 } as const;
 
