@@ -9,7 +9,8 @@
     "deploy": "bash ./deploy.sh",
     "test": "vitest run",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@aircon/core": "*",

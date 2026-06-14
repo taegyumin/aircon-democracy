@@ -11,7 +11,10 @@
     "dev": "npm run -w @aircon/web dev",
     "build:web": "node scripts/sync-headers.mjs && npm run -w @aircon/web build && (cd apps/web && npx @cloudflare/next-on-pages)",
     "sync:headers": "node scripts/sync-headers.mjs",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run -w @aircon/web lint",
     "deploy:web": "npm run -w @aircon/web deploy",
+    "smoke": "BASE_URL=https://aircondemocracy.com playwright test tests/e2e/smoke.spec.ts",
     "test:e2e": "playwright test",
     "test:e2e:prod": "BASE_URL=https://aircondemocracy.com playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -22,7 +25,9 @@
     "store:push:ios": "npm run store:sync && (cd apps/mobile && eas metadata:push)",
     "design:check": "node scripts/check-design-tokens.mjs",
     "design:baseline": "node scripts/check-design-tokens.mjs --update",
-    "check": "npm run check:data && npm run store:check && npm run design:check && npm run test:unit",
+    "gate": "npm run check:data && npm run store:check && npm run design:check && npm run typecheck && npm run lint && npm run test:unit",
+    "gate:full": "npm run gate && npm run build:web",
+    "check": "npm run gate",
     "postinstall": "node scripts/link-rn-for-mobile.mjs"
   },
   "devDependencies": {

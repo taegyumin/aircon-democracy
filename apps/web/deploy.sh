@@ -36,6 +36,17 @@ fi
 # shellcheck disable=SC1091
 source "$HOME/.aircon-env"
 
+# 1.5 게이트 — 모든 배포 경로의 단일 관문.
+# 왜: root predeploy 훅만으론 `npm run -w @aircon/web deploy`·`bash deploy.sh` 직접 호출이
+# 우회된다 (Codex 이중검수 지적 2026-06-07). 실제 wrangler deploy로 가는 길목은 여기뿐이라,
+# 여기서 게이트를 돌리면 어떤 경로로 호출해도 typecheck+lint+unit+data+store+design을 통과해야만 배포된다.
+step "gate (typecheck + lint + unit + data + store + design)"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+if ! ( cd "$REPO_ROOT" && npm run gate ); then
+  red "❌ gate 실패 — deploy 중단"
+  exit 1
+fi
+
 # 2. NEXT_PUBLIC alias
 export NEXT_PUBLIC_NCP_MAPS_CLIENT_ID="${NEXT_PUBLIC_NCP_MAPS_CLIENT_ID:-${NCP_MAPS_CLIENT_ID:-}}"
 if [[ -z "$NEXT_PUBLIC_NCP_MAPS_CLIENT_ID" ]]; then
