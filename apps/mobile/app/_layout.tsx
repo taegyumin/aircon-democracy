@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { TOKEN } from '@aircon/core';
 
 export default function RootLayout() {
   return (
@@ -7,13 +8,14 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: '#FFFFFF' },
-          headerTitleStyle: { fontWeight: '700', color: '#1A1A1F' },
+          headerStyle: { backgroundColor: TOKEN.surface },
+          headerTitleStyle: { fontWeight: '700', color: TOKEN.text1 },
           headerShadowVisible: false,
           // iOS back button label hide (default가 이전 화면 title이라 긴 한글이 현재 title 밀어냄).
           headerBackTitle: '',
           headerBackButtonDisplayMode: 'minimal',
-          contentStyle: { backgroundColor: '#F2F2F7' },
+          // 디자인 토큰 중립 캔버스와 통일 (하드코딩 #F2F2F7 제거).
+          contentStyle: { backgroundColor: TOKEN.bg },
         }}
       >
         {/* 홈은 자체 brand row(로고+QR+사용자) 있어서 default Stack header 숨김 — 안 그러면 2중 헤더. */}

@@ -60,7 +60,7 @@ export default function SettingsScreen() {
               <AppText variant="caption" color={TOKEN.text3} style={{ marginTop: 2 }}>{PROVIDER_LABEL[user.provider] ?? user.provider} 계정</AppText>
             </Card>
             <ListRow title="로그아웃" titleVariant="bodyLg" onPress={confirmLogout} />
-            <ListRow title={deleting ? '삭제 중…' : '계정·데이터 삭제'} titleVariant="bodyLg" titleColor={TOKEN.hot} onPress={deleting ? undefined : confirmDelete} />
+            <ListRow title={deleting ? '삭제 중…' : '계정·데이터 삭제'} titleVariant="bodyLg" titleColor={TOKEN.hot} onPress={confirmDelete} disabled={deleting} loading={deleting} />
           </>
         ) : (
           <ListRow title="로그인" titleVariant="bodyLg" onPress={() => router.push('/login')} />

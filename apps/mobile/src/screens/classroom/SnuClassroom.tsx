@@ -156,7 +156,7 @@ function SearchView({
         value={query}
         onChangeText={setQuery}
         placeholder="동번호·단과대·건물·호실 (예: 301, 공대, 우민홀)"
-        clearButtonMode="while-editing"
+        clearable
         autoCorrect={false}
       />
 
@@ -375,12 +375,12 @@ function floorOf(room: string): string {
   return m[2];
 }
 
+// 방 종류 색은 토큰 팔레트(cold/ok/중립)로 제한 — 누런/핑크 하드코딩 제거(브랜드 일관성).
+// 종류 텍스트(label)가 이미 구분을 주므로 색은 절제. classroom=cold(주류), lounge=ok(green), 나머지=중립.
 function kindStyle(kind: SNURoom['kind']) {
   switch (kind) {
     case 'classroom': return { backgroundColor: TOKEN.coldBg, borderColor: TOKEN.cold };
-    case 'lab': return { backgroundColor: '#FEF3C7', borderColor: '#D97706' };
-    case 'lounge': return { backgroundColor: '#ECFCCB', borderColor: '#65A30D' };
-    case 'office': return { backgroundColor: '#FCE7F3', borderColor: '#BE185D' };
+    case 'lounge': return { backgroundColor: TOKEN.okBg, borderColor: TOKEN.ok };
     default: return { backgroundColor: TOKEN.surface, borderColor: TOKEN.border };
   }
 }

@@ -190,7 +190,7 @@ function SearchView({
         value={query}
         onChangeText={setQuery}
         placeholder="건물명·코드·단과대"
-        clearButtonMode="while-editing"
+        clearable
         autoCorrect={false}
       />
       <View style={{ height: SPACE.s4 }} />

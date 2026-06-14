@@ -35,7 +35,7 @@ export function UniversityPicker({ onPick, onBack }: Props) {
           value={query}
           onChangeText={setQuery}
           placeholder="학교명·약어 (예: 카이스트, 부산대, KU)"
-          clearButtonMode="while-editing"
+          clearable
           autoCorrect={false}
         />
 
